@@ -152,6 +152,17 @@ header {
 /* CLIENTS VIEW */
 .main { padding: 24px; max-width: 1300px; margin: 0 auto; }
 .legend-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+.azienda-filter-bar { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.azienda-filter-bar:empty { display: none; }
+.azienda-filter-chip { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 18px; padding: 6px 13px; font-size: 0.76rem; font-weight: 600; color: var(--text); cursor: pointer; transition: all 0.15s; font-family: 'Outfit', sans-serif; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; -webkit-tap-highlight-color: rgba(0,0,0,0.1); touch-action: manipulation; min-height: 34px; }
+.azienda-filter-chip:hover { border-color: var(--accent); color: var(--accent); }
+.azienda-filter-chip.active { background: var(--accent); border-color: var(--accent); color: white; }
+.azienda-filter-chip img { width: 14px; height: 14px; object-fit: contain; border-radius: 2px; }
+.azienda-filter-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-right: 4px; font-family: 'JetBrains Mono', monospace; }
+@media (max-width: 600px){
+  .azienda-filter-bar { gap: 5px; margin-bottom: 12px; }
+  .azienda-filter-chip { font-size: 0.72rem; padding: 5px 11px; min-height: 32px; }
+}
 .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.68rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
 .legend-pip { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 .zone-section { margin-bottom: 40px; }
@@ -738,6 +749,7 @@ header {
       <div class="legend-item"><div class="legend-pip" style="background:var(--red)"></div>15-20g</div>
       <div class="legend-item"><div class="legend-pip" style="background:var(--black-col)"></div>20+g</div>
     </div>
+    <div id="azienda-filter-bar" class="azienda-filter-bar"></div>
     <div id="zones-container"></div>
   </div>
 </div>
@@ -761,18 +773,6 @@ header {
       style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;z-index:1;"
       allowfullscreen loading="lazy"></iframe>
     <div id="leaflet-map" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;background:transparent;pointer-events:none;"></div>
-    <div id="map-filter-bar" class="map-filter-bar" style="z-index:10;"></div>
-    <div style="position:absolute;bottom:24px;left:12px;z-index:10;background:#1c1c20;border:1px solid #323238;border-radius:10px;padding:10px 13px;box-shadow:0 2px 14px rgba(0,0,0,0.4);font-family:'Outfit',sans-serif;pointer-events:none">
-      <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7a7a8a;margin-bottom:7px">Ultima visita</div>
-      <div style="display:flex;flex-direction:column;gap:4px;font-size:0.72rem;color:#f0eff5">
-        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#2d6a4f;flex-shrink:0;display:inline-block"></span>1-5 gg</div>
-        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#b58900;flex-shrink:0;display:inline-block"></span>5-10 gg</div>
-        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#cb6015;flex-shrink:0;display:inline-block"></span>10-15 gg</div>
-        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#c0392b;flex-shrink:0;display:inline-block"></span>15-20 gg</div>
-        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#3d3530;flex-shrink:0;display:inline-block"></span>20+ gg</div>
-        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#c4c0b8;flex-shrink:0;display:inline-block"></span>Mai visitato</div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1587,13 +1587,29 @@ function setZone(z,btn){
   renderClients();
 }
 
+let clientFilterAzienda = null; // null = tutte le aziende
+function buildAziendaFilterBar(){
+  const bar = document.getElementById('azienda-filter-bar');
+  if(!bar) return;
+  if(!aziende.length){ bar.innerHTML=''; return; }
+  bar.innerHTML = `<span class="azienda-filter-label">Azienda:</span>`
+    + `<div class="azienda-filter-chip${clientFilterAzienda===null?' active':''}" onclick="setClientFilterAzienda(null)">Tutte</div>`
+    + aziende.map(a=>`<div class="azienda-filter-chip${clientFilterAzienda===a.id?' active':''}" onclick="setClientFilterAzienda('${a.id}')">${a.logo?`<img src="${escA(a.logo)}" alt="">`:'\u{1F3E2}'}${escH(a.nome)}</div>`).join('');
+}
+function setClientFilterAzienda(id){
+  clientFilterAzienda = id;
+  buildAziendaFilterBar();
+  renderClients();
+}
 function renderClients(){
+  buildAziendaFilterBar();
   const q=document.getElementById('search').value.toLowerCase().trim();
   const container=document.getElementById('zones-container');
   let html='';
   zoneOrder.forEach(zona=>{
     if(currentZone!=='TUTTE'&&currentZone!==zona) return;
     let list=clienti.filter(c=>c.zona===zona);
+    if(clientFilterAzienda) list=list.filter(c=>(c.aziende||[]).includes(clientFilterAzienda));
     if(q) list=list.filter(c=>c.nome.toLowerCase().includes(q)||(c.contatti||'').toLowerCase().includes(q));
     if(!list.length) return;
     html+=`<div class="zone-section"><div class="zone-header"><div class="zone-label">${zona}</div><div class="zone-divider"></div><div class="zone-num">${list.length}</div></div><div class="clients-grid">${list.map(renderCard).join('')}</div></div>`;
@@ -1834,7 +1850,7 @@ function renderSettings(){
   else body.innerHTML = renderAggiungiTab();
 }
 let targhetSearch = '';
-function renderTarghetTab(){
+function buildTarghetListHTML(){
   const sq = (targhetSearch||'').toLowerCase();
   const grouped = {};
   KML_CLIENTS.forEach(k=>{
@@ -1848,7 +1864,6 @@ function renderTarghetTab(){
       const display = kmlOverrides[k.nome] || k.nome;
       const isRenamed = !!kmlOverrides[k.nome];
       const hidden = !!kmlHidden[k.nome];
-      // Escape per JS string literal (\\, \') poi per HTML attribute (")
       const origNomeAttr = k.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
       return `<div class="targhet-row${hidden?' targhet-hidden':''}">
         <span class="targhet-pin-dot" style="background:${col}"></span>
@@ -1863,6 +1878,14 @@ function renderTarghetTab(){
       ${rows}
     </div>`;
   }).join('');
+  return html || '<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:20px 0">Nessun targhet trovato.</div>';
+}
+function onTarghetSearchInput(v){
+  targhetSearch = v;
+  const list = document.querySelector('.targhet-list');
+  if(list) list.innerHTML = buildTarghetListHTML();
+}
+function renderTarghetTab(){
   const lastSync = kmlSyncDate ? `Ultimo import: ${fmtDate(kmlSyncDate)}` : 'Lista predefinita (mai importata)';
   return `<div class="kmz-sync-box">
       <div class="kmz-sync-info">
@@ -1877,8 +1900,8 @@ function renderTarghetTab(){
     <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:10px;line-height:1.45">
       Rinomina i pin di MyMaps. Il nome originale resta come placeholder. Nascondi un pin con l'icona &#128064;.
     </div>
-    <input class="settings-search" type="text" placeholder="Cerca targhet..." value="${escA(targhetSearch||'')}" oninput="targhetSearch=this.value;renderSettings()">
-    <div class="targhet-list">${html || '<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:20px 0">Nessun targhet trovato.</div>'}</div>`;
+    <input class="settings-search" type="text" placeholder="Cerca targhet..." value="${escA(targhetSearch||'')}" oninput="onTarghetSearchInput(this.value)">
+    <div class="targhet-list">${buildTarghetListHTML()}</div>`;
 }
 
 // ============ KMZ/KML IMPORT ============
@@ -2245,11 +2268,14 @@ function setZonaColor(zona, color){
   showToast('Colore '+zona+' aggiornato');
 }
 function renderClientiTab(){
-  const sq = settingsClientSearch.toLowerCase();
+  return `<input class="settings-search" id="client-search-input" type="text" placeholder="Cerca cliente o titolare..." value="${escA(settingsClientSearch)}" oninput="onClientSearchInput(this.value)">
+    <div id="client-edit-list">${buildClientiListHTML()}</div>`;
+}
+function buildClientiListHTML(){
+  const sq = (settingsClientSearch||'').toLowerCase();
   const filtered = [...clienti].sort((a,b)=>a.zona.localeCompare(b.zona)||a.nome.localeCompare(b.nome))
     .filter(c=>c.nome.toLowerCase().includes(sq)||(c.contatti||'').toLowerCase().includes(sq));
-  return `<input class="settings-search" type="text" placeholder="Cerca cliente o titolare..." value="${escA(settingsClientSearch)}" oninput="settingsClientSearch=this.value;renderSettings()">
-    <div id="client-edit-list">${filtered.map(c=>`<div class="client-edit-row" id="cer-${c.id}">
+  return filtered.map(c=>`<div class="client-edit-row" id="cer-${c.id}">
       <div class="client-edit-row-top">
         <span class="client-edit-zone-label">${escH(c.zona)}</span>
         <button class="client-del-btn" onclick="deleteClient('${c.id}')" title="Elimina cliente">&#128465;</button>
@@ -2268,7 +2294,13 @@ function renderClientiTab(){
           <select class="move-client-select" onchange="updateClient('${c.id}','zona',this.value)">${zoneOrder.map(z=>`<option value="${escA(z)}"${c.zona===z?' selected':''}>${z}</option>`).join('')}</select>
         </div>
       </div>
-    </div>`).join('')}</div>`;
+    </div>`).join('');
+}
+function onClientSearchInput(v){
+  settingsClientSearch = v;
+  // Aggiorna SOLO la lista, non il pannello intero — cosi' la tastiera resta aperta
+  const list = document.getElementById('client-edit-list');
+  if(list) list.innerHTML = buildClientiListHTML();
 }
 function renderAggiungiTab(){
   return `<div class="add-client-form">
@@ -2297,10 +2329,11 @@ function updateClient(id, field, val){
 }
 function deleteClient(id){
   const c = clienti.find(x=>x.id===id); if(!c) return;
-  if(!confirm('Eliminare "'+c.nome+'"? I dati di visita e note verranno persi.')) return;
-  clienti = clienti.filter(x=>x.id!==id);
-  delete visits[id];
-  saveAll(); renderSettings(); showToast(c.nome+' eliminato');
+  showConfirm('Eliminare "'+c.nome+'"?\nI dati di visita e note verranno persi.', ()=>{
+    clienti = clienti.filter(x=>x.id!==id);
+    delete visits[id];
+    saveAll(); renderSettings(); showToast(c.nome+' eliminato');
+  });
 }
 function addClient(){
   const nome = (document.getElementById('new-nome').value||'').trim().toUpperCase();
@@ -2445,18 +2478,10 @@ function toggleClientAzienda(clientId, azId, row){
 }
 
 let mapFilterAzienda = null;
-function buildMapFilterBar(){
-  const container = document.getElementById('map-filter-bar');
-  if(!container) return;
-  if(!aziende.length){ container.innerHTML=''; return; }
-  container.innerHTML = [
-    `<div class="map-filter-chip${mapFilterAzienda===null?' active':''}" onclick="setMapFilter(null)">Tutte</div>`,
-    ...aziende.map(a=>`<div class="map-filter-chip${mapFilterAzienda===a.id?' active':''}" onclick="setMapFilter('${a.id}')">${a.logo?`<img src="${a.logo}" alt="">`:'\u{1F3E2}'}${escH(a.nome)}</div>`)
-  ].join('');
-}
+// Barra filtro mappa rimossa: il filtro azienda e' stato spostato nella vista Clienti.
+function buildMapFilterBar(){ /* no-op */ }
 function setMapFilter(azId){
   mapFilterAzienda = azId;
-  buildMapFilterBar();
   if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
 }
 
@@ -2894,6 +2919,33 @@ let toastTimer;
 function showToast(msg){
   const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// Custom confirm modal — mobile-friendly, sostituisce confirm() nativo
+// che su alcuni browser/WebView mobili viene bloccato.
+function showConfirm(message, onYes, onNo){
+  let m = document.getElementById('custom-confirm');
+  if(!m){
+    m = document.createElement('div');
+    m.id = 'custom-confirm';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;z-index:99999;padding:18px;';
+    m.innerHTML = `<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;max-width:400px;width:100%;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.6)">
+      <div id="cc-msg" style="color:var(--text);font-size:0.95rem;line-height:1.45;margin-bottom:18px;text-align:center"></div>
+      <div style="display:flex;gap:10px">
+        <button id="cc-no" style="flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:9px;padding:12px;font-family:'Outfit',sans-serif;font-size:0.92rem;font-weight:600;cursor:pointer;min-height:44px">Annulla</button>
+        <button id="cc-yes" style="flex:1;background:#c0392b;color:#fff;border:none;border-radius:9px;padding:12px;font-family:'Outfit',sans-serif;font-size:0.92rem;font-weight:700;cursor:pointer;min-height:44px">Elimina</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+  }
+  document.getElementById('cc-msg').textContent = message;
+  m.style.display = 'flex';
+  const yes = document.getElementById('cc-yes');
+  const no = document.getElementById('cc-no');
+  // Cleanup handlers
+  const cleanup = ()=>{ m.style.display='none'; yes.onclick=null; no.onclick=null; };
+  yes.onclick = ()=>{ cleanup(); if(onYes) onYes(); };
+  no.onclick  = ()=>{ cleanup(); if(onNo) onNo(); };
 }
 
 loadAll();
