@@ -2612,40 +2612,10 @@ function openMaps(){
 }
 
 // MAPPA — Leaflet overlay sopra MyMaps iframe
-let KML_CLIENTS = [
-  {nome:'UFFICIO', lon:14.1763585, lat:42.4140109, zona:'CHIETI'},
-  {nome:'Vitelli', lon:14.3476042, lat:42.199125, zona:'CHIETI'},
-  {nome:'Eurocer Style', lon:14.160848, lat:42.4058116, zona:'CHIETI'},
-  {nome:'Less Is More Arredi Di Design', lon:14.1705527, lat:42.3544419, zona:'CHIETI'},
-  {nome:'Giacomucci Abramo E Francesco Snc', lon:14.5804953, lat:42.099776, zona:'CHIETI'},
-  {nome:'NPZ Ceramiche - Lanciano', lon:14.432802, lat:42.2652922, zona:'CHIETI'},
-  {nome:'Laccetti Serramenti', lon:14.6877944, lat:42.167228, zona:'CHIETI'},
-  {nome:'Alcova Solutions s.r.l.s.', lon:14.437609, lat:42.2808687, zona:'CHIETI'},
-  {nome:'Bellante Camillo', lon:14.226675, lat:42.3867082, zona:'CHIETI'},
-  {nome:'de 5', lon:14.7383602, lat:42.0508016, zona:'CHIETI'},
-  {nome:'Lozzi', lon:13.8930453, lat:42.3260512, zona:'PESCARA'},
-  {nome:'COMPOSIZIONI SRL', lon:14.2036033, lat:42.4496902, zona:'PESCARA'},
-  {nome:'Living Solutions', lon:14.1555471, lat:42.5127689, zona:'PESCARA'},
-  {nome:'EXPO STORE', lon:14.2247956, lat:42.460545, zona:'PESCARA'},
-  {nome:'Hydro House & Habita Showroom', lon:14.1991431, lat:42.4423125, zona:'PESCARA'},
-  {nome:'Edilizia Di Filippo srl', lon:13.6749191, lat:42.6699931, zona:'TERAMO'},
-  {nome:'COMAIT', lon:13.9277931, lat:42.8169648, zona:'TERAMO'},
-  {nome:'Idea Pavimenti', lon:13.7582722, lat:42.6830654, zona:'TERAMO'},
-  {nome:'Spazio 7 Gruppo Cantarini', lon:14.0238513, lat:42.6448592, zona:'TERAMO'},
-  {nome:'Plastica Vomano 2 Srl', lon:13.9110206, lat:42.6337587, zona:'TERAMO'},
-  {nome:'Domostile srl', lon:14.0130284, lat:42.6601366, zona:'TERAMO'},
-  {nome:'Santilli Edilizia S.r.l.', lon:13.6295902, lat:42.0101636, zona:'AQUILA'},
-  {nome:'BigMat S.I.M.I.C S.r.l', lon:13.5593986, lat:42.2862629, zona:'AQUILA'},
-  {nome:'Alessandro Buttari Store', lon:13.37102, lat:42.0818257, zona:'AQUILA'},
-  {nome:'Lancia Rivestimenti', lon:13.5351841, lat:41.9625832, zona:'AQUILA'},
-  {nome:'Edil-Fer Corti', lon:13.3668799, lat:42.3639247, zona:'AQUILA'},
-  {nome:"CE.ME.C. L'Aquila", lon:13.3064997, lat:42.42804, zona:'AQUILA'},
-  {nome:'Marini Carmine srl', lon:13.6546227, lat:42.2820239, zona:'AQUILA'},
-  {nome:'Di Giannantonio', lon:13.8172384, lat:42.0977922, zona:'SULMONA'},
-  {nome:'Scalera Pietro S.A.S.', lon:13.9132688, lat:42.0582483, zona:'SULMONA'},
-  {nome:'ICW', lon:13.8901689, lat:42.0966445, zona:'SULMONA'},
-  {nome:'Andrea Montesanto', lon:15.0015375, lat:41.9851918, zona:'MOLISE'},
-];
+// La lista parte VUOTA: i pin si popolano solo importando il KMZ da MyMaps
+// (Impostazioni > Targhet mappa > Aggiorna da KMZ).
+// Cosi' la mappa mostra esattamente quello che hai su MyMaps, niente di piu'.
+let KML_CLIENTS = [];
 
 let ZONA_COLORS = {
   CHIETI:'#2d6a4f', PESCARA:'#1a73e8', TERAMO:'#8b5e3c',
