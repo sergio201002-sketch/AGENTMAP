@@ -4,15 +4,2881 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AgentMap</title>
-<meta http-equiv="refresh" content="0; url=agentmap.html">
-<link rel="canonical" href="agentmap.html">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- ============================================================
+     FIREBASE CONFIG - INCOLLA QUI LA TUA CONFIGURAZIONE
+     Vai su https://console.firebase.google.com/ -> Crea progetto
+     -> Aggiungi app web -> copia qui sotto i valori del firebaseConfig.
+     Istruzioni complete in README.md
+     ============================================================ -->
+<script>
+window.FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDY5WYCZaWyNjb-0Scfc7wPkJcOYeUu9PY",
+  authDomain:        "agentmap-4cc00.firebaseapp.com",
+  projectId:         "agentmap-4cc00",
+  storageBucket:     "agentmap-4cc00.firebasestorage.app",
+  messagingSenderId: "528123836023",
+  appId:             "1:528123836023:web:bf9b53ec30fc4d4a8ab872",
+  measurementId:     "G-R7091QWW4G"
+};
+</script>
+<script type="module">
+  // Carica Firebase solo se la config e' stata compilata
+  const cfg = window.FIREBASE_CONFIG || {};
+  const isPlaceholder = !cfg.apiKey || cfg.apiKey.startsWith('PASTE_');
+  if(!isPlaceholder){
+    try {
+      const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js");
+      const { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js");
+      const { getFirestore, doc, setDoc, getDoc, onSnapshot, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js");
+      const app = initializeApp(cfg);
+      window.fbAuth = getAuth(app);
+      window.fbDb = getFirestore(app);
+      window.fbProvider = new GoogleAuthProvider();
+      window.fbAPI = { doc, setDoc, getDoc, onSnapshot, serverTimestamp, signInWithPopup, signOut };
+      window.fbReady = true;
+      onAuthStateChanged(window.fbAuth, user => {
+        window.fbUser = user || null;
+        if(typeof window.onFirebaseAuthChange === 'function') window.onFirebaseAuthChange(user);
+      });
+    } catch(e){
+      console.error('Firebase init failed', e);
+      window.fbReady = false;
+    }
+  } else {
+    window.fbReady = false;
+  }
+</script>
 <style>
-  body { background:#0e0e10; color:#f0eff5; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
-  a { color:#e74c3c; text-decoration:none; }
+:root {
+  --bg: #0e0e10;
+  --surface: #1c1c20;
+  --surface2: #242428;
+  --surface3: #2c2c32;
+  --border: #323238;
+  --border2: #44444c;
+  --text: #f0eff5;
+  --text-muted: #7a7a8a;
+  --text-light: #4a4a58;
+  --accent: #c0392b;
+  --accent-hover: #e74c3c;
+  --accent-dim: rgba(192,57,43,0.13);
+  --accent-dim2: rgba(192,57,43,0.06);
+  --green: #27ae60;
+  --yellow: #d4a017;
+  --orange: #e67e22;
+  --red: #c0392b;
+  --black-col: #888;
+  --radius: 14px;
+  --shadow: 0 1px 4px rgba(0,0,0,0.5), 0 4px 20px rgba(0,0,0,0.35);
+  --shadow-hover: 0 2px 12px rgba(0,0,0,0.6), 0 8px 32px rgba(0,0,0,0.45);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; font-size: 15px; line-height: 1.5; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* HEADER */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex; align-items: center; gap: 14px;
+  height: 58px; position: sticky; top: 0; z-index: 200;
+  backdrop-filter: blur(12px);
+}
+.logo { font-size: 0.92rem; font-weight: 800; letter-spacing: 0.12em; white-space: nowrap; color: var(--text); }
+.logo span { color: var(--accent); }
+.header-search {
+  flex: 1; max-width: 240px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 7px 14px;
+  font-family: 'Outfit', sans-serif; font-size: 0.82rem;
+  color: var(--text); outline: none; transition: border-color 0.2s;
+}
+.header-search:focus { border-color: var(--accent); }
+.header-search::placeholder { color: var(--text-light); }
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.hbtn {
+  width: 36px; height: 36px; border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; color: var(--text-muted);
+}
+.hbtn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.hbtn.active-view { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.hbtn svg { display: block; }
+.route-btn {
+  background: var(--accent); color: #fff; border: none; border-radius: 10px;
+  padding: 7px 14px; font-family: 'Outfit', sans-serif; font-size: 0.78rem; font-weight: 700;
+  cursor: pointer; transition: background 0.15s; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+  letter-spacing: 0.02em;
+}
+.route-btn:hover { background: var(--accent-hover); }
+.route-btn:disabled { background: var(--surface3); color: var(--text-muted); cursor: not-allowed; }
+.route-count { background: rgba(255,255,255,0.2); border-radius: 20px; padding: 1px 7px; font-size: 0.7rem; font-family: 'JetBrains Mono', monospace; }
+
+/* ZONE TABS */
+.zone-tabs {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 24px; display: flex; overflow-x: auto; scrollbar-width: none; align-items: stretch;
+}
+.zone-tabs::-webkit-scrollbar { display: none; }
+.zone-tab {
+  padding: 14px 18px; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all 0.18s; white-space: nowrap; background: none;
+  border-top: none; border-left: none; border-right: none; font-family: 'Outfit', sans-serif;
+  text-transform: uppercase;
+}
+.zone-tab:hover { color: var(--text); }
+.zone-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* VIEWS */
+.view { display: none; }
+.view.active { display: block; }
+
+/* CLIENTS VIEW */
+.main { padding: 24px; max-width: 1300px; margin: 0 auto; }
+.legend-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.68rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+.legend-pip { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.zone-section { margin-bottom: 40px; }
+.zone-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.zone-label { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); }
+.zone-divider { flex: 1; height: 1px; background: var(--border); }
+.zone-num { font-family: 'JetBrains Mono', monospace; font-size: 0.64rem; color: var(--text-light); }
+.clients-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(295px, 1fr)); gap: 14px; }
+
+/* CARD */
+.client-card {
+  background: #ffffff; border: 1px solid #e8e5ee;
+  border-radius: var(--radius); overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 8px 24px rgba(0,0,0,0.18);
+  transition: box-shadow 0.25s, transform 0.25s;
+}
+.client-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.3), 0 12px 36px rgba(0,0,0,0.22); transform: translateY(-2px); }
+.client-card .client-name { color: #0c0c0e; }
+.client-card .contacts { color: #6b6b7a; }
+.client-card .visit-meta { color: #6b6b7a; }
+.client-card .notes-count-label { color: #6b6b7a; }
+.client-card .last-note-preview { color: #a8a4b8; }
+.client-card .position-input { background: #f5f4f8; border-color: #e0dde8; color: #0c0c0e; }
+.client-card .position-input::placeholder { color: #b0aac0; }
+.client-card .geo-btn { border-color: #e0dde8; color: #6b6b7a; background: none; }
+.client-card .geo-btn:hover { border-color: var(--accent); color: var(--accent); }
+.client-card .visit-btn { background: #f5f4f8; border-color: #e0dde8; color: #3a3a4a; }
+.client-card .visit-btn:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.client-card .card-action-btn { border-color: #d0ccd8; color: #6b6b7a; }
+.client-card .card-action-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.client-card .card-action-btn.selected { background: var(--accent); border-color: var(--accent); color: white; }
+.client-card .card-notes-footer { border-top-color: #eceaf0; }
+.client-card .open-notes-btn { border-color: #dddae6; color: #6b6b7a; }
+.client-card .open-notes-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.reminder-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px; padding: 6px 10px;
+  background: rgba(192,57,43,0.07); border: 1px solid rgba(192,57,43,0.18);
+  border-radius: 8px; cursor: pointer; transition: all 0.15s;
+}
+.reminder-row:hover { background: rgba(192,57,43,0.12); }
+.reminder-row-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--red); flex-shrink: 0; box-shadow: 0 0 8px rgba(192,57,43,0.6); }
+.reminder-row-dot.none { background: #d0ccd8; box-shadow: none; }
+.reminder-row-text { font-size: 0.72rem; font-weight: 600; color: var(--red); font-family: 'Outfit', sans-serif; }
+.reminder-row-text.none { color: #a8a4b8; font-weight: 400; }
+
+.card-stripe { height: 2px; background: var(--border); transition: background 0.4s; }
+.card-stripe.verde { background: var(--green); }
+.card-stripe.giallo { background: var(--yellow); }
+.card-stripe.arancio { background: var(--orange); }
+.card-stripe.rosso { background: var(--red); }
+.card-stripe.nero { background: var(--black-col); }
+.card-body { padding: 16px 18px; }
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.client-name { font-size: 0.93rem; font-weight: 700; color: var(--text); line-height: 1.3; flex: 1; letter-spacing: 0.01em; }
+.card-actions { display: flex; gap: 5px; flex-shrink: 0; }
+.card-action-btn {
+  width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--border2);
+  background: transparent; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; font-size: 0.72rem; color: var(--text-muted); transition: all 0.15s;
+}
+.card-action-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.card-action-btn.selected { background: var(--accent); border-color: var(--accent); color: white; }
+.card-action-clock svg { display: block; }
+.contacts { font-size: 0.68rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 10px; min-height: 14px; }
+.stars { display: flex; gap: 3px; margin-bottom: 4px; }
+.star { font-size: 0.82rem; cursor: pointer; color: var(--border2); transition: color 0.1s, transform 0.1s; line-height: 1; }
+.star.on { color: var(--yellow); }
+.star:hover { transform: scale(1.2); }
+.visit-row { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
+.visit-btn {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 5px 11px; font-family: 'Outfit', sans-serif; font-size: 0.73rem; font-weight: 600;
+  color: var(--text-muted); cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+}
+.visit-btn:hover { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.visit-meta { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-muted); flex: 1; }
+.days-chip { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+.chip-verde { background: rgba(39,174,96,0.15); color: #4caf72; }
+.chip-giallo { background: rgba(212,160,23,0.15); color: #d4a017; }
+.chip-arancio { background: rgba(230,126,34,0.15); color: #e67e22; }
+.chip-rosso { background: rgba(192,57,43,0.15); color: #e74c3c; }
+.chip-nero { background: rgba(136,136,136,0.15); color: #aaa; }
+.position-row { display: flex; align-items: center; gap: 5px; }
+.position-input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 5px 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+  color: var(--text); outline: none; transition: border-color 0.2s;
+}
+.position-input:focus { border-color: var(--accent); }
+.position-input::placeholder { color: var(--text-light); }
+.geo-btn {
+  background: none; border: 1px solid var(--border); border-radius: 8px;
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-muted); transition: all 0.15s; flex-shrink: 0;
+}
+.geo-btn:hover { border-color: var(--accent); color: var(--accent); }
+.card-notes-footer {
+  border-top: 1px solid var(--border); padding: 10px 18px 13px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.notes-count-label { font-size: 0.68rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; gap: 4px; }
+.last-note-preview { font-size: 0.68rem; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.reminder-dot { width:11px; height:11px; border-radius:50%; background:var(--red); display:inline-block; margin-left:4px; vertical-align:middle; flex-shrink:0; box-shadow:0 0 8px rgba(192,57,43,0.7); }
+.open-notes-btn {
+  background: none; border: 1px solid var(--border); border-radius: 7px;
+  padding: 4px 10px; font-family: 'Outfit', sans-serif; font-size: 0.7rem; font-weight: 600;
+  color: var(--text-muted); cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+.open-notes-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* COMPANY LOGOS on card */
+.card-logos-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; min-height: 40px; align-items: center; }
+.logo-slot {
+  width: 38px; height: 38px; border-radius: 8px;
+  border: 1.5px solid #d0ccd8; background: #f9f8fc;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; cursor: default; transition: border-color 0.15s; flex-shrink: 0;
+}
+.logo-slot img { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; }
+.logo-slot-nome { font-size: 0.46rem; font-weight: 700; color: #888; text-align: center; line-height: 1.2; padding: 2px 3px; word-break: break-word; max-width: 36px; }
+.logo-slot-add {
+  width: 38px; height: 38px; border-radius: 8px;
+  border: 1.5px dashed #c8c4d0; background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s; color: #b0aac0; font-size: 1.1rem;
+}
+.logo-slot-add:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Settings aziende */
+.azienda-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 13px; margin-bottom: 7px;
+}
+.azienda-logo-preview { width: 40px; height: 40px; border-radius: 8px; object-fit: contain; background: var(--surface3); border: 1px solid var(--border); flex-shrink: 0; }
+.azienda-logo-placeholder { width: 40px; height: 40px; border-radius: 8px; background: var(--surface3); border: 1.5px dashed var(--border2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+.azienda-nome { flex: 1; font-size: 0.86rem; font-weight: 600; color: var(--text); }
+.azienda-del { background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 0.9rem; padding: 3px 6px; border-radius: 5px; transition: all 0.15s; }
+.azienda-del:hover { background: rgba(192,57,43,0.15); color: var(--red); }
+.add-azienda-form { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-top: 12px; }
+.logo-upload-area { width: 60px; height: 60px; border-radius: 10px; border: 2px dashed var(--border2); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; transition: border-color 0.15s; flex-shrink: 0; }
+.logo-upload-area:hover { border-color: var(--accent); }
+.logo-upload-area img { width: 100%; height: 100%; object-fit: contain; }
+.logo-upload-area span { font-size: 1.4rem; color: var(--text-muted); }
+
+/* Map filter bar */
+.map-filter-bar { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1000; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 0 12px; max-width: 92%; pointer-events: all; }
+.map-filter-chip { background: #1c1c20; border: 1.5px solid #323238; border-radius: 20px; padding: 5px 12px; font-size: 0.72rem; font-weight: 600; color: #f0eff5; cursor: pointer; transition: all 0.15s; font-family: 'Outfit', sans-serif; white-space: nowrap; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
+.map-filter-chip:hover { border-color: var(--accent); color: var(--accent); }
+.map-filter-chip.active { background: var(--accent); border-color: var(--accent); color: white; }
+.map-filter-chip img { width: 14px; height: 14px; object-fit: contain; border-radius: 2px; }
+
+/* REMINDERS */
+.reminder-entry { background: rgba(192,57,43,0.08); border: 1px solid rgba(192,57,43,0.18); border-radius: 9px; padding: 10px 12px; margin-bottom: 8px; position: relative; }
+.reminder-entry.done { background: var(--surface2); border-color: var(--border); opacity: 0.55; }
+.reminder-entry .rem-date { font-family:'JetBrains Mono',monospace; font-size:0.62rem; color:var(--text-muted); margin-bottom:3px; }
+.reminder-entry .rem-text { font-size:0.8rem; color:var(--text); line-height:1.5; white-space:pre-wrap; word-break:break-word; padding-right:52px; }
+.rem-check-btn { position:absolute; top:8px; right:28px; background:none; border:none; color:var(--green); cursor:pointer; font-size:0.85rem; padding:2px 5px; border-radius:4px; transition:all 0.15s; line-height:1; }
+.rem-check-btn:hover { background:rgba(39,174,96,0.15); }
+.reminder-entry.done .rem-check-btn { color:var(--text-light); }
+
+/* CALENDAR */
+.cal-view { padding: 24px; max-width: 960px; margin: 0 auto; background: #f5f4f8; min-height: calc(100vh - 56px); }
+.cal-nav { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.cal-nav-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--border); background: #ffffff; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0c0c0e; font-size: 0.95rem; transition: all 0.15s; }
+.cal-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cal-month-title { font-size: 1.05rem; font-weight: 700; flex: 1; color: #0c0c0e; }
+.cal-today-btn { background: none; border: 1px solid var(--border); border-radius: 9px; padding: 6px 13px; font-family: 'Outfit', sans-serif; font-size: 0.74rem; font-weight: 600; color: #0c0c0e; cursor: pointer; transition: all 0.15s; }
+.cal-today-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; border: 1px solid #dddae6; border-radius: var(--radius); overflow: hidden; background: #ffffff; }
+.cal-dow { padding: 10px 0; text-align: center; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); background: #eceaf2; border-bottom: 1px solid #dddae6; }
+.cal-cell { border-right: 1px solid #dddae6; border-bottom: 1px solid #dddae6; min-height: 82px; padding: 7px 8px; cursor: pointer; transition: background 0.12s; vertical-align: top; }
+.cal-cell:hover { background: #f0eef8; }
+.cal-cell:nth-child(7n) { border-right: none; }
+.cal-cell.other-month .cal-day-num { color: #b0aac0; }
+.cal-cell.today { background: rgba(192,57,43,0.07); }
+.cal-cell.today .cal-day-num { color: #c0392b; font-weight: 700; }
+.cal-cell.has-data { background: #faf9fc; }
+.cal-day-num { font-size: 0.72rem; font-weight: 600; color: #1a1916; margin-bottom: 4px; font-family: 'JetBrains Mono', monospace; }
+.cal-visit-chip { font-size: 0.58rem; font-weight: 600; background: rgba(192,57,43,0.18); color: #e74c3c; border-radius: 4px; padding: 1px 5px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; font-family: 'JetBrains Mono', monospace; }
+.cal-note-chip { font-size: 0.58rem; background: rgba(212,160,23,0.18); color: var(--yellow); border-radius: 4px; padding: 1px 5px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.cal-more { font-size: 0.55rem; color: var(--text-light); margin-top: 1px; }
+
+.cal-section-title { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #6b6b7a; margin-bottom: 8px; margin-top: 16px; }
+.cal-section-title:first-child { margin-top: 0; }
+.cal-visit-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
+.cal-visit-item { background: var(--surface2); border-radius: 8px; padding: 9px 12px; display: flex; align-items: center; gap: 10px; }
+.cal-visit-name { font-size: 0.82rem; font-weight: 600; flex: 1; }
+.cal-visit-zone { font-size: 0.65rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+.cal-empty { font-size: 0.78rem; color: var(--text-light); padding: 6px 0; }
+.cal-note-entry { background: rgba(212,160,23,0.10); border: 1px solid rgba(212,160,23,0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 7px; position: relative; }
+.cal-note-text { font-size: 0.8rem; color: var(--text); white-space: pre-wrap; word-break: break-word; padding-right: 22px; }
+.cal-note-time { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--text-muted); margin-bottom: 3px; }
+
+.timeline-wrap { position: relative; }
+.timeline-row { display: flex; align-items: flex-start; gap: 12px; min-height: 48px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; border-radius: 6px; padding: 6px 8px; margin: 0 -8px; }
+.timeline-row:hover { background: var(--surface2); }
+.timeline-row:last-child { border-bottom: none; }
+.timeline-hour { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--text-muted); width: 38px; flex-shrink: 0; padding-top: 2px; }
+.timeline-content { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.timeline-visit-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(192,57,43,0.15); border: 1px solid rgba(192,57,43,0.25); border-radius: 6px; padding: 3px 8px; font-size: 0.74rem; font-weight: 600; color: #e74c3c; max-width: 100%; }
+.timeline-visit-time { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-muted); }
+.timeline-event-chip { display: inline-flex; align-items: center; gap: 5px; background: rgba(212,160,23,0.13); border: 1px solid rgba(212,160,23,0.25); border-radius: 6px; padding: 3px 8px; font-size: 0.74rem; font-weight: 600; color: var(--yellow); max-width: 100%; }
+.timeline-del { background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 0.75rem; padding: 1px 4px; border-radius: 3px; transition: all 0.12s; line-height: 1; }
+.timeline-del:hover { color: var(--red); background: rgba(192,57,43,0.12); }
+
+.add-event-form { display: flex; gap: 8px; align-items: flex-end; margin-top: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.add-event-time { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--text); outline: none; width: 72px; flex-shrink: 0; transition: border-color 0.2s; }
+.add-event-time:focus { border-color: var(--accent); }
+.add-event-input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 7px 10px; font-family: 'Outfit', sans-serif; font-size: 0.82rem; color: var(--text); outline: none; transition: border-color 0.2s; }
+.add-event-input:focus { border-color: var(--accent); }
+.add-event-input::placeholder { color: var(--text-light); }
+.add-event-btn { background: var(--accent); border: none; border-radius: 7px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 1rem; flex-shrink: 0; transition: background 0.15s; }
+.add-event-btn:hover { background: var(--accent-hover); }
+
+/* ROUTE PANEL */
+.route-panel { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 12px; box-shadow: 0 -4px 30px rgba(0,0,0,0.4); z-index: 300; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+.route-panel.visible { transform: translateY(0); }
+.route-panel-label { font-size: 0.77rem; font-weight: 600; white-space: nowrap; color: var(--text-muted); }
+.route-stops { flex: 1; display: flex; gap: 6px; flex-wrap: wrap; overflow: hidden; }
+.route-stop-chip { background: var(--accent-dim); border: 1px solid rgba(192,57,43,0.3); border-radius: 6px; padding: 3px 9px; font-size: 0.7rem; font-weight: 600; color: var(--accent); display: flex; align-items: center; gap: 4px; }
+.route-stop-chip button { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.68rem; line-height: 1; padding: 0; opacity: 0.55; transition: opacity 0.1s; }
+.route-stop-chip button:hover { opacity: 1; }
+.open-maps-btn { background: var(--accent); color: white; border: none; border-radius: 9px; padding: 8px 16px; font-family: 'Outfit', sans-serif; font-size: 0.8rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background 0.15s; flex-shrink: 0; display: flex; align-items: center; gap: 7px; }
+.open-maps-btn:hover { background: var(--accent-hover); }
+.clear-route-btn { background: none; border: 1px solid var(--border); border-radius: 9px; padding: 7px 13px; font-family: 'Outfit', sans-serif; font-size: 0.74rem; color: var(--text-muted); cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+.clear-route-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* MODALS */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 400; display: flex; align-items: center; justify-content: center; padding: 18px; opacity: 0; pointer-events: none; transition: opacity 0.18s; }
+.overlay.open { opacity: 1; pointer-events: all; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: 0 16px 60px rgba(0,0,0,0.6); width: 100%; max-width: 500px; max-height: 86vh; display: flex; flex-direction: column; transform: scale(0.96) translateY(8px); transition: transform 0.18s; }
+.overlay.open .modal { transform: scale(1) translateY(0); }
+.modal-header { padding: 20px 22px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.modal-title { font-size: 0.97rem; font-weight: 700; color: var(--text); }
+.modal-subtitle { font-size: 0.73rem; color: var(--text-muted); margin-top: 2px; }
+.modal-close { background: none; border: none; font-size: 1.2rem; color: var(--text-muted); cursor: pointer; padding: 3px 8px; border-radius: 7px; transition: all 0.15s; line-height: 1; }
+.modal-close:hover { background: var(--surface2); color: var(--text); }
+.modal-body { flex: 1; overflow-y: auto; padding: 18px 22px; }
+.modal-footer { padding: 12px 22px 18px; border-top: 1px solid var(--border); flex-shrink: 0; }
+
+.note-entry { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 10px 12px; margin-bottom: 8px; position: relative; }
+.note-date { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--text-muted); margin-bottom: 3px; }
+.note-text { font-size: 0.8rem; color: var(--text); line-height: 1.5; white-space: pre-wrap; word-break: break-word; padding-right: 22px; }
+.note-del { position: absolute; top: 8px; right: 8px; background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 0.78rem; line-height: 1; padding: 2px 4px; border-radius: 4px; transition: all 0.15s; }
+.note-del:hover { background: rgba(192,57,43,0.15); color: var(--red); }
+.note-composer { display: flex; gap: 7px; align-items: flex-end; }
+.note-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 8px 12px; font-family: 'Outfit', sans-serif; font-size: 0.8rem; color: var(--text); outline: none; resize: none; min-height: 38px; max-height: 110px; overflow-y: auto; transition: border-color 0.2s; line-height: 1.4; }
+.note-input:focus { border-color: var(--accent); }
+.note-input::placeholder { color: var(--text-light); }
+.note-add-btn { background: var(--accent); border: none; border-radius: 9px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 1.1rem; flex-shrink: 0; transition: background 0.15s; }
+.note-add-btn:hover { background: var(--accent-hover); }
+
+.settings-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 18px; flex-shrink: 0; }
+.settings-tab { padding: 11px 16px; font-size: 0.76rem; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; font-family: 'Outfit', sans-serif; white-space: nowrap; }
+.settings-tab:hover { color: var(--text); }
+.settings-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.zone-manage-list { display: flex; flex-direction: column; gap: 7px; }
+.zone-manage-item { display: flex; align-items: center; gap: 9px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 9px 13px; }
+.zone-manage-name { flex: 1; background: transparent; border: none; font-family: 'Outfit', sans-serif; font-size: 0.86rem; font-weight: 600; color: var(--text); outline: none; padding: 2px 4px; border-radius: 4px; transition: background 0.15s; }
+.zone-manage-name:focus { background: var(--surface3); }
+.zone-manage-del { background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 0.85rem; padding: 3px 6px; border-radius: 5px; transition: all 0.15s; }
+.zone-manage-del:hover { background: rgba(192,57,43,0.15); color: var(--red); }
+.zone-add-row { display: flex; gap: 7px; margin-top: 10px; }
+.zone-add-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 8px 12px; font-family: 'Outfit', sans-serif; font-size: 0.83rem; color: var(--text); outline: none; transition: border-color 0.2s; }
+.zone-add-input:focus { border-color: var(--accent); }
+.zone-add-input::placeholder { color: var(--text-light); }
+.zone-add-btn { background: var(--accent); border: none; border-radius: 9px; padding: 8px 16px; font-family: 'Outfit', sans-serif; font-size: 0.8rem; font-weight: 700; color: white; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+.zone-add-btn:hover { background: var(--accent-hover); }
+
+.settings-search { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 7px 12px; font-family: 'Outfit', sans-serif; font-size: 0.82rem; color: var(--text); outline: none; transition: border-color 0.2s; margin-bottom: 10px; }
+.settings-search:focus { border-color: var(--accent); }
+.settings-search::placeholder { color: var(--text-light); }
+
+/* TARGHET TAB */
+.targhet-list { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+.targhet-zone-group { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; }
+.targhet-zone-header { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; font-weight: 700; color: var(--text); letter-spacing: 0.06em; padding-bottom: 7px; margin-bottom: 7px; border-bottom: 1px solid var(--border); }
+.targhet-zone-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.targhet-zone-count { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-muted); background: var(--surface); border-radius: 10px; padding: 1px 7px; }
+.targhet-row { display: flex; align-items: center; gap: 7px; padding: 5px 0; }
+.targhet-row.targhet-hidden { opacity: 0.45; }
+.targhet-pin-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.targhet-input { flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-family: 'Outfit', sans-serif; font-size: 0.82rem; color: var(--text); outline: none; transition: border-color 0.2s; }
+.targhet-input:focus { border-color: var(--accent); }
+.targhet-input::placeholder { color: var(--text-light); font-style: italic; }
+.targhet-reset, .targhet-toggle { background: none; border: 1px solid var(--border); border-radius: 7px; padding: 5px 8px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; transition: all 0.15s; flex-shrink: 0; }
+.targhet-reset:hover, .targhet-toggle:hover { border-color: var(--accent); color: var(--accent-hover); }
+
+/* KMZ SYNC */
+.kmz-sync-box { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, var(--accent-dim), var(--accent-dim2)); border: 1px solid var(--accent); border-radius: 10px; padding: 11px 13px; margin-bottom: 14px; }
+.kmz-sync-info { flex: 1; min-width: 0; }
+.kmz-sync-title { font-size: 0.82rem; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.kmz-sync-sub { font-size: 0.66rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+.kmz-sync-btn { display: inline-block; background: var(--accent); color: white; border: none; border-radius: 8px; padding: 8px 14px; font-family: 'Outfit', sans-serif; font-size: 0.74rem; font-weight: 700; cursor: pointer; transition: all 0.15s; flex-shrink: 0; white-space: nowrap; }
+.kmz-sync-btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+.kmz-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 14px; }
+.kmz-stat { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 10px 6px; text-align: center; }
+.kmz-stat-add { border-color: var(--green); }
+.kmz-stat-upd { border-color: var(--yellow); }
+.kmz-stat-rem { border-color: var(--red); }
+.kmz-stat-num { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; font-weight: 700; color: var(--text); }
+.kmz-stat-lbl { font-size: 0.6rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.06em; margin-top: 2px; }
+.kmz-section-title { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.07em; margin-bottom: 6px; }
+.kmz-list { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 6px 9px; max-height: 130px; overflow-y: auto; }
+.kmz-added-item, .kmz-removed-item { font-size: 0.78rem; padding: 3px 0; color: var(--text); }
+.kmz-added-item { color: var(--green); }
+.kmz-removed-item { color: var(--red); }
+
+/* ACCOUNT */
+#account-hbtn { padding: 4px; min-width: 30px; height: 30px; border-radius: 50%; }
+#account-hbtn.account-active { border-color: var(--accent); }
+.account-card { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; }
+.account-icon { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.account-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin-bottom: 4px; border: 2px solid var(--accent); }
+.account-title { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+.account-sub { font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; max-width: 320px; }
+.account-sync { display: flex; align-items: center; gap: 7px; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 5px 13px; font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+.account-sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #666; flex-shrink: 0; }
+.account-info { font-size: 0.72rem; color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; line-height: 1.5; margin-top: 4px; }
+.account-btn-primary { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; background: var(--accent); color: white; border: none; border-radius: 9px; padding: 11px; font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.15s; margin-top: 8px; }
+.account-btn-primary:hover { background: var(--accent-hover); }
+.account-btn-secondary { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 9px; font-family: 'Outfit', sans-serif; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.15s; margin-top: 6px; }
+.account-btn-secondary:hover { border-color: var(--accent); color: var(--accent-hover); }
+.account-card code { background: var(--surface2); padding: 1px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; }
+
+/* GIRI DELLA SETTIMANA */
+.giri-main { padding: 18px 20px 90px; max-width: 1400px; margin: 0 auto; }
+.giri-header { margin-bottom: 18px; }
+.giri-title-row { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.giri-title { font-size: 1.3rem; font-weight: 700; color: var(--text); margin: 0; flex: 1; }
+.giri-clear-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-family: 'Outfit', sans-serif; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.giri-clear-btn:hover { border-color: var(--red); color: var(--red); }
+.giri-sub { font-size: 0.78rem; color: var(--text-muted); margin: 0; }
+.giri-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; }
+@media (max-width: 1100px) { .giri-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 750px) { .giri-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .giri-grid { grid-template-columns: 1fr; gap: 10px; } }
+.giri-day { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-height: 200px; display: flex; flex-direction: column; transition: border-color 0.2s; }
+.giri-day.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-dim); }
+.giri-day-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
+.giri-day-name { font-size: 0.85rem; font-weight: 700; color: var(--text); letter-spacing: 0.04em; }
+.giri-day.today .giri-day-name { color: var(--accent-hover); }
+.giri-day-count { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-muted); background: var(--surface2); border-radius: 10px; padding: 2px 7px; }
+.giri-visits { flex: 1; display: flex; flex-direction: column; gap: 7px; margin-bottom: 8px; }
+.giri-visit { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 8px 10px; display: flex; align-items: flex-start; gap: 8px; transition: all 0.15s; }
+.giri-visit:hover { border-color: var(--border2); }
+.giri-visit-time { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 700; color: var(--accent-hover); flex-shrink: 0; padding-top: 1px; min-width: 38px; }
+.giri-visit-time.no-time { color: var(--text-light); }
+.giri-visit-body { flex: 1; min-width: 0; }
+.giri-visit-name { font-size: 0.82rem; font-weight: 600; color: var(--text); line-height: 1.25; word-break: break-word; }
+.giri-visit-zone { display: inline-block; font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: var(--surface3); border-radius: 4px; padding: 1px 5px; margin-top: 3px; }
+.giri-visit-note { font-size: 0.7rem; color: var(--text-muted); font-style: italic; margin-top: 4px; line-height: 1.35; }
+.giri-visit-del { background: none; border: none; color: var(--text-light); font-size: 1rem; cursor: pointer; padding: 2px 4px; line-height: 1; flex-shrink: 0; transition: color 0.15s; }
+.giri-visit-del:hover { color: var(--red); }
+.giri-visit-actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; align-items: center; }
+.giri-visit-move { background: var(--surface3); border: 1px solid var(--border); color: var(--text-muted); width: 22px; height: 18px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.62rem; line-height: 1; padding: 0; transition: all 0.12s; font-weight: 700; }
+.giri-visit-move:hover:not(:disabled) { background: var(--accent-dim); border-color: var(--accent); color: var(--accent-hover); }
+.giri-visit-move:disabled { opacity: 0.3; cursor: not-allowed; }
+.giri-day-picker-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.giri-day-picker-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 12px 10px; font-family: 'Outfit', sans-serif; font-size: 0.86rem; font-weight: 700; color: var(--text); cursor: pointer; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.giri-day-picker-btn:hover { border-color: var(--accent); background: var(--accent-dim); color: var(--accent-hover); }
+.giri-day-picker-btn.today { border-color: var(--accent); color: var(--accent-hover); }
+.giri-day-picker-btn .gdp-count { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--text-muted); font-weight: 500; }
+.giri-add-btn { background: none; border: 1.5px dashed var(--border); border-radius: 9px; padding: 9px; font-family: 'Outfit', sans-serif; font-size: 0.76rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.giri-add-btn:hover { border-color: var(--accent); color: var(--accent-hover); background: var(--accent-dim2); }
+.giri-empty { font-size: 0.72rem; color: var(--text-light); text-align: center; padding: 14px 0; font-style: italic; }
+/* Overlay aggiungi giro */
+.giri-client-list { max-height: 220px; overflow-y: auto; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; margin-top: 6px; padding: 4px; display: none; }
+.giri-client-list.visible { display: block; }
+.giri-client-option { padding: 7px 10px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; transition: background 0.12s; display: flex; align-items: center; gap: 8px; }
+.giri-client-option:hover, .giri-client-option.selected { background: var(--accent-dim); }
+.giri-client-option-zone { font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: var(--surface3); border-radius: 4px; padding: 1px 5px; margin-left: auto; flex-shrink: 0; }
+.client-edit-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; margin-bottom: 7px; }
+.client-edit-row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.client-edit-row-fields { display: flex; gap: 7px; flex-wrap: wrap; }
+.client-edit-field { flex: 1; min-width: 120px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-family: 'Outfit', sans-serif; font-size: 0.82rem; color: var(--text); outline: none; transition: border-color 0.2s; }
+.client-edit-field:focus { border-color: var(--accent); }
+.client-edit-field::placeholder { color: var(--text-light); }
+.client-edit-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px; }
+.client-edit-zone-label { font-size: 0.68rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+.client-del-btn { background: none; border: none; color: var(--text-light); cursor: pointer; font-size: 0.9rem; padding: 3px 6px; border-radius: 5px; transition: all 0.15s; margin-left: auto; }
+.client-del-btn:hover { background: rgba(192,57,43,0.15); color: var(--red); }
+.move-client-select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px; font-family: 'Outfit', sans-serif; font-size: 0.76rem; color: var(--text); outline: none; cursor: pointer; transition: border-color 0.15s; }
+.move-client-select:focus { border-color: var(--accent); }
+
+.add-client-form { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.add-client-field-group { margin-bottom: 13px; }
+.add-client-label { font-size: 0.64rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 5px; display: block; }
+.add-client-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; font-family: 'Outfit', sans-serif; font-size: 0.85rem; color: var(--text); outline: none; transition: border-color 0.2s; }
+.add-client-input:focus { border-color: var(--accent); }
+.add-client-input::placeholder { color: var(--text-light); }
+.add-client-select { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; font-family: 'Outfit', sans-serif; font-size: 0.85rem; color: var(--text); outline: none; transition: border-color 0.2s; cursor: pointer; }
+.add-client-select:focus { border-color: var(--accent); }
+.add-client-btn { width: 100%; background: var(--accent); border: none; border-radius: 10px; padding: 11px; font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 700; color: white; cursor: pointer; transition: background 0.15s; margin-top: 4px; letter-spacing: 0.02em; }
+.add-client-btn:hover { background: var(--accent-hover); }
+
+.move-zone-option { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 9px; padding: 11px 15px; font-size: 0.84rem; font-weight: 600; cursor: pointer; transition: all 0.15s; text-align: left; font-family: 'Outfit', sans-serif; color: var(--text); margin-bottom: 6px; display: block; width: 100%; }
+.move-zone-option:hover { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+.move-zone-option.current { border-color: var(--border2); color: var(--text-muted); cursor: default; font-weight: 400; }
+.move-zone-option.current:hover { background: var(--surface2); border-color: var(--border2); color: var(--text-muted); }
+
+.bottom-nav { display: none; }
+.mobile-search-bar { display: none; }
+
+.toast { position: fixed; top: 66px; right: 20px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); font-size: 0.78rem; font-weight: 600; padding: 9px 16px; border-radius: 10px; opacity: 0; transform: translateY(-6px); transition: all 0.22s; z-index: 999; pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+.timeline-row-active { background: rgba(255,255,255,0.02); }
+
+@media (max-width: 640px) {
+  body { padding-bottom: 70px; }
+  header { padding: 0 12px; gap: 7px; height: 52px; }
+  .logo { font-size: 0.82rem; letter-spacing: 0.08em; }
+  .header-search { display: none; }
+  .header-right { gap: 4px; margin-left: auto; }
+  .hbtn { width: 32px; height: 32px; border-radius: 8px; }
+  .route-btn { padding: 6px 10px; font-size: 0.72rem; gap: 4px; }
+  .route-count { padding: 1px 5px; font-size: 0.65rem; }
+
+  .bottom-nav { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; height: 62px; background: var(--surface); border-top: 1px solid var(--border); z-index: 250; align-items: stretch; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .bnav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: none; cursor: pointer; color: var(--text-muted); transition: color 0.15s; font-family: 'Outfit', sans-serif; padding: 6px 0 4px; -webkit-tap-highlight-color: transparent; }
+  .bnav-btn svg { display: block; }
+  .bnav-btn span { font-size: 0.52rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .bnav-btn.active-view { color: var(--accent); }
+  .bnav-btn:active { background: var(--surface2); border-radius: 8px; }
+
+  .mobile-search-bar { display: flex !important; padding: 8px 12px 6px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .mobile-search-bar input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-family: 'Outfit', sans-serif; font-size: 1rem; color: var(--text); outline: none; }
+  .mobile-search-bar input:focus { border-color: var(--accent); }
+  .mobile-search-bar input::placeholder { color: var(--text-light); }
+
+  .zone-tabs { padding: 0 8px; }
+  .zone-tab { padding: 10px 11px; font-size: 0.66rem; letter-spacing: 0.03em; }
+
+  .main { padding: 12px 10px 20px; }
+  .legend-bar { gap: 8px; margin-bottom: 12px; }
+  .legend-item { font-size: 0.65rem; }
+  .zone-section { margin-bottom: 26px; }
+  .zone-label { font-size: 0.6rem; }
+  .clients-grid { grid-template-columns: 1fr; gap: 10px; }
+
+  .client-card { border-radius: 14px; }
+  .card-body { padding: 14px 14px 10px; }
+  .client-name { font-size: 0.98rem; }
+  .contacts { font-size: 0.7rem; margin-bottom: 9px; }
+  .card-actions { gap: 5px; }
+  .card-action-btn { width: 32px; height: 32px; font-size: 0.8rem; border-radius: 8px; }
+  .card-logos-row { gap: 5px; margin-bottom: 9px; min-height: 34px; }
+  .logo-slot, .logo-slot-add { width: 34px; height: 34px; border-radius: 7px; }
+  .reminder-row { padding: 7px 10px; border-radius: 9px; gap: 7px; }
+  .reminder-row-dot { width: 10px; height: 10px; }
+  .reminder-row-text { font-size: 0.74rem; }
+  .visit-row { gap: 7px; margin-bottom: 9px; }
+  .visit-btn { padding: 8px 12px; font-size: 0.8rem; border-radius: 9px; min-height: 38px; gap: 5px; }
+  .visit-meta { font-size: 0.68rem; }
+  .days-chip { font-size: 0.66rem; padding: 2px 7px; }
+  .position-row { gap: 5px; }
+  .position-input { font-size: 0.75rem; padding: 7px 10px; min-height: 36px; }
+  .geo-btn { width: 36px; height: 36px; border-radius: 8px; }
+  .card-notes-footer { padding: 10px 14px 12px; }
+  .notes-count-label { font-size: 0.7rem; }
+  .open-notes-btn { padding: 6px 13px; font-size: 0.76rem; min-height: 34px; border-radius: 8px; }
+
+  .cal-view { padding: 12px 10px 20px; background: #f5f4f8; min-height: calc(100vh - 52px); }
+  .cal-nav { margin-bottom: 12px; gap: 8px; }
+  .cal-month-title { font-size: 0.95rem; }
+  .cal-nav-btn { width: 36px; height: 36px; font-size: 1rem; background: #fff; }
+  .cal-today-btn { padding: 6px 10px; font-size: 0.72rem; }
+  .cal-grid { border-radius: 10px; }
+  .cal-dow { padding: 7px 0; font-size: 0.55rem; }
+  .cal-cell { min-height: 54px; padding: 5px 4px; cursor: pointer; }
+  .cal-day-num { font-size: 0.65rem; margin-bottom: 2px; }
+  .cal-visit-chip, .cal-note-chip { font-size: 0.5rem; padding: 1px 3px; }
+  .cal-more { font-size: 0.5rem; }
+  .timeline-row { padding: 5px 6px; min-height: 40px; margin: 0 -6px; border-radius: 7px; }
+  .timeline-hour { font-size: 0.62rem; width: 32px; }
+  .timeline-visit-chip, .timeline-event-chip { font-size: 0.72rem; padding: 3px 7px; }
+  .timeline-visit-time { font-size: 0.62rem; }
+  .add-event-form { padding: 9px 11px; gap: 6px; }
+  .add-event-time { width: 70px; font-size: 0.82rem; padding: 8px 8px; }
+  .add-event-input { font-size: 0.85rem; padding: 8px 10px; }
+  .add-event-btn { width: 38px; height: 38px; border-radius: 8px; }
+
+  #leaflet-map { touch-action: pan-x pan-y; }
+  .map-filter-bar { top: 8px; gap: 5px; padding: 0 8px; }
+  .map-filter-chip { font-size: 0.67rem; padding: 4px 9px; gap: 4px; border-radius: 16px; }
+  .map-filter-chip img { width: 12px; height: 12px; }
+
+  .route-panel { padding: 10px 12px; gap: 6px; flex-wrap: nowrap; bottom: 62px; align-items: center; }
+  .route-panel-label { font-size: 0.7rem; flex-shrink: 0; display: none; }
+  .route-stops { flex: 1; overflow-x: auto; flex-wrap: nowrap; gap: 5px; }
+  .route-stops::-webkit-scrollbar { display: none; }
+  .route-stop-chip { font-size: 0.68rem; padding: 3px 7px; flex-shrink: 0; }
+  .open-maps-btn { padding: 9px 14px; font-size: 0.78rem; flex-shrink: 0; border-radius: 10px; }
+  .clear-route-btn { padding: 8px 10px; font-size: 0.72rem; flex-shrink: 0; }
+
+  .overlay { padding: 0; align-items: flex-end; background: rgba(0,0,0,0.55); }
+  .modal { max-width: 100% !important; width: 100%; max-height: 90vh !important; border-radius: 20px 20px 0 0; }
+  .modal::before { content: ''; display: block; width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 10px auto 2px; }
+  .modal-header { padding: 8px 16px 12px; }
+  .modal-title { font-size: 0.98rem; }
+  .modal-subtitle { font-size: 0.7rem; }
+  .modal-close { font-size: 1.2rem; padding: 4px 8px; }
+  .modal-body { padding: 10px 14px; }
+  .modal-footer { padding: 8px 14px 20px; }
+  .note-input { font-size: 0.92rem; padding: 10px 13px; min-height: 42px; }
+  .note-add-btn { width: 42px; height: 42px; font-size: 1.2rem; border-radius: 10px; }
+  .note-entry, .reminder-entry { padding: 10px 12px; margin-bottom: 8px; }
+  .note-del { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; top: 7px; right: 7px; }
+  .rem-check-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; top: 7px; right: 32px; }
+  .settings-tabs { padding: 0 12px !important; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .settings-tabs::-webkit-scrollbar { display: none; }
+  .settings-tab { padding: 10px 11px; font-size: 0.71rem; white-space: nowrap; }
+  .client-edit-row { padding: 10px 12px; }
+  .client-edit-row-fields { flex-direction: column; gap: 7px; }
+  .client-edit-field { min-width: unset; font-size: 0.9rem; padding: 9px 11px; }
+  .add-client-input, .add-client-select { font-size: 0.92rem; padding: 11px 13px; -webkit-appearance: none; }
+  .add-client-btn { padding: 13px; font-size: 0.9rem; }
+  .zone-manage-name { font-size: 0.9rem; }
+  .zone-add-row { flex-wrap: wrap; }
+  .zone-add-input { font-size: 0.9rem; padding: 10px 13px; }
+  .move-zone-option { padding: 13px 14px; font-size: 0.9rem; margin-bottom: 5px; }
+  .azienda-row { padding: 10px 12px; gap: 8px; }
+  .azienda-nome { font-size: 0.9rem; }
+  .add-azienda-form { padding: 12px; }
+  .logo-upload-area { width: 50px; height: 50px; }
+  .add-event-time { -webkit-appearance: none; }
+  .toast { top: auto; bottom: 72px; right: 10px; left: 10px; text-align: center; border-radius: 10px; font-size: 0.82rem; }
+}
+@media (min-width: 641px) and (max-width: 900px) {
+  .clients-grid { grid-template-columns: repeat(2, 1fr); }
+  .main { padding: 18px 20px; }
+}
 </style>
 </head>
 <body>
-<p>Apertura AgentMap... se non si carica, <a href="agentmap.html">clicca qui</a>.</p>
-<script>location.replace('agentmap.html');</script>
+
+<header>
+  <div class="logo">AGENT<span>MAP</span></div>
+  <input class="header-search" type="text" placeholder="Cerca..." id="search" oninput="renderClients()">
+  <div class="header-right">
+    <button class="hbtn" id="home-hbtn" onclick="switchView('clients')" title="Home">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+    </button>
+    <button class="hbtn" id="cal-hbtn" onclick="switchView('calendar')" title="Calendario">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    </button>
+    <button class="hbtn" id="map-hbtn" onclick="switchView('mappa')" title="Mappa">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+    </button>
+    <button class="hbtn" id="giri-hbtn" onclick="switchView('giri')" title="Giri della settimana">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M12 7v5l3 2"/></svg>
+    </button>
+    <button class="hbtn" id="gear-hbtn" onclick="openSettings()" title="Impostazioni">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <button class="hbtn" id="account-hbtn" onclick="openAccount()" title="Account / Sincronizzazione">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
+    </button>
+    <button class="route-btn" id="route-main-btn" disabled onclick="openMaps()" title="Avvia giro">
+      <svg width="18" height="13" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="22" height="7" rx="2"/><path d="M4 6 L7 2 L17 2 L20 6"/><circle cx="6.5" cy="13" r="2" fill="currentColor" stroke="none"/><circle cx="17.5" cy="13" r="2" fill="currentColor" stroke="none"/></svg>
+      <span class="route-count" id="route-main-count">0</span>
+    </button>
+  </div>
+</header>
+
+<div class="zone-tabs" id="zone-tabs"></div>
+
+<div class="mobile-search-bar" id="mobile-search-bar">
+  <input type="text" placeholder="Cerca cliente o titolare..." id="search-mobile" oninput="document.getElementById('search').value=this.value;renderClients()">
+</div>
+
+<div class="view active" id="view-clients">
+  <div class="main">
+    <div class="legend-bar">
+      <div class="legend-item"><div class="legend-pip" style="background:var(--green)"></div>1-5g</div>
+      <div class="legend-item"><div class="legend-pip" style="background:var(--yellow)"></div>5-10g</div>
+      <div class="legend-item"><div class="legend-pip" style="background:var(--orange)"></div>10-15g</div>
+      <div class="legend-item"><div class="legend-pip" style="background:var(--red)"></div>15-20g</div>
+      <div class="legend-item"><div class="legend-pip" style="background:var(--black-col)"></div>20+g</div>
+    </div>
+    <div id="zones-container"></div>
+  </div>
+</div>
+
+<div class="view" id="view-calendar">
+  <div class="cal-view">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="calPrev()">&lsaquo;</button>
+      <div class="cal-month-title" id="cal-month-title"></div>
+      <button class="cal-today-btn" onclick="calToday()">Oggi</button>
+      <button class="cal-nav-btn" onclick="calNext()">&rsaquo;</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+</div>
+
+<div class="view" id="view-mappa">
+  <div style="width:100%;height:calc(100vh - 56px);position:relative;overflow:hidden;">
+    <iframe id="mymaps-iframe"
+      src="https://www.google.com/maps/d/embed?mid=1U0EPsrWGAc1p5KseBrHFvv67aBXjFYQ&ehbc=2E312F&noprof=1"
+      style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;z-index:1;"
+      allowfullscreen loading="lazy"></iframe>
+    <div id="leaflet-map" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;background:transparent;pointer-events:none;"></div>
+    <div id="map-filter-bar" class="map-filter-bar" style="z-index:10;"></div>
+    <div style="position:absolute;bottom:24px;left:12px;z-index:10;background:#1c1c20;border:1px solid #323238;border-radius:10px;padding:10px 13px;box-shadow:0 2px 14px rgba(0,0,0,0.4);font-family:'Outfit',sans-serif;pointer-events:none">
+      <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#7a7a8a;margin-bottom:7px">Ultima visita</div>
+      <div style="display:flex;flex-direction:column;gap:4px;font-size:0.72rem;color:#f0eff5">
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#2d6a4f;flex-shrink:0;display:inline-block"></span>1-5 gg</div>
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#b58900;flex-shrink:0;display:inline-block"></span>5-10 gg</div>
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#cb6015;flex-shrink:0;display:inline-block"></span>10-15 gg</div>
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#c0392b;flex-shrink:0;display:inline-block"></span>15-20 gg</div>
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#3d3530;flex-shrink:0;display:inline-block"></span>20+ gg</div>
+        <div style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#c4c0b8;flex-shrink:0;display:inline-block"></span>Mai visitato</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-giri">
+  <div class="main giri-main">
+    <div class="giri-header">
+      <div class="giri-title-row">
+        <h2 class="giri-title">Giri della settimana</h2>
+        <button class="giri-clear-btn" onclick="clearAllGiri()" title="Svuota tutta la settimana">&#128465; Svuota</button>
+      </div>
+      <p class="giri-sub">Pianifica clienti e orari per ogni giorno. Tutto si salva automaticamente.</p>
+    </div>
+    <div class="giri-grid" id="giri-grid"></div>
+  </div>
+</div>
+
+<div class="overlay" id="giri-day-picker-overlay" onclick="closeOverlayBg(event,'giri-day-picker-overlay',closeGiriDayPicker)">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Aggiungi al giro</div>
+        <div class="modal-subtitle" id="giri-day-picker-client"></div>
+      </div>
+      <button class="modal-close" onclick="closeGiriDayPicker()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px">Scegli il giorno della settimana</div>
+      <div class="giri-day-picker-grid" id="giri-day-picker-grid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="giri-add-overlay" onclick="closeOverlayBg(event,'giri-add-overlay',closeGiroAdd)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Aggiungi visita</div>
+        <div class="modal-subtitle" id="giri-add-day-label"></div>
+      </div>
+      <button class="modal-close" onclick="closeGiroAdd()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:14px">
+        <div class="client-edit-label" style="margin-bottom:6px">Cliente *</div>
+        <input class="add-client-input" type="text" id="giri-add-search" placeholder="Cerca per nome..." oninput="filterGiroClientList()" autocomplete="off">
+        <div class="giri-client-list" id="giri-client-list"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <div style="flex:1">
+          <div class="client-edit-label" style="margin-bottom:6px">Orario</div>
+          <input class="add-client-input" type="time" id="giri-add-time" placeholder="--:--">
+        </div>
+      </div>
+      <div>
+        <div class="client-edit-label" style="margin-bottom:6px">Note (opzionale)</div>
+        <input class="add-client-input" type="text" id="giri-add-note" placeholder="Es. portare campionario">
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px">
+      <button onclick="closeGiroAdd()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Annulla</button>
+      <button onclick="confirmAddGiro()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Salva visita</button>
+    </div>
+  </div>
+</div>
+
+<div class="route-panel" id="route-panel">
+  <div class="route-panel-label">
+    <svg width="12" height="15" viewBox="0 0 13 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;margin-right:4px"><path d="M6.5 1C3.46 1 1 3.46 1 6.5c0 4.25 5.5 8.5 5.5 8.5S12 10.75 12 6.5C12 3.46 9.54 1 6.5 1z"/><circle cx="6.5" cy="6.5" r="2" fill="currentColor" stroke="none"/></svg>Giro:
+  </div>
+  <div class="route-stops" id="route-stops-list"></div>
+  <button class="clear-route-btn" onclick="clearRoute()">Svuota</button>
+  <button class="open-maps-btn" onclick="openMaps()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="3" x2="4" y2="21"/><path d="M4 4 L20 4 L20 11 L4 11" fill="none"/><rect x="4" y="4" width="4" height="3.5" fill="currentColor" stroke="none"/><rect x="12" y="4" width="4" height="3.5" fill="currentColor" stroke="none"/><rect x="8" y="7.5" width="4" height="3.5" fill="currentColor" stroke="none"/><rect x="16" y="7.5" width="4" height="3.5" fill="currentColor" stroke="none"/></svg>
+    Naviga
+  </button>
+</div>
+
+<div class="overlay" id="notes-overlay" onclick="closeOverlayBg(event,'notes-overlay',closeNotes)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="notes-modal-title"></div>
+        <div class="modal-subtitle" id="notes-modal-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeNotes()">&times;</button>
+    </div>
+    <div class="modal-body" id="notes-modal-body"></div>
+    <div class="modal-footer">
+      <div class="note-composer">
+        <textarea class="note-input" id="modal-note-input" placeholder="Scrivi una nota... (Enter = salva)" rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();modalAddNote()}"></textarea>
+        <button class="note-add-btn" onclick="modalAddNote()">+</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="assign-azienda-overlay" onclick="closeOverlayBg(event,'assign-azienda-overlay',closeAssignAzienda)">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Assegna azienda</div>
+        <div class="modal-subtitle" id="assign-az-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeAssignAzienda()">&times;</button>
+    </div>
+    <div class="modal-body" id="assign-az-body"></div>
+  </div>
+</div>
+
+<div class="overlay" id="reminders-overlay" onclick="closeOverlayBg(event,'reminders-overlay',closeReminders)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="rem-modal-title"></div>
+        <div class="modal-subtitle" id="rem-modal-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeReminders()">&times;</button>
+    </div>
+    <div class="modal-body" id="rem-modal-body"></div>
+    <div class="modal-footer">
+      <div class="note-composer">
+        <textarea class="note-input" id="rem-note-input" placeholder="Scrivi un promemoria... (Enter = salva)" rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();remAddNote()}"></textarea>
+        <button class="note-add-btn" onclick="remAddNote()" style="background:var(--accent)">+</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="settings-overlay" onclick="closeOverlayBg(event,'settings-overlay',closeSettings)">
+  <div class="modal" style="max-width:520px;max-height:90vh">
+    <div class="modal-header" style="padding-bottom:12px">
+      <div class="modal-title">Impostazioni</div>
+      <button class="modal-close" onclick="closeSettings()">&times;</button>
+    </div>
+    <div class="settings-tabs" id="settings-tabs" style="padding:0 22px;margin-bottom:0;flex-shrink:0;display:flex;border-bottom:1px solid var(--border)"></div>
+    <div class="modal-body" id="settings-body"></div>
+  </div>
+</div>
+
+<div class="overlay" id="calday-overlay" onclick="closeOverlayBg(event,'calday-overlay',closeCalDay)">
+  <div class="modal" style="max-width:480px;max-height:90vh">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="calday-title"></div>
+        <div class="modal-subtitle" id="calday-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeCalDay()">&times;</button>
+    </div>
+    <div class="modal-body" id="calday-body" style="padding:14px 18px"></div>
+    <div class="modal-footer">
+      <div class="add-event-form">
+        <input class="add-event-time" type="time" id="calday-event-time" value="09:00">
+        <input class="add-event-input" type="text" id="calday-event-text" placeholder="Aggiungi evento o nota..."
+          onkeydown="if(event.key==='Enter'){event.preventDefault();calDayAddEvent()}">
+        <button class="add-event-btn" onclick="calDayAddEvent()">+</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="move-overlay" onclick="closeOverlayBg(event,'move-overlay',closeMove)">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Sposta cliente</div>
+        <div class="modal-subtitle" id="move-modal-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeMove()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="move-zone-list" id="move-zone-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pin-edit-overlay" onclick="closeOverlayBg(event,'pin-edit-overlay',closePinEdit)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Modifica posizione</div>
+        <div class="modal-subtitle" id="pin-edit-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closePinEdit()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding-bottom:4px">
+      <div style="margin-bottom:16px">
+        <div class="client-edit-label" style="margin-bottom:6px">Indirizzo / Via</div>
+        <input class="add-client-input" type="text" id="pin-edit-address" placeholder="Es. Via Roma 1, Chieti">
+      </div>
+      <div style="margin-bottom:10px">
+        <div class="client-edit-label" style="margin-bottom:6px">Coordinate GPS (lat,lon)</div>
+        <div style="display:flex;gap:7px;align-items:center">
+          <input class="add-client-input" type="text" id="pin-edit-coords" placeholder="Es. 42.3510, 14.1670" style="font-family:'JetBrains Mono',monospace;font-size:0.8rem">
+          <button onclick="pinEditGPS()" style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;width:40px;height:40px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;color:var(--text-muted)" title="Usa GPS attuale">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+          </button>
+        </div>
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:5px">Il campo indirizzo viene mostrato nel popup. Le coordinate spostano il pin sulla mappa.</div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px">
+      <button onclick="closePinEdit()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Annulla</button>
+      <button onclick="savePinEdit()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Salva posizione</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="kmz-import-overlay" onclick="closeOverlayBg(event,'kmz-import-overlay',closeKmzImport)">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Importa da MyMaps</div>
+        <div class="modal-subtitle">Conferma sincronizzazione targhet</div>
+      </div>
+      <button class="modal-close" onclick="closeKmzImport()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding-bottom:8px">
+      <div class="kmz-stats">
+        <div class="kmz-stat"><div class="kmz-stat-num" id="kmz-stat-total">0</div><div class="kmz-stat-lbl">Totale</div></div>
+        <div class="kmz-stat kmz-stat-add"><div class="kmz-stat-num" id="kmz-stat-added">0</div><div class="kmz-stat-lbl">Nuovi</div></div>
+        <div class="kmz-stat kmz-stat-upd"><div class="kmz-stat-num" id="kmz-stat-updated">0</div><div class="kmz-stat-lbl">Aggiornati</div></div>
+        <div class="kmz-stat kmz-stat-rem"><div class="kmz-stat-num" id="kmz-stat-removed">0</div><div class="kmz-stat-lbl">Rimossi</div></div>
+      </div>
+      <div class="kmz-section-title">Nuovi targhet</div>
+      <div class="kmz-list" id="kmz-added-list"></div>
+      <div class="kmz-section-title" style="margin-top:14px">Targhet rimossi</div>
+      <div class="kmz-list" id="kmz-removed-list"></div>
+      <div style="font-size:0.66rem;color:var(--text-muted);margin-top:12px;line-height:1.5">
+        Le rinominazioni dei targhet rimossi verranno scartate. Note, visite e promemoria dei clienti dell'app non vengono toccati.
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px">
+      <button onclick="closeKmzImport()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Annulla</button>
+      <button onclick="applyKmlImport()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Applica sincronizzazione</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="account-overlay" onclick="closeOverlayBg(event,'account-overlay',closeAccount)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Account</div>
+        <div class="modal-subtitle">Sincronizzazione tra dispositivi</div>
+      </div>
+      <button class="modal-close" onclick="closeAccount()">&times;</button>
+    </div>
+    <div class="modal-body" id="account-body" style="padding:18px 20px"></div>
+  </div>
+</div>
+
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bnav-btn active-view" id="bnav-home" onclick="switchView('clients')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+    <span>Lista</span>
+  </button>
+  <button class="bnav-btn" id="bnav-cal" onclick="switchView('calendar')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span>Calendario</span>
+  </button>
+  <button class="bnav-btn" id="bnav-map" onclick="switchView('mappa')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+    <span>Mappa</span>
+  </button>
+  <button class="bnav-btn" id="bnav-giri" onclick="switchView('giri')">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M12 7v5l3 2"/></svg>
+    <span>Giri</span>
+  </button>
+  <button class="bnav-btn" id="bnav-gear" onclick="openSettings()">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span>Impostazioni</span>
+  </button>
+  <button class="bnav-btn" id="bnav-route" onclick="openMaps()" style="position:relative">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="3" x2="4" y2="21"/><path d="M4 4 L20 4 L20 11 L4 11" fill="none"/><rect x="4" y="4" width="4" height="3.5" fill="currentColor" stroke="none"/><rect x="12" y="4" width="4" height="3.5" fill="currentColor" stroke="none"/><rect x="8" y="7.5" width="4" height="3.5" fill="currentColor" stroke="none"/><rect x="16" y="7.5" width="4" height="3.5" fill="currentColor" stroke="none"/></svg>
+    <span>Giro <span id="bnav-route-count" style="display:none;background:var(--accent);color:white;border-radius:20px;padding:0 5px;font-size:0.55rem;vertical-align:middle">0</span></span>
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const DEFAULT_ZONES = ['CHIETI','PESCARA','SULMONA','TERAMO','AQUILA','MOLISE','VASTO'];
+const DEFAULT_CLIENTS = [
+  {id:'ch1',zona:'CHIETI',nome:'CHIETI',contatti:'EMANUELE'},
+  {id:'ch2',zona:'CHIETI',nome:'ALCOVA',contatti:''},
+  {id:'ch3',zona:'CHIETI',nome:'BELLANTE',contatti:''},
+  {id:'ch4',zona:'CHIETI',nome:'EUROCER',contatti:''},
+  {id:'ch5',zona:'CHIETI',nome:'LESS IS MORE',contatti:''},
+  {id:'ch6',zona:'CHIETI',nome:'LIVING',contatti:'FABIO / SABBIA'},
+  {id:'ch7',zona:'CHIETI',nome:'EXPO STORE',contatti:'STEFANO'},
+  {id:'ch8',zona:'CHIETI',nome:'HYDRO HOUSE',contatti:'MONIA'},
+  {id:'ch9',zona:'CHIETI',nome:'EDILPROJECT',contatti:''},
+  {id:'ch10',zona:'CHIETI',nome:'COMPOSIZIONI',contatti:''},
+  {id:'pe1',zona:'PESCARA',nome:'SCALERA PIETRO',contatti:''},
+  {id:'pe2',zona:'PESCARA',nome:'ICW',contatti:'CARLA / MASSIMO'},
+  {id:'pe3',zona:'PESCARA',nome:'PIERLUIGI COLETTA',contatti:''},
+  {id:'pe4',zona:'PESCARA',nome:'NPZ',contatti:''},
+  {id:'pe5',zona:'PESCARA',nome:'LACCETTI',contatti:''},
+  {id:'pe6',zona:'PESCARA',nome:'RACHELE ROSITO',contatti:'RACHELE'},
+  {id:'pe7',zona:'PESCARA',nome:'MATERIA',contatti:''},
+  {id:'su1',zona:'SULMONA',nome:'SULMONA',contatti:'SANDRO'},
+  {id:'te1',zona:'TERAMO',nome:'TERAMO',contatti:''},
+  {id:'te2',zona:'TERAMO',nome:'COMAIT',contatti:'MASSIMO / ACHILLE / GIANNI'},
+  {id:'te3',zona:'TERAMO',nome:'IDEA PAVIMENTI',contatti:'GIACOMO / BERARDO'},
+  {id:'te4',zona:'TERAMO',nome:'EDIL 83',contatti:'ALESSANDRA'},
+  {id:'te5',zona:'TERAMO',nome:'SPAZIO 7',contatti:'ANDREA CANTARINI / GIACOMO'},
+  {id:'te6',zona:'TERAMO',nome:'PLASTICA VOMANO',contatti:''},
+  {id:'te7',zona:'TERAMO',nome:'DOMOSTILE',contatti:''},
+  {id:'aq1',zona:'AQUILA',nome:'AQUILA',contatti:'EDY'},
+  {id:'aq2',zona:'AQUILA',nome:'SIMIC',contatti:'VALERIA'},
+  {id:'aq3',zona:'AQUILA',nome:'EDIL-FER',contatti:'STEFANO / VALERIO'},
+  {id:'aq4',zona:'AQUILA',nome:'BUTTARI',contatti:'MARINI CARMINE'},
+  {id:'mo1',zona:'MOLISE',nome:'MOLISE',contatti:''},
+  {id:'mo2',zona:'MOLISE',nome:'MONTESANTO',contatti:''},
+  {id:'va1',zona:'VASTO',nome:'VASTO',contatti:''},
+];
+
+let zoneOrder=[], clienti=[], visits={}, calNotes={};
+let aziende=[];
+let kmlOverrides={};
+let kmlHidden={};
+let kmlSync=null;        // lista KML importata (sostituisce KML_CLIENTS quando presente)
+let kmlSyncDate=null;    // ISO date dell'ultimo import
+// Giri settimanali: { lun:[{id, clientId, time, note}], mar:[...], ... }
+let giri={lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
+
+function loadAll(){
+  try {
+    const raw = localStorage.getItem('emilV4');
+    if(!raw){ reset(); return; }
+    const s = JSON.parse(raw);
+    if(!s){ reset(); return; }
+    zoneOrder=s.zoneOrder||[...DEFAULT_ZONES];
+    clienti=Array.isArray(s.clienti)?s.clienti:DEFAULT_CLIENTS.map(c=>({...c}));
+    visits=(s.visits && typeof s.visits==='object')?s.visits:{};
+    calNotes=(s.calNotes && typeof s.calNotes==='object')?s.calNotes:{};
+    if(s.zonaColors) Object.assign(ZONA_COLORS, s.zonaColors);
+    aziende=Array.isArray(s.aziende)?s.aziende:[];
+    kmlOverrides=(s.kmlOverrides && typeof s.kmlOverrides==='object')?s.kmlOverrides:{};
+    kmlHidden=(s.kmlHidden && typeof s.kmlHidden==='object')?s.kmlHidden:{};
+    kmlSync=Array.isArray(s.kmlSync)&&s.kmlSync.length ? s.kmlSync : null;
+    kmlSyncDate=s.kmlSyncDate||null;
+    if(kmlSync) KML_CLIENTS = kmlSync;
+    if(s.giri && typeof s.giri==='object'){
+      giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[], ...s.giri};
+    }
+  } catch(e){
+    console.error('loadAll: JSON parse failed, attempting backup recovery', e);
+    // Tenta recovery dal backup di emergenza
+    try {
+      const bkp = localStorage.getItem('emilV4_backup');
+      if(bkp){
+        localStorage.setItem('emilV4', bkp);
+        return loadAll(); // retry
+      }
+    } catch(_){}
+    reset();
+  }
+}
+function reset(){
+  zoneOrder=[...DEFAULT_ZONES];
+  clienti=DEFAULT_CLIENTS.map(c=>({...c}));
+  visits={}; calNotes={}; aziende=[];
+  kmlOverrides={}; kmlHidden={};
+  kmlSync=null; kmlSyncDate=null;
+  giri={lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
+}
+function buildState(){
+  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri};
+}
+function saveAll(){
+  try {
+    const json = JSON.stringify(buildState());
+    // Backup di sicurezza: tieni la versione precedente come fallback
+    const prev = localStorage.getItem('emilV4');
+    if(prev && prev !== json) localStorage.setItem('emilV4_backup', prev);
+    localStorage.setItem('emilV4', json);
+  } catch(e){ console.error('saveAll local failed', e); }
+  cloudSave();
+}
+
+// ============ CLOUD SYNC (Firebase Firestore) ============
+// _myClientId persistente per tab: evita "echi" e race condition tra reload
+let _myClientId = (()=>{
+  try {
+    let id = localStorage.getItem('_agentmapClientId');
+    if(!id){
+      id = 'cl_' + Date.now().toString(36) + Math.random().toString(36).slice(2,10);
+      localStorage.setItem('_agentmapClientId', id);
+    }
+    // Aggiungiamo un suffisso univoco per tab per disambiguare tab multipli sullo stesso device
+    return id + '_' + Math.random().toString(36).slice(2,6);
+  } catch(_){ return 'cl_' + Math.random().toString(36).slice(2,10); }
+})();
+let _cloudSaveTimer = null;
+let _cloudSaveRetries = 0;
+let _cloudUnsub = null;
+let _isApplyingRemote = false;
+let _cloudStatus = 'offline'; // offline | syncing | synced | error
+let _cloudInitDone = false;   // listener registrato solo dopo init completo
+let _pendingSave = false;     // flag: c'è una save da committare
+
+// Save sincrono (await-able) — usato in cloudInit e beforeunload
+async function cloudSaveNow(){
+  if(!window.fbReady || !window.fbUser) return false;
+  if(_isApplyingRemote) return false;
+  clearTimeout(_cloudSaveTimer);
+  _cloudSaveTimer = null;
+  setCloudStatus('syncing');
+  try {
+    const {doc, setDoc} = window.fbAPI;
+    const ref = doc(window.fbDb, 'agentmap', window.fbUser.uid);
+    await setDoc(ref, {
+      data: JSON.stringify(buildState()),
+      client: _myClientId,
+      updatedAt: Date.now(),
+    });
+    _cloudSaveRetries = 0;
+    _pendingSave = false;
+    setCloudStatus('synced');
+    return true;
+  } catch(e){
+    console.error('Cloud save failed', e);
+    setCloudStatus('error');
+    return false;
+  }
+}
+
+function cloudSave(){
+  if(!window.fbReady || !window.fbUser) return;
+  if(_isApplyingRemote) return;
+  _pendingSave = true;
+  clearTimeout(_cloudSaveTimer);
+  setCloudStatus('syncing');
+  _cloudSaveTimer = setTimeout(async () => {
+    const ok = await cloudSaveNow();
+    if(!ok && _cloudSaveRetries < 5){
+      // Retry esponenziale: 2s, 4s, 8s, 16s, 32s
+      _cloudSaveRetries++;
+      const delay = Math.min(2000 * Math.pow(2, _cloudSaveRetries-1), 32000);
+      console.warn('Cloud save retry #' + _cloudSaveRetries + ' fra ' + delay + 'ms');
+      _cloudSaveTimer = setTimeout(()=>cloudSave(), delay);
+    }
+  }, 700);
+}
+
+// Snapshot dello stato corrente (heuristica per "ricchezza")
+function _stateSize(s){
+  if(!s) return 0;
+  return (Array.isArray(s.clienti)?s.clienti.length:0) * 100
+       + (Array.isArray(s.aziende)?s.aziende.length:0) * 5
+       + (s.visits?Object.keys(s.visits).length:0) * 10
+       + (s.calNotes?Object.keys(s.calNotes).length:0) * 5
+       + (s.giri?Object.values(s.giri).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0):0) * 5
+       + (Array.isArray(s.kmlSync)?s.kmlSync.length:0);
+}
+
+async function cloudInit(user){
+  // Chiudi sempre il listener precedente
+  if(_cloudUnsub){ try{ _cloudUnsub(); } catch(_){} _cloudUnsub = null; }
+  _cloudInitDone = false;
+  if(!user || !window.fbReady){
+    setCloudStatus('offline');
+    return;
+  }
+  setCloudStatus('syncing');
+  const {doc, getDoc, onSnapshot} = window.fbAPI;
+  const ref = doc(window.fbDb, 'agentmap', user.uid);
+  try {
+    const snap = await getDoc(ref);
+    const localState = buildState();
+    const localSize = _stateSize(localState);
+    if(snap.exists() && snap.data().data){
+      let cloudState = null;
+      try { cloudState = JSON.parse(snap.data().data); } catch(e){ console.error('cloud JSON corrupt', e); }
+      const cloudSize = _stateSize(cloudState);
+      if(cloudState && cloudSize >= localSize){
+        // Cloud piu' ricco (o uguale): applica
+        applyCloudState(cloudState);
+      } else if(cloudState && cloudSize > 0 && cloudSize < localSize){
+        // Cloud ha qualcosa ma il locale è più ricco: tieni il locale e fai push
+        console.warn('Cloud size('+cloudSize+') < local size('+localSize+'): preservo locale');
+        await cloudSaveNow();
+      } else {
+        // Cloud vuoto o corrotto: push del locale
+        await cloudSaveNow();
+      }
+    } else {
+      // Primo accesso su questo utente: push immediato del locale (sincrono)
+      await cloudSaveNow();
+    }
+    setCloudStatus('synced');
+  } catch(e){
+    console.error('Cloud init failed', e);
+    setCloudStatus('error');
+  }
+  // SOLO ORA registra il listener real-time, dopo che l'init è stabile
+  _cloudInitDone = true;
+  _cloudUnsub = onSnapshot(ref, snap => {
+    if(!snap.exists()) return;
+    if(!_cloudInitDone) return; // protezione iniziale
+    const d = snap.data();
+    if(!d || !d.data) return;
+    if(d.client && d.client === _myClientId) return; // mio echo
+    try {
+      const remote = JSON.parse(d.data);
+      applyCloudState(remote);
+      setCloudStatus('synced');
+    } catch(e){ console.error('snapshot apply failed', e); }
+  }, err => {
+    console.error('Snapshot error', err);
+    setCloudStatus('error');
+  });
+}
+
+function applyCloudState(s){
+  if(!s || typeof s !== 'object') return;
+  _isApplyingRemote = true;
+  try {
+    // Backup pre-apply: se qualcosa va male l'utente puo' recuperare
+    try { localStorage.setItem('emilV4_preCloud', JSON.stringify(buildState())); } catch(_){}
+
+    // Anti-disastro: se cloud arriva con clienti vuoti ma locale ne ha, NON sovrascrivere
+    const localHasClients = Array.isArray(clienti) && clienti.length > 0;
+    const cloudHasClients = Array.isArray(s.clienti) && s.clienti.length > 0;
+    if(Array.isArray(s.zoneOrder) && s.zoneOrder.length) zoneOrder = s.zoneOrder;
+    if(Array.isArray(s.clienti)){
+      if(cloudHasClients || !localHasClients){
+        clienti = s.clienti;
+      } else {
+        console.warn('Anti-disastro: cloud clienti vuoto, locale ha '+clienti.length+'. Preservo locale.');
+      }
+    }
+    if(s.visits && typeof s.visits==='object') visits = s.visits;
+    if(s.calNotes && typeof s.calNotes==='object') calNotes = s.calNotes;
+    if(s.zonaColors) Object.assign(ZONA_COLORS, s.zonaColors);
+    if(Array.isArray(s.aziende)){
+      // Stessa protezione per aziende
+      if(s.aziende.length > 0 || !aziende.length) aziende = s.aziende;
+    }
+    if(s.kmlOverrides && typeof s.kmlOverrides==='object') kmlOverrides = s.kmlOverrides;
+    if(s.kmlHidden && typeof s.kmlHidden==='object') kmlHidden = s.kmlHidden;
+    if(Array.isArray(s.kmlSync) && s.kmlSync.length){
+      kmlSync = s.kmlSync;
+      KML_CLIENTS = s.kmlSync;
+    }
+    if(s.kmlSyncDate) kmlSyncDate = s.kmlSyncDate;
+    if(s.giri && typeof s.giri==='object'){
+      // Per i giri: preserva il locale se cloud e' vuoto e locale ha giri
+      const localGiriCount = Object.values(giri).reduce((n,a)=>n+a.length,0);
+      const cloudGiriCount = Object.values(s.giri).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
+      if(cloudGiriCount > 0 || localGiriCount === 0){
+        giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[], ...s.giri};
+      }
+    }
+    try { localStorage.setItem('emilV4', JSON.stringify(buildState())); } catch(_){}
+    if(typeof renderClients==='function') renderClients();
+    if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+    if(typeof renderCalendar==='function' && currentView==='calendar') renderCalendar();
+    if(typeof renderGiri==='function' && currentView==='giri') renderGiri();
+    if(typeof renderSettings==='function' && document.getElementById('settings-overlay')?.classList.contains('open')) renderSettings();
+  } finally {
+    _isApplyingRemote = false;
+  }
+}
+
+// Flush sincrono prima della chiusura del tab — evita perdita degli ultimi 700ms
+window.addEventListener('beforeunload', ()=>{
+  if(_pendingSave && window.fbReady && window.fbUser){
+    try {
+      // Best-effort: setDoc e' async ma il browser di solito attende fetch in volo
+      const {doc, setDoc} = window.fbAPI;
+      const ref = doc(window.fbDb, 'agentmap', window.fbUser.uid);
+      setDoc(ref, { data: JSON.stringify(buildState()), client: _myClientId, updatedAt: Date.now() });
+    } catch(_){}
+  }
+});
+
+function setCloudStatus(s){
+  _cloudStatus = s;
+  const el = document.getElementById('cloud-status-dot');
+  const lbl = document.getElementById('cloud-status-label');
+  if(!el) return;
+  const map = {
+    offline: {color:'#666', text:'Offline'},
+    syncing: {color:'#d4a017', text:'Sincronizzazione...'},
+    synced:  {color:'#27ae60', text:'Sincronizzato'},
+    error:   {color:'#c0392b', text:'Errore sync'},
+  };
+  const m = map[s] || map.offline;
+  el.style.background = m.color;
+  if(lbl) lbl.textContent = m.text;
+}
+
+window.onFirebaseAuthChange = function(user){
+  updateAccountButton();
+  cloudInit(user);
+  // Aggiorna overlay account se aperto
+  if(document.getElementById('account-overlay')?.classList.contains('open')) renderAccountOverlay();
+};
+
+async function doSignIn(){
+  if(!window.fbReady){ showToast('Firebase non configurato'); return; }
+  try {
+    await window.fbAPI.signInWithPopup(window.fbAuth, window.fbProvider);
+    showToast('Accesso eseguito');
+  } catch(e){
+    console.error(e);
+    showToast('Accesso annullato');
+  }
+}
+async function doSignOut(){
+  if(!window.fbReady) return;
+  try {
+    // Prima di disconnettere: prova a flushare qualsiasi save pendente
+    if(_pendingSave){ try { await cloudSaveNow(); } catch(_){} }
+    // Chiudi il listener cloud per evitare leak fra account diversi
+    if(_cloudUnsub){ try{ _cloudUnsub(); } catch(_){} _cloudUnsub = null; }
+    _cloudInitDone = false;
+    await window.fbAPI.signOut(window.fbAuth);
+    setCloudStatus('offline');
+    showToast('Disconnesso');
+  } catch(e){ console.error(e); }
+}
+
+function openAccount(){
+  renderAccountOverlay();
+  openOverlay('account-overlay');
+}
+function closeAccount(){ closeOverlay('account-overlay'); }
+function renderAccountOverlay(){
+  const body = document.getElementById('account-body');
+  if(!body) return;
+  if(!window.fbReady){
+    body.innerHTML = `
+      <div class="account-card">
+        <div class="account-icon" style="background:#3a3a40">&#9881;&#65039;</div>
+        <div class="account-title">Firebase non configurato</div>
+        <div class="account-sub">Per sincronizzare i dati tra dispositivi, configura Firebase nel file <code>index.html</code>. Vedi <strong>README.md</strong> per la guida passo-passo (5 minuti).</div>
+      </div>`;
+    return;
+  }
+  if(!window.fbUser){
+    body.innerHTML = `
+      <div class="account-card">
+        <div class="account-icon" style="background:var(--accent-dim);color:var(--accent-hover)">&#128274;</div>
+        <div class="account-title">Accedi per sincronizzare</div>
+        <div class="account-sub">Usa il tuo account Google per salvare automaticamente i dati nel cloud e ritrovarli su PC e telefono.</div>
+        <button class="account-btn-primary" onclick="doSignIn()">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#fff" d="M22.5 12.3c0-.8-.1-1.4-.2-2.1H12v3.9h5.9c-.1 1-.7 2.5-2 3.5v2.9h3.2c1.9-1.7 3-4.3 3-7.4 0-.3-.1-.6-.1-.8z"/><path fill="#fff" d="M12 23c2.7 0 5-.9 6.7-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.9-1.7-5.7-4.1H3v2.6C4.7 20.9 8.1 23 12 23z" opacity=".75"/><path fill="#fff" d="M6.3 14.9c-.2-.6-.3-1.3-.3-1.9s.1-1.3.3-1.9V8.5H3.1C2.4 9.9 2 11.4 2 13s.4 3.1 1.1 4.5l3.2-2.6z" opacity=".55"/><path fill="#fff" d="M12 6.4c1.5 0 2.5.6 3 1.2l2.3-2.3C15.9 3.9 14.1 3 12 3 8.1 3 4.7 5.1 3 8.5l3.3 2.6C7.1 8.7 9.4 7 12 7v-.6z" opacity=".4"/></svg>
+          Accedi con Google
+        </button>
+      </div>`;
+    return;
+  }
+  const u = window.fbUser;
+  const photo = u.photoURL ? `<img src="${u.photoURL}" alt="" class="account-avatar">` : `<div class="account-icon" style="background:var(--accent)">${(u.displayName||u.email||'?').charAt(0).toUpperCase()}</div>`;
+  body.innerHTML = `
+    <div class="account-card">
+      ${photo}
+      <div class="account-title">${escH(u.displayName||u.email||'Utente')}</div>
+      <div class="account-sub" style="font-family:'JetBrains Mono',monospace;font-size:0.7rem">${escH(u.email||'')}</div>
+      <div class="account-sync">
+        <span class="account-sync-dot" id="cloud-status-dot"></span>
+        <span id="cloud-status-label">Sincronizzato</span>
+      </div>
+      <div class="account-info">I dati vengono salvati automaticamente nel cloud Firebase. Apri il sito da un altro dispositivo e accedi con lo stesso account: ritroverai tutto.</div>
+      <button class="account-btn-secondary" onclick="doSignOut()">Esci</button>
+    </div>`;
+  setCloudStatus(_cloudStatus);
+}
+
+function updateAccountButton(){
+  const btn = document.getElementById('account-hbtn');
+  if(!btn) return;
+  if(window.fbUser && window.fbUser.photoURL){
+    btn.innerHTML = `<img src="${window.fbUser.photoURL}" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover">`;
+    btn.classList.add('account-active');
+  } else if(window.fbUser){
+    btn.innerHTML = `<div style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:700">${(window.fbUser.displayName||window.fbUser.email||'?').charAt(0).toUpperCase()}</div>`;
+    btn.classList.add('account-active');
+  } else {
+    btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>`;
+    btn.classList.remove('account-active');
+  }
+}
+function getV(id){
+  if(!visits[id]) visits[id]={stelle:0,visitDate:null,position:'',notes:[],reminders:[]};
+  if(!visits[id].notes) visits[id].notes=[];
+  if(!visits[id].reminders) visits[id].reminders=[];
+  return visits[id];
+}
+
+const MONTHS_IT=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const DAYS_IT=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+function daysSince(d){ if(!d) return null; return Math.floor((Date.now()-new Date(d))/86400000); }
+function fmtDate(iso){ if(!iso) return '-'; return new Date(iso).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+function fmtTime(iso){ if(!iso) return ''; return new Date(iso).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); }
+function fmtDateTime(iso){ if(!iso) return ''; const d=new Date(iso); return d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); }
+function isoDay(date){
+  const y=date.getFullYear();
+  const m=String(date.getMonth()+1).padStart(2,'0');
+  const d=String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+function escH(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+function escA(s){ return (s||'').replace(/"/g,'&quot;'); }
+function colorKey(days){
+  if(days===null) return '';
+  if(days<=5) return 'verde';
+  if(days<=10) return 'giallo';
+  if(days<=15) return 'arancio';
+  if(days<=20) return 'rosso';
+  return 'nero';
+}
+function chipKey(days){
+  const m={verde:'chip-verde',giallo:'chip-giallo',arancio:'chip-arancio',rosso:'chip-rosso',nero:'chip-nero'};
+  return m[colorKey(days)]||'';
+}
+
+let currentView='clients';
+function switchView(v){
+  currentView=v;
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  const isClients = v==='clients';
+  document.getElementById('zone-tabs').style.display = isClients ? '' : 'none';
+  const msb = document.getElementById('mobile-search-bar');
+  if(msb) msb.style.display = isClients ? '' : 'none';
+  document.getElementById('cal-hbtn').classList.toggle('active-view', v==='calendar');
+  document.getElementById('home-hbtn').classList.toggle('active-view', isClients);
+  document.getElementById('map-hbtn').classList.toggle('active-view', v==='mappa');
+  const giriHbtn=document.getElementById('giri-hbtn'); if(giriHbtn) giriHbtn.classList.toggle('active-view', v==='giri');
+  ['home','cal','gear','map','giri'].forEach(k=>{
+    const el=document.getElementById('bnav-'+k);
+    if(el) el.classList.remove('active-view');
+  });
+  if(v==='clients'){ const el=document.getElementById('bnav-home'); if(el) el.classList.add('active-view'); }
+  if(v==='calendar'){ const el=document.getElementById('bnav-cal'); if(el) el.classList.add('active-view'); }
+  if(v==='mappa'){ const el=document.getElementById('bnav-map'); if(el) el.classList.add('active-view'); }
+  if(v==='giri'){ const el=document.getElementById('bnav-giri'); if(el) el.classList.add('active-view'); }
+  if(v==='calendar') renderCalendar();
+  else if(v==='mappa') { if(typeof renderMap==='function') renderMap(); }
+  else if(v==='giri') renderGiri();
+  else renderClients();
+}
+
+let currentZone='TUTTE';
+function buildTabs(){
+  const el=document.getElementById('zone-tabs');
+  el.innerHTML=['TUTTE',...zoneOrder].map(z=>`<button class="zone-tab${currentZone===z?' active':''}" onclick="setZone('${escA(z)}',this)">${z}</button>`).join('');
+}
+function setZone(z,btn){
+  currentZone=z;
+  document.querySelectorAll('.zone-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderClients();
+}
+
+function renderClients(){
+  const q=document.getElementById('search').value.toLowerCase().trim();
+  const container=document.getElementById('zones-container');
+  let html='';
+  zoneOrder.forEach(zona=>{
+    if(currentZone!=='TUTTE'&&currentZone!==zona) return;
+    let list=clienti.filter(c=>c.zona===zona);
+    if(q) list=list.filter(c=>c.nome.toLowerCase().includes(q)||(c.contatti||'').toLowerCase().includes(q));
+    if(!list.length) return;
+    html+=`<div class="zone-section"><div class="zone-header"><div class="zone-label">${zona}</div><div class="zone-divider"></div><div class="zone-num">${list.length}</div></div><div class="clients-grid">${list.map(renderCard).join('')}</div></div>`;
+  });
+  container.innerHTML=html||'<div style="color:var(--text-muted);font-size:0.83rem;padding:16px 0">Nessun cliente trovato.</div>';
+}
+
+function renderCard(c){
+  const v=getV(c.id);
+  const days=daysSince(v.visitDate);
+  const sc=colorKey(days);
+  const inRoute=routeSet.has(c.id);
+  const cnt=(v.notes||[]).length;
+  const last=cnt>0?v.notes[cnt-1]:null;
+  const chip=days!==null?`<span class="days-chip ${chipKey(days)}">${days}g</span>`:'';
+  const pendingRem = (v.reminders||[]).filter(r=>!r.done);
+  const hasPending = pendingRem.length > 0;
+  const remRow = `<div class="reminder-row" onclick="openReminders('${c.id}')">
+    <span class="reminder-row-dot${hasPending?'':' none'}"></span>
+    <span class="reminder-row-text${hasPending?'':' none'}">${hasPending?escH(pendingRem[0].text.substring(0,36))+(pendingRem[0].text.length>36?'...':''):'Nessun promemoria'}</span>
+    ${hasPending&&pendingRem.length>1?`<span class="rem-badge" style="font-size:0.65rem;color:var(--red);margin-left:auto;font-family:'JetBrains Mono',monospace;flex-shrink:0">+${pendingRem.length-1}</span>`:'<span class="rem-badge"></span>'}
+  </div>`;
+  const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean);
+  const logosHtml = aziende.length > 0 ? `<div class="card-logos-row">${clientAziende.map(a=>`<div class="logo-slot" title="${escA(a.nome)}">${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<div class="logo-slot-nome">${escH(a.nome.substring(0,6))}</div>`}</div>`).join('')}<div class="logo-slot-add" onclick="openAssignAzienda('${c.id}')" title="Assegna azienda">+</div></div>` : '';
+  return `<div class="client-card" id="card-${c.id}">
+    <div class="card-stripe ${sc}"></div>
+    <div class="card-body">
+      <div class="card-top">
+        <div class="client-name">${escH(c.nome)}</div>
+        <div class="card-actions">
+          <button class="card-action-btn" onclick="openMove('${c.id}')" title="Sposta zona">&#8646;</button>
+          <button class="card-action-btn card-action-clock" onclick="openGiriDayPicker('${c.id}')" title="Aggiungi a un giro della settimana"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><polyline points="8 5 8 8 10 9.5"/></svg></button>
+          <button class="card-action-btn${inRoute?' selected':''}" onclick="toggleRoute('${c.id}')" id="rb-${c.id}" title="Aggiungi al giro corrente">${inRoute?'&#10003;':'+'}</button>
+        </div>
+      </div>
+      ${c.contatti?`<div class="contacts">${escH(c.contatti)}</div>`:'<div class="contacts"></div>'}
+      ${logosHtml}
+      ${remRow}
+      <div class="visit-row">
+        <button class="visit-btn" onclick="markVisit('${c.id}')">
+          <svg width="13" height="16" viewBox="0 0 13 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M6.5 1C3.46 1 1 3.46 1 6.5c0 4.25 5.5 8.5 5.5 8.5S12 10.75 12 6.5C12 3.46 9.54 1 6.5 1z"/><circle cx="6.5" cy="6.5" r="2" fill="currentColor" stroke="none"/></svg>
+          Visita oggi
+        </button>
+        <span class="visit-meta">${fmtDate(v.visitDate)}</span>${chip}
+      </div>
+      <div class="position-row">
+        <input class="position-input" type="text" placeholder="Indirizzo..." value="${escA(v.position||'')}" onchange="savePosition('${c.id}',this.value)" id="pos-${c.id}">
+        <button class="geo-btn" onclick="geolocate('${c.id}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="card-notes-footer">
+      <div>
+        <div class="notes-count-label" style="display:flex;align-items:center;gap:4px">${cnt===0?'Nessuna nota':cnt+(cnt===1?' nota':' note')}</div>
+        ${last?`<div class="last-note-preview">${escH(last.text.substring(0,38))}${last.text.length>38?'...':''}</div>`:''}
+      </div>
+      <button class="open-notes-btn" onclick="openNotes('${c.id}')">Note &rarr;</button>
+    </div>
+  </div>`;
+}
+
+function markVisit(id){
+  const v=getV(id); v.visitDate=new Date().toISOString();
+  saveAll(); renderClients(); showToast('Visita registrata');
+}
+function setStar(id,n){
+  const v=getV(id); v.stelle=v.stelle===n?0:n; saveAll();
+  const card=document.getElementById('card-'+id);
+  if(!card) return;
+  card.querySelectorAll('.star').forEach((el,i)=>el.classList.toggle('on',i<v.stelle));
+}
+function savePosition(id,val){
+  getV(id).position=val.trim(); saveAll();
+  if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+}
+function geolocate(id){
+  if(!navigator.geolocation){showToast('GPS non disponibile');return;}
+  showToast('Rilevamento...');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const c=`${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
+    getV(id).position=c; saveAll();
+    const inp=document.getElementById('pos-'+id); if(inp) inp.value=c;
+    showToast('Posizione salvata');
+  },()=>showToast('Impossibile rilevare'));
+}
+
+let activeNotesId = null;
+function openNotes(id){
+  activeNotesId = id;
+  const c = clienti.find(x=>x.id===id);
+  document.getElementById('notes-modal-title').textContent = c ? c.nome : 'Note';
+  document.getElementById('notes-modal-sub').textContent = c ? (c.zona+(c.contatti?' \u00b7 '+c.contatti:'')) : '';
+  renderNotesBody();
+  openOverlay('notes-overlay');
+  setTimeout(()=>document.getElementById('modal-note-input')?.focus(), 200);
+}
+function closeNotes(){ closeOverlay('notes-overlay'); activeNotesId = null; }
+function renderNotesBody(){
+  const id = activeNotesId; if(!id) return;
+  const v = getV(id);
+  const body = document.getElementById('notes-modal-body');
+  const notes = (v.notes||[]).slice().reverse();
+  if(!notes.length){
+    body.innerHTML = '<div style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:28px 0">Nessuna nota ancora.</div>';
+    return;
+  }
+  body.innerHTML = notes.map((n,i)=>{
+    const ri = v.notes.length-1-i;
+    return `<div class="note-entry"><div class="note-date">${fmtDateTime(n.date)}</div><div class="note-text">${escH(n.text)}</div><button class="note-del" onclick="deleteClientNote('${id}',${ri})">&times;</button></div>`;
+  }).join('');
+}
+function modalAddNote(){
+  const inp = document.getElementById('modal-note-input');
+  const text = inp.value.trim(); if(!text || !activeNotesId) return;
+  const v = getV(activeNotesId);
+  v.notes.push({date: new Date().toISOString(), text});
+  saveAll(); inp.value=''; renderNotesBody();
+  const card = document.getElementById('card-'+activeNotesId);
+  if(card){
+    const cnt = v.notes.length; const last = v.notes[cnt-1];
+    const lbl = card.querySelector('.notes-count-label');
+    if(lbl) lbl.textContent = cnt+(cnt===1?' nota':' note');
+    let prev = card.querySelector('.last-note-preview');
+    if(!prev){
+      prev=document.createElement('div'); prev.className='last-note-preview';
+      card.querySelector('.card-notes-footer > div').appendChild(prev);
+    }
+    prev.textContent = last.text.substring(0,38)+(last.text.length>38?'...':'');
+  }
+  inp.focus();
+}
+function deleteClientNote(id, idx){
+  getV(id).notes.splice(idx,1); saveAll(); renderNotesBody();
+}
+
+let activeRemId = null;
+function openReminders(id){
+  activeRemId = id;
+  const c = clienti.find(x=>x.id===id);
+  document.getElementById('rem-modal-title').textContent = c ? c.nome : 'Promemoria';
+  document.getElementById('rem-modal-sub').textContent = c ? c.zona : '';
+  renderRemBody();
+  openOverlay('reminders-overlay');
+  setTimeout(()=>document.getElementById('rem-note-input')?.focus(), 200);
+}
+function closeReminders(){ closeOverlay('reminders-overlay'); activeRemId = null; }
+function renderRemBody(){
+  const id = activeRemId; if(!id) return;
+  const v = getV(id);
+  const body = document.getElementById('rem-modal-body');
+  const rems = (v.reminders||[]).slice().reverse();
+  if(!rems.length){
+    body.innerHTML = '<div style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:28px 0">Nessun promemoria.<br>Aggiungine uno qui sotto.</div>';
+    return;
+  }
+  body.innerHTML = rems.map((r,i)=>{
+    const ri = v.reminders.length-1-i;
+    return `<div class="reminder-entry${r.done?' done':''}">
+      <div class="rem-date">${fmtDateTime(r.date)}${r.done?' \u00b7 <span style="color:var(--green)">&#10003; Fatto</span>':''}</div>
+      <div class="rem-text">${escH(r.text)}</div>
+      <button class="rem-check-btn" onclick="toggleRem('${id}',${ri})">${r.done?'\u21a9':'\u2713'}</button>
+      <button class="note-del" onclick="deleteRem('${id}',${ri})">&times;</button>
+    </div>`;
+  }).join('');
+}
+function remAddNote(){
+  const inp = document.getElementById('rem-note-input');
+  const text = inp.value.trim(); if(!text || !activeRemId) return;
+  const v = getV(activeRemId);
+  v.reminders.push({date: new Date().toISOString(), text, done: false});
+  saveAll(); inp.value=''; renderRemBody();
+  refreshCardReminder(activeRemId);
+  inp.focus();
+}
+function toggleRem(id, idx){
+  const v = getV(id);
+  v.reminders[idx].done = !v.reminders[idx].done;
+  saveAll(); renderRemBody();
+  refreshCardReminder(id);
+}
+function deleteRem(id, idx){
+  getV(id).reminders.splice(idx,1);
+  saveAll(); renderRemBody();
+  refreshCardReminder(id);
+}
+function refreshCardReminder(id){
+  const card = document.getElementById('card-'+id);
+  if(!card) return;
+  const v = getV(id);
+  const pendingRem = (v.reminders||[]).filter(r=>!r.done);
+  const hasPending = pendingRem.length > 0;
+  const row = card.querySelector('.reminder-row');
+  if(!row) return;
+  const dot = row.querySelector('.reminder-row-dot');
+  const txt = row.querySelector('.reminder-row-text');
+  const badge = row.querySelector('.rem-badge');
+  if(dot){ dot.className = 'reminder-row-dot'+(hasPending?'':' none'); }
+  if(txt){
+    txt.className = 'reminder-row-text'+(hasPending?'':' none');
+    txt.textContent = hasPending? pendingRem[0].text.substring(0,36)+(pendingRem[0].text.length>36?'...':''): 'Nessun promemoria';
+  }
+  if(badge) badge.textContent = hasPending && pendingRem.length>1 ? '+'+(pendingRem.length-1) : '';
+}
+function setNotesTab(tab){ if(tab==='reminder' && activeNotesId){ closeNotes(); openReminders(activeNotesId); } }
+function updateNotesTabs(){}
+
+let settingsTab = 'zone';
+let settingsClientSearch = '';
+function openSettings(){
+  settingsClientSearch = '';
+  settingsTab = 'zone';
+  renderSettingsTabs();
+  renderSettings();
+  openOverlay('settings-overlay');
+}
+function closeSettings(){
+  closeOverlay('settings-overlay');
+  buildTabs(); renderClients();
+}
+function setSettingsTab(t){
+  settingsTab = t;
+  renderSettingsTabs();
+  renderSettings();
+}
+function renderSettingsTabs(){
+  document.getElementById('settings-tabs').innerHTML =
+    [['zone','Zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['targhet','Targhet mappa']].map(([k,l])=>
+      `<button class="settings-tab${settingsTab===k?' active':''}" onclick="setSettingsTab('${k}')">${l}</button>`
+    ).join('');
+}
+function renderSettings(){
+  const body = document.getElementById('settings-body');
+  if(settingsTab === 'zone') body.innerHTML = renderZonesTab();
+  else if(settingsTab === 'clienti') body.innerHTML = renderClientiTab();
+  else if(settingsTab === 'aziende') body.innerHTML = renderAziendeTab();
+  else if(settingsTab === 'targhet') body.innerHTML = renderTarghetTab();
+  else body.innerHTML = renderAggiungiTab();
+}
+let targhetSearch = '';
+function renderTarghetTab(){
+  const sq = (targhetSearch||'').toLowerCase();
+  const grouped = {};
+  KML_CLIENTS.forEach(k=>{
+    const display = kmlOverrides[k.nome] || k.nome;
+    if(sq && !display.toLowerCase().includes(sq) && !k.nome.toLowerCase().includes(sq)) return;
+    (grouped[k.zona] = grouped[k.zona] || []).push(k);
+  });
+  const html = Object.keys(grouped).sort().map(zona => {
+    const col = ZONA_COLORS[zona] || '#888';
+    const rows = grouped[zona].map(k => {
+      const display = kmlOverrides[k.nome] || k.nome;
+      const isRenamed = !!kmlOverrides[k.nome];
+      const hidden = !!kmlHidden[k.nome];
+      // Escape per JS string literal (\\, \') poi per HTML attribute (")
+      const origNomeAttr = k.nome.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+      return `<div class="targhet-row${hidden?' targhet-hidden':''}">
+        <span class="targhet-pin-dot" style="background:${col}"></span>
+        <input class="targhet-input" type="text" value="${escA(display)}" placeholder="${escA(k.nome)}"
+               onchange="renameTarget('${origNomeAttr}', this.value)">
+        ${isRenamed ? `<button class="targhet-reset" onclick="resetTargetName('${origNomeAttr}')" title="Ripristina nome originale">&#8634;</button>` : ''}
+        <button class="targhet-toggle" onclick="toggleTargetHidden('${origNomeAttr}')" title="${hidden?'Mostra sulla mappa':'Nascondi dalla mappa'}">${hidden?'&#128065;':'&#128064;'}</button>
+      </div>`;
+    }).join('');
+    return `<div class="targhet-zone-group">
+      <div class="targhet-zone-header"><span class="targhet-zone-dot" style="background:${col}"></span>${escH(zona)}<span class="targhet-zone-count">${grouped[zona].length}</span></div>
+      ${rows}
+    </div>`;
+  }).join('');
+  const lastSync = kmlSyncDate ? `Ultimo import: ${fmtDate(kmlSyncDate)}` : 'Lista predefinita (mai importata)';
+  return `<div class="kmz-sync-box">
+      <div class="kmz-sync-info">
+        <div class="kmz-sync-title">&#128193; Sincronizza da MyMaps</div>
+        <div class="kmz-sync-sub">${lastSync} \u00b7 ${KML_CLIENTS.length} targhet</div>
+      </div>
+      <label class="kmz-sync-btn" title="Importa file KMZ o KML esportato da Google MyMaps">
+        Aggiorna da KMZ
+        <input type="file" accept=".kmz,.kml,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" style="display:none" onchange="handleKmzUpload(this)">
+      </label>
+    </div>
+    <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:10px;line-height:1.45">
+      Rinomina i pin di MyMaps. Il nome originale resta come placeholder. Nascondi un pin con l'icona &#128064;.
+    </div>
+    <input class="settings-search" type="text" placeholder="Cerca targhet..." value="${escA(targhetSearch||'')}" oninput="targhetSearch=this.value;renderSettings()">
+    <div class="targhet-list">${html || '<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:20px 0">Nessun targhet trovato.</div>'}</div>`;
+}
+
+// ============ KMZ/KML IMPORT ============
+async function handleKmzUpload(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  showToast('Lettura file...');
+  try {
+    let kmlText = '';
+    const lower = file.name.toLowerCase();
+    if(lower.endsWith('.kmz')){
+      if(typeof JSZip === 'undefined'){ showToast('JSZip non caricato'); return; }
+      const buf = await file.arrayBuffer();
+      const zip = await JSZip.loadAsync(buf);
+      const kmlEntry = Object.keys(zip.files).find(n=>n.toLowerCase().endsWith('.kml'));
+      if(!kmlEntry){ showToast('KMZ senza file KML interno'); return; }
+      kmlText = await zip.files[kmlEntry].async('string');
+    } else if(lower.endsWith('.kml')){
+      kmlText = await file.text();
+    } else {
+      showToast('Estensione non supportata. Usa .kmz o .kml');
+      return;
+    }
+    const parsed = parseKmlText(kmlText);
+    if(!parsed.length){ showToast('Nessun targhet trovato nel KML'); return; }
+    showKmzImportModal(parsed);
+  } catch(e){
+    console.error(e);
+    showToast('Errore lettura file: '+e.message);
+  } finally {
+    input.value = '';
+  }
+}
+
+function parseKmlText(kmlText){
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(kmlText, 'application/xml');
+  const placemarks = Array.from(doc.getElementsByTagName('Placemark'));
+  const result = [];
+  placemarks.forEach(pm => {
+    const point = pm.getElementsByTagName('Point')[0];
+    if(!point) return; // ignora linee/poligoni
+    const coordsEl = point.getElementsByTagName('coordinates')[0];
+    if(!coordsEl) return;
+    const txt = (coordsEl.textContent||'').trim();
+    if(!txt) return;
+    const parts = txt.split(',').map(s=>parseFloat(s.trim()));
+    const lon = parts[0], lat = parts[1];
+    if(isNaN(lat)||isNaN(lon)) return;
+    const nameEl = pm.getElementsByTagName('name')[0];
+    const nome = nameEl ? (nameEl.textContent||'').trim() : '';
+    if(!nome) return;
+    // Risali al Folder padre per la zona
+    let zona = '';
+    let p = pm.parentNode;
+    while(p && p.nodeType===1){
+      if(p.tagName === 'Folder'){
+        const fname = p.getElementsByTagName('name')[0];
+        if(fname){ zona = (fname.textContent||'').trim().toUpperCase(); break; }
+      }
+      p = p.parentNode;
+    }
+    result.push({nome, lat, lon, zona: zona || 'ALTRO'});
+  });
+  return result;
+}
+
+let _pendingKmlImport = null;
+function showKmzImportModal(parsed){
+  const oldNames = new Set(KML_CLIENTS.map(k=>k.nome));
+  const newNames = new Set(parsed.map(k=>k.nome));
+  const added = parsed.filter(k=>!oldNames.has(k.nome));
+  const removed = KML_CLIENTS.filter(k=>!newNames.has(k.nome));
+  // Aggiornati = stesso nome ma coords/zona diverse
+  const updated = parsed.filter(k=>{
+    const old = KML_CLIENTS.find(o=>o.nome===k.nome);
+    if(!old) return false;
+    return Math.abs(old.lat-k.lat)>0.0001 || Math.abs(old.lon-k.lon)>0.0001 || old.zona!==k.zona;
+  });
+  _pendingKmlImport = parsed;
+  const overlay = document.getElementById('kmz-import-overlay');
+  if(overlay){
+    document.getElementById('kmz-stat-total').textContent = parsed.length;
+    document.getElementById('kmz-stat-added').textContent = added.length;
+    document.getElementById('kmz-stat-updated').textContent = updated.length;
+    document.getElementById('kmz-stat-removed').textContent = removed.length;
+    const removedList = document.getElementById('kmz-removed-list');
+    if(removedList){
+      removedList.innerHTML = removed.length
+        ? removed.map(r=>`<div class="kmz-removed-item">&#9888;&#65039; ${escH(r.nome)}<span style="color:var(--text-muted);font-size:0.65rem;margin-left:6px">(${escH(r.zona)})</span></div>`).join('')
+        : '<div style="color:var(--text-muted);font-size:0.78rem;text-align:center;padding:6px 0">Nessuno</div>';
+    }
+    const addedList = document.getElementById('kmz-added-list');
+    if(addedList){
+      addedList.innerHTML = added.length
+        ? added.map(a=>`<div class="kmz-added-item">&#10003; ${escH(a.nome)}<span style="color:var(--text-muted);font-size:0.65rem;margin-left:6px">(${escH(a.zona)})</span></div>`).join('')
+        : '<div style="color:var(--text-muted);font-size:0.78rem;text-align:center;padding:6px 0">Nessuno</div>';
+    }
+    openOverlay('kmz-import-overlay');
+  } else {
+    // fallback senza modal
+    if(confirm(`Importare ${parsed.length} targhet?\nNuovi: ${added.length}\nAggiornati: ${updated.length}\nRimossi: ${removed.length}`)){
+      applyKmlImport();
+    } else {
+      _pendingKmlImport = null;
+    }
+  }
+}
+function closeKmzImport(){ closeOverlay('kmz-import-overlay'); _pendingKmlImport=null; }
+function applyKmlImport(){
+  if(!_pendingKmlImport) return;
+  KML_CLIENTS = _pendingKmlImport;
+  kmlSync = _pendingKmlImport;
+  kmlSyncDate = new Date().toISOString();
+  // Pulisci override e hidden orfani (per nomi non piu' presenti)
+  const validNames = new Set(KML_CLIENTS.map(k=>k.nome));
+  Object.keys(kmlOverrides).forEach(k=>{ if(!validNames.has(k)) delete kmlOverrides[k]; });
+  Object.keys(kmlHidden).forEach(k=>{ if(!validNames.has(k)) delete kmlHidden[k]; });
+  saveAll();
+  _pendingKmlImport = null;
+  closeOverlay('kmz-import-overlay');
+  renderSettings();
+  if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+  showToast('Sincronizzato: '+KML_CLIENTS.length+' targhet');
+}
+
+// ============ GIRI DELLA SETTIMANA ============
+const GIORNI = [
+  {key:'lun', name:'Luned\u00ec',   short:'Lun'},
+  {key:'mar', name:'Marted\u00ec',  short:'Mar'},
+  {key:'mer', name:'Mercoled\u00ec',short:'Mer'},
+  {key:'gio', name:'Gioved\u00ec',  short:'Gio'},
+  {key:'ven', name:'Venerd\u00ec',  short:'Ven'},
+  {key:'sab', name:'Sabato',        short:'Sab'},
+  {key:'dom', name:'Domenica',      short:'Dom'},
+];
+function todayDayKey(){
+  // JS getDay: 0=dom 1=lun ... 6=sab
+  const idx = new Date().getDay();
+  return idx === 0 ? 'dom' : GIORNI[idx-1].key;
+}
+function renderGiri(){
+  const grid = document.getElementById('giri-grid');
+  if(!grid) return;
+  const today = todayDayKey();
+  grid.innerHTML = GIORNI.map(g => {
+    const list = (giri[g.key]||[]).slice();
+    const visitsHtml = list.length ? list.map((v, idx) => {
+      const cli = clienti.find(c=>c.id===v.clientId);
+      const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
+      const zona = cli ? cli.zona : '';
+      const time = v.time || '';
+      const canUp = idx > 0;
+      const canDown = idx < list.length - 1;
+      return `<div class="giri-visit">
+        <div class="giri-visit-time${time?'':' no-time'}">${time||'--:--'}</div>
+        <div class="giri-visit-body">
+          <div class="giri-visit-name">${escH(nome)}</div>
+          ${zona ? `<span class="giri-visit-zone">${escH(zona)}</span>` : ''}
+          ${v.note ? `<div class="giri-visit-note">${escH(v.note)}</div>` : ''}
+        </div>
+        <div class="giri-visit-actions">
+          <button class="giri-visit-move" onclick="moveGiroUp('${g.key}',${idx})" title="Sposta su"${canUp?'':' disabled'}>&#9650;</button>
+          <button class="giri-visit-move" onclick="moveGiroDown('${g.key}',${idx})" title="Sposta gi&ugrave;"${canDown?'':' disabled'}>&#9660;</button>
+        </div>
+        <button class="giri-visit-del" onclick="removeGiro('${g.key}','${v.id}')" title="Elimina">&times;</button>
+      </div>`;
+    }).join('') : '<div class="giri-empty">Nessuna visita programmata</div>';
+    return `<div class="giri-day${today===g.key?' today':''}">
+      <div class="giri-day-header">
+        <div class="giri-day-name">${g.name}</div>
+        <div class="giri-day-count">${list.length}</div>
+      </div>
+      <div class="giri-visits">${visitsHtml}</div>
+      <button class="giri-add-btn" onclick="openGiroAdd('${g.key}')">+ Aggiungi visita</button>
+    </div>`;
+  }).join('');
+}
+
+let _activeGiroDay = null;
+let _selectedGiroClientId = null;
+let _pickerClientId = null;
+function openGiroAdd(dayKey, preClientId){
+  _activeGiroDay = dayKey;
+  _selectedGiroClientId = preClientId || null;
+  const day = GIORNI.find(g=>g.key===dayKey);
+  document.getElementById('giri-add-day-label').textContent = day ? day.name : '';
+  const preCli = preClientId ? clienti.find(c=>c.id===preClientId) : null;
+  document.getElementById('giri-add-search').value = preCli ? preCli.nome : '';
+  document.getElementById('giri-add-time').value = '';
+  document.getElementById('giri-add-note').value = '';
+  filterGiroClientList();
+  openOverlay('giri-add-overlay');
+  if(!preCli) setTimeout(()=>document.getElementById('giri-add-search')?.focus(), 80);
+  else setTimeout(()=>document.getElementById('giri-add-time')?.focus(), 80);
+}
+function openGiriDayPicker(clientId){
+  const cli = clienti.find(c=>c.id===clientId);
+  if(!cli){ showToast('Cliente non trovato'); return; }
+  _pickerClientId = clientId;
+  document.getElementById('giri-day-picker-client').textContent = cli.nome;
+  const today = todayDayKey();
+  const grid = document.getElementById('giri-day-picker-grid');
+  grid.innerHTML = GIORNI.map(g=>{
+    const cnt = (giri[g.key]||[]).length;
+    const isToday = today === g.key;
+    return `<button class="giri-day-picker-btn${isToday?' today':''}" onclick="pickGiriDay('${g.key}')">
+      <span>${g.name}</span>
+      <span class="gdp-count">${cnt} ${cnt===1?'visita':'visite'}</span>
+    </button>`;
+  }).join('');
+  openOverlay('giri-day-picker-overlay');
+}
+function closeGiriDayPicker(){
+  closeOverlay('giri-day-picker-overlay');
+  _pickerClientId = null;
+}
+function pickGiriDay(dayKey){
+  const clientId = _pickerClientId;
+  closeGiriDayPicker();
+  if(!clientId) return;
+  setTimeout(()=>openGiroAdd(dayKey, clientId), 120);
+}
+function moveGiroUp(dayKey, idx){
+  const arr = giri[dayKey];
+  if(!arr || idx <= 0 || idx >= arr.length) return;
+  const tmp = arr[idx-1];
+  arr[idx-1] = arr[idx];
+  arr[idx] = tmp;
+  saveAll();
+  renderGiri();
+}
+function moveGiroDown(dayKey, idx){
+  const arr = giri[dayKey];
+  if(!arr || idx < 0 || idx >= arr.length - 1) return;
+  const tmp = arr[idx+1];
+  arr[idx+1] = arr[idx];
+  arr[idx] = tmp;
+  saveAll();
+  renderGiri();
+}
+function closeGiroAdd(){
+  closeOverlay('giri-add-overlay');
+  _activeGiroDay = null;
+  _selectedGiroClientId = null;
+}
+function filterGiroClientList(){
+  const q = (document.getElementById('giri-add-search').value||'').toLowerCase().trim();
+  const list = document.getElementById('giri-client-list');
+  if(!list) return;
+  const filtered = clienti
+    .slice()
+    .sort((a,b)=>a.zona.localeCompare(b.zona)||a.nome.localeCompare(b.nome))
+    .filter(c => !q || c.nome.toLowerCase().includes(q) || (c.contatti||'').toLowerCase().includes(q));
+  if(filtered.length === 0){
+    list.classList.add('visible');
+    list.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Nessun cliente trovato</div>';
+    return;
+  }
+  list.classList.add('visible');
+  list.innerHTML = filtered.slice(0,40).map(c=>
+    `<div class="giri-client-option${_selectedGiroClientId===c.id?' selected':''}" onclick="selectGiroClient('${c.id}')">
+      <span>${escH(c.nome)}</span>
+      <span class="giri-client-option-zone">${escH(c.zona)}</span>
+    </div>`).join('');
+}
+function selectGiroClient(id){
+  _selectedGiroClientId = id;
+  const c = clienti.find(x=>x.id===id);
+  if(c) document.getElementById('giri-add-search').value = c.nome;
+  document.querySelectorAll('.giri-client-option').forEach(el=>el.classList.remove('selected'));
+  filterGiroClientList();
+}
+function confirmAddGiro(){
+  if(!_activeGiroDay) return;
+  if(!_selectedGiroClientId){
+    showToast('Seleziona un cliente dalla lista');
+    return;
+  }
+  const cli = clienti.find(c=>c.id===_selectedGiroClientId);
+  if(!cli){ showToast('Cliente non trovato'); return; }
+  const time = (document.getElementById('giri-add-time').value||'').trim();
+  const note = (document.getElementById('giri-add-note').value||'').trim();
+  if(!giri[_activeGiroDay]) giri[_activeGiroDay] = [];
+  // Anti-duplicati nello stesso giorno
+  const dup = giri[_activeGiroDay].find(v=>v.clientId===cli.id);
+  if(dup){
+    if(!confirm(cli.nome+' è già in '+(GIORNI.find(g=>g.key===_activeGiroDay)||{}).name+'. Aggiungere comunque una seconda visita?')) return;
+  }
+  giri[_activeGiroDay].push({
+    id: 'g'+Date.now()+Math.random().toString(36).slice(2,6),
+    clientId: cli.id,
+    clientName: cli.nome,
+    time, note,
+  });
+  saveAll();
+  closeGiroAdd();
+  renderGiri();
+  showToast(cli.nome+' aggiunto a '+GIORNI.find(g=>g.key===_activeGiroDay).name);
+}
+function removeGiro(dayKey, id){
+  if(!giri[dayKey]) return;
+  const v = giri[dayKey].find(x=>x.id===id);
+  giri[dayKey] = giri[dayKey].filter(x=>x.id!==id);
+  saveAll();
+  renderGiri();
+  if(v){
+    const cli = clienti.find(c=>c.id===v.clientId);
+    showToast((cli?cli.nome:'Visita')+' rimossa');
+  }
+}
+function clearAllGiri(){
+  if(!confirm('Svuotare tutti i giri della settimana? Questa azione non si pu\u00f2 annullare.')) return;
+  giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
+  saveAll();
+  renderGiri();
+  showToast('Settimana svuotata');
+}
+function renameTarget(origName, newName){
+  newName = (newName||'').trim();
+  if(!newName || newName === origName){
+    delete kmlOverrides[origName];
+  } else {
+    kmlOverrides[origName] = newName;
+  }
+  saveAll();
+  if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+  showToast('Targhet aggiornato');
+}
+function resetTargetName(origName){
+  delete kmlOverrides[origName];
+  saveAll();
+  renderSettings();
+  if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+  showToast('Nome originale ripristinato');
+}
+function toggleTargetHidden(origName){
+  if(kmlHidden[origName]) delete kmlHidden[origName];
+  else kmlHidden[origName] = true;
+  saveAll();
+  renderSettings();
+  if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+}
+function renderZonesTab(){
+  const colorRows = zoneOrder.map(z=>{
+    const col = ZONA_COLORS[z] || '#888888';
+    return `<div class="zone-manage-item">
+      <input type="color" value="${col}" title="Colore zona ${escA(z)}" onchange="setZonaColor('${escA(z)}',this.value)" style="width:30px;height:30px;border:none;border-radius:7px;cursor:pointer;padding:0;background:none;flex-shrink:0">
+      <input class="zone-manage-name" type="text" value="${escA(z)}" onchange="renameZone(${zoneOrder.indexOf(z)},this.value)" onblur="renameZone(${zoneOrder.indexOf(z)},this.value)">
+      <button class="zone-manage-del" onclick="deleteZone(${zoneOrder.indexOf(z)})" title="Elimina">&#128465;</button>
+    </div>`;
+  }).join('');
+  return `<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.05em">COLORE \u00b7 NOME ZONA</div>
+    <div class="zone-manage-list" style="margin-bottom:12px">${colorRows}</div>
+    <div class="zone-add-row">
+      <input class="zone-add-input" type="text" id="zone-add-input" placeholder="Nuova zona..." onkeydown="if(event.key==='Enter') addZone()">
+      <button class="zone-add-btn" onclick="addZone()">+ Aggiungi</button>
+    </div>`;
+}
+function setZonaColor(zona, color){
+  ZONA_COLORS[zona] = color;
+  saveAll();
+  if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+  showToast('Colore '+zona+' aggiornato');
+}
+function renderClientiTab(){
+  const sq = settingsClientSearch.toLowerCase();
+  const filtered = [...clienti].sort((a,b)=>a.zona.localeCompare(b.zona)||a.nome.localeCompare(b.nome))
+    .filter(c=>c.nome.toLowerCase().includes(sq)||(c.contatti||'').toLowerCase().includes(sq));
+  return `<input class="settings-search" type="text" placeholder="Cerca cliente o titolare..." value="${escA(settingsClientSearch)}" oninput="settingsClientSearch=this.value;renderSettings()">
+    <div id="client-edit-list">${filtered.map(c=>`<div class="client-edit-row" id="cer-${c.id}">
+      <div class="client-edit-row-top">
+        <span class="client-edit-zone-label">${escH(c.zona)}</span>
+        <button class="client-del-btn" onclick="deleteClient('${c.id}')" title="Elimina cliente">&#128465;</button>
+      </div>
+      <div class="client-edit-row-fields">
+        <div style="flex:1;min-width:120px">
+          <div class="client-edit-label">Nome cliente</div>
+          <input class="client-edit-field" type="text" value="${escA(c.nome)}" placeholder="Nome azienda" onchange="updateClient('${c.id}','nome',this.value)">
+        </div>
+        <div style="flex:1;min-width:120px">
+          <div class="client-edit-label">Titolari / Referenti</div>
+          <input class="client-edit-field" type="text" value="${escA(c.contatti||'')}" placeholder="Es. Mario, Luca..." onchange="updateClient('${c.id}','contatti',this.value)">
+        </div>
+        <div style="flex:0 0 auto">
+          <div class="client-edit-label">Zona</div>
+          <select class="move-client-select" onchange="updateClient('${c.id}','zona',this.value)">${zoneOrder.map(z=>`<option value="${escA(z)}"${c.zona===z?' selected':''}>${z}</option>`).join('')}</select>
+        </div>
+      </div>
+    </div>`).join('')}</div>`;
+}
+function renderAggiungiTab(){
+  return `<div class="add-client-form">
+    <div class="add-client-field-group">
+      <label class="add-client-label">Nome cliente *</label>
+      <input class="add-client-input" type="text" id="new-nome" placeholder="Es. CERAMICHE ROSSI">
+    </div>
+    <div class="add-client-field-group">
+      <label class="add-client-label">Titolari / Referenti</label>
+      <input class="add-client-input" type="text" id="new-contatti" placeholder="Es. Mario, Luigi">
+    </div>
+    <div class="add-client-field-group">
+      <label class="add-client-label">Zona *</label>
+      <select class="add-client-select" id="new-zona">${zoneOrder.map(z=>`<option value="${escA(z)}">${z}</option>`).join('')}</select>
+    </div>
+    <button class="add-client-btn" onclick="addClient()">+ Aggiungi cliente</button>
+  </div>`;
+}
+function updateClient(id, field, val){
+  const c = clienti.find(x=>x.id===id); if(!c) return;
+  val = val.trim();
+  if(field === 'nome') val = val.toUpperCase();
+  c[field] = val;
+  saveAll();
+  showToast('Salvato');
+}
+function deleteClient(id){
+  const c = clienti.find(x=>x.id===id); if(!c) return;
+  if(!confirm('Eliminare "'+c.nome+'"? I dati di visita e note verranno persi.')) return;
+  clienti = clienti.filter(x=>x.id!==id);
+  delete visits[id];
+  saveAll(); renderSettings(); showToast(c.nome+' eliminato');
+}
+function addClient(){
+  const nome = (document.getElementById('new-nome').value||'').trim().toUpperCase();
+  const contatti = (document.getElementById('new-contatti').value||'').trim();
+  const zona = document.getElementById('new-zona').value;
+  if(!nome){ showToast('Inserisci il nome'); return; }
+  const id = 'c' + Date.now();
+  clienti.push({id, zona, nome, contatti, aziende:[]});
+  saveAll();
+  document.getElementById('new-nome').value='';
+  document.getElementById('new-contatti').value='';
+  showToast('"'+nome+'" aggiunto');
+  settingsTab='clienti'; settingsClientSearch=nome;
+  renderSettingsTabs(); renderSettings();
+  if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+}
+function renameZone(idx,name){
+  name=name.trim().toUpperCase(); if(!name||name===zoneOrder[idx]) return;
+  const old=zoneOrder[idx];
+  clienti.forEach(c=>{if(c.zona===old) c.zona=name;});
+  if(currentZone===old) currentZone=name;
+  zoneOrder[idx]=name; saveAll();
+}
+function deleteZone(idx){
+  const z=zoneOrder[idx];
+  if(clienti.some(c=>c.zona===z)){showToast('Sposta prima i clienti');return;}
+  zoneOrder.splice(idx,1);
+  if(currentZone===z) currentZone='TUTTE';
+  saveAll(); renderSettings(); showToast('Zona eliminata');
+}
+function addZone(){
+  const inp=document.getElementById('zone-add-input');
+  const name=inp.value.trim().toUpperCase(); if(!name) return;
+  if(zoneOrder.includes(name)){showToast('Zona gia esistente');return;}
+  zoneOrder.push(name); saveAll(); inp.value=''; renderSettings(); showToast('"'+name+'" aggiunta');
+}
+function moveClientTo(id,zona){
+  const c=clienti.find(x=>x.id===id); if(!c) return;
+  c.zona=zona; saveAll(); showToast(c.nome+' \u2192 '+zona);
+}
+
+function renderAziendeTab(){
+  const rows = aziende.map((a,i)=>`<div class="azienda-row">
+    ${a.logo? `<img class="azienda-logo-preview" src="${a.logo}" alt="${escA(a.nome)}">` : `<div class="azienda-logo-placeholder">&#127970;</div>`}
+    <span class="azienda-nome">${escH(a.nome)}</span>
+    <label style="cursor:pointer;font-size:0.72rem;color:var(--text-muted);border:1px solid var(--border);border-radius:6px;padding:3px 8px;transition:all 0.15s" title="Carica logo">&#128247;
+      <input type="file" accept="image/*" style="display:none" onchange="uploadAziendaLogo(${i},this)">
+    </label>
+    <button class="azienda-del" onclick="deleteAzienda(${i})">&#128465;</button>
+  </div>`).join('');
+  return `${rows || '<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:20px 0">Nessuna azienda ancora.</div>'}
+    <div class="add-azienda-form">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+        <label class="logo-upload-area" id="new-az-logo-area" title="Carica logo">
+          <span id="new-az-logo-icon">+</span>
+          <input type="file" accept="image/*" style="display:none" id="new-az-logo-input" onchange="previewNewAziendaLogo(this)">
+        </label>
+        <input class="add-client-input" type="text" id="new-az-nome" placeholder="Nome azienda" style="flex:1">
+      </div>
+      <button class="add-client-btn" onclick="addAzienda()">+ Aggiungi azienda</button>
+    </div>`;
+}
+let newAziendaLogoB64 = null;
+function previewNewAziendaLogo(input){
+  if(!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    newAziendaLogoB64 = e.target.result;
+    const area = document.getElementById('new-az-logo-area');
+    const icon = document.getElementById('new-az-logo-icon');
+    if(area && icon){
+      icon.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:contain;border-radius:8px">`;
+    }
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+function addAzienda(){
+  const nome = (document.getElementById('new-az-nome')?.value||'').trim();
+  if(!nome){ showToast('Inserisci il nome'); return; }
+  aziende.push({id:'az'+Date.now(), nome, logo: newAziendaLogoB64||null});
+  newAziendaLogoB64 = null;
+  saveAll(); renderSettings(); showToast('"'+nome+'" aggiunta');
+  if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+}
+function uploadAziendaLogo(idx, input){
+  if(!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    aziende[idx].logo = e.target.result;
+    saveAll(); renderSettings(); showToast('Logo caricato');
+    renderClients();
+    if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+function deleteAzienda(idx){
+  const nome = aziende[idx].nome;
+  const aid = aziende[idx].id;
+  aziende.splice(idx,1);
+  clienti.forEach(c=>{ if(c.aziende) c.aziende=c.aziende.filter(x=>x!==aid); });
+  saveAll(); renderSettings(); showToast('"'+nome+'" rimossa');
+  renderClients();
+}
+
+let assignAzClientId = null;
+function openAssignAzienda(clientId){
+  assignAzClientId = clientId;
+  const c = clienti.find(x=>x.id===clientId);
+  document.getElementById('assign-az-sub').textContent = c ? c.nome : '';
+  if(!c.aziende) c.aziende = [];
+  const body = document.getElementById('assign-az-body');
+  if(!aziende.length){
+    body.innerHTML='<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:20px 0">Nessuna azienda. Aggiungila in Impostazioni > Aziende.</div>';
+  } else {
+    body.innerHTML = aziende.map(a=>{
+      const assigned = c.aziende.includes(a.id);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="toggleClientAzienda('${clientId}','${a.id}',this)">
+        ${a.logo?`<img src="${a.logo}" style="width:32px;height:32px;object-fit:contain;border-radius:6px;border:1px solid var(--border)">`:'<div style="width:32px;height:32px;border-radius:6px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:1rem">&#127970;</div>'}
+        <span style="flex:1;font-size:0.86rem;font-weight:600">${escH(a.nome)}</span>
+        <span style="width:20px;height:20px;border-radius:50%;border:2px solid ${assigned?'var(--accent)':'var(--border2)'};background:${assigned?'var(--accent)':'transparent'};display:flex;align-items:center;justify-content:center;color:white;font-size:0.7rem;flex-shrink:0">${assigned?'\u2713':''}</span>
+      </div>`;
+    }).join('');
+  }
+  openOverlay('assign-azienda-overlay');
+}
+function closeAssignAzienda(){ closeOverlay('assign-azienda-overlay'); assignAzClientId=null; }
+function toggleClientAzienda(clientId, azId, row){
+  const c = clienti.find(x=>x.id===clientId);
+  if(!c.aziende) c.aziende=[];
+  const idx = c.aziende.indexOf(azId);
+  if(idx>=0) c.aziende.splice(idx,1);
+  else c.aziende.push(azId);
+  saveAll();
+  const assigned = c.aziende.includes(azId);
+  const circle = row.querySelector('span:last-child');
+  if(circle){
+    circle.style.borderColor = assigned?'var(--accent)':'var(--border2)';
+    circle.style.background = assigned?'var(--accent)':'transparent';
+    circle.textContent = assigned?'\u2713':'';
+  }
+  renderClients();
+}
+
+let mapFilterAzienda = null;
+function buildMapFilterBar(){
+  const container = document.getElementById('map-filter-bar');
+  if(!container) return;
+  if(!aziende.length){ container.innerHTML=''; return; }
+  container.innerHTML = [
+    `<div class="map-filter-chip${mapFilterAzienda===null?' active':''}" onclick="setMapFilter(null)">Tutte</div>`,
+    ...aziende.map(a=>`<div class="map-filter-chip${mapFilterAzienda===a.id?' active':''}" onclick="setMapFilter('${a.id}')">${a.logo?`<img src="${a.logo}" alt="">`:'\u{1F3E2}'}${escH(a.nome)}</div>`)
+  ].join('');
+}
+function setMapFilter(azId){
+  mapFilterAzienda = azId;
+  buildMapFilterBar();
+  if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+}
+
+let activeMoveId=null;
+function openMove(id){
+  activeMoveId=id;
+  const c=clienti.find(x=>x.id===id);
+  document.getElementById('move-modal-sub').textContent=c?c.nome:'';
+  document.getElementById('move-zone-list').innerHTML=zoneOrder.map(z=>{
+    const cur=c&&c.zona===z;
+    return `<button class="move-zone-option${cur?' current':''}" ${cur?'':'onclick="doMove(\''+id+'\',\''+escA(z)+'\')"'}>${z}${cur?' <span style="font-size:0.7rem;font-weight:400;color:var(--text-muted)">(attuale)</span>':''}</button>`;
+  }).join('');
+  openOverlay('move-overlay');
+}
+function closeMove(){ closeOverlay('move-overlay'); activeMoveId=null; }
+function doMove(id,zona){
+  const c=clienti.find(x=>x.id===id); if(!c) return;
+  c.zona=zona; saveAll(); closeMove(); renderClients(); showToast(c.nome+' \u2192 '+zona);
+}
+
+let calYear=new Date().getFullYear(), calMonth=new Date().getMonth();
+function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+function calToday(){ calYear=new Date().getFullYear(); calMonth=new Date().getMonth(); renderCalendar(); }
+function renderCalendar(){
+  const title=MONTHS_IT[calMonth]+' '+calYear;
+  document.getElementById('cal-month-title').textContent=title;
+  const visitIndex={};
+  clienti.forEach(c=>{
+    const v=visits[c.id]; if(!v||!v.visitDate) return;
+    const day=isoDay(new Date(v.visitDate));
+    if(!visitIndex[day]) visitIndex[day]=[];
+    visitIndex[day].push(c.id);
+  });
+  const today=isoDay(new Date());
+  const firstDay=new Date(calYear,calMonth,1);
+  const lastDay=new Date(calYear,calMonth+1,0);
+  let startDow=firstDay.getDay();
+  startDow=startDow===0?6:startDow-1;
+  const DOW_LABELS=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  let html=DOW_LABELS.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+  for(let i=0;i<startDow;i++){
+    const d=new Date(firstDay); d.setDate(d.getDate()-startDow+i);
+    const key=isoDay(d);
+    html+=buildCalCell(d,key,visitIndex,today,true);
+  }
+  for(let d=1;d<=lastDay.getDate();d++){
+    const date=new Date(calYear,calMonth,d);
+    const key=isoDay(date);
+    html+=buildCalCell(date,key,visitIndex,today,false);
+  }
+  const totalCells=startDow+lastDay.getDate();
+  const remaining=(7-totalCells%7)%7;
+  for(let i=1;i<=remaining;i++){
+    const date=new Date(calYear,calMonth+1,i);
+    const key=isoDay(date);
+    html+=buildCalCell(date,key,visitIndex,today,true);
+  }
+  document.getElementById('cal-grid').innerHTML=html;
+}
+function buildCalCell(date,key,visitIndex,today,otherMonth){
+  const visits_day=visitIndex[key]||[];
+  const notes_day=calNotes[key]||[];
+  const hasData=visits_day.length>0||notes_day.length>0;
+  const isToday=key===today;
+  let cls='cal-cell';
+  if(otherMonth) cls+=' other-month';
+  if(isToday) cls+=' today';
+  if(hasData&&!isToday) cls+=' has-data';
+  let inner=`<div class="cal-day-num">${date.getDate()}</div>`;
+  const maxShow=2;
+  visits_day.slice(0,maxShow).forEach(id=>{
+    const c=clienti.find(x=>x.id===id);
+    inner+=`<div class="cal-visit-chip">${escH(c?c.nome:'')}</div>`;
+  });
+  notes_day.slice(0,1).forEach(n=>{
+    inner+=`<div class="cal-note-chip">${escH(n.text.substring(0,18))}${n.text.length>18?'...':''}</div>`;
+  });
+  const more=visits_day.length+notes_day.length-maxShow-(notes_day.length>0?1:0);
+  if(more>0) inner+=`<div class="cal-more">+${more} altro</div>`;
+  return `<div class="${cls}" onclick="openCalDay('${key}')">${inner}</div>`;
+}
+
+let activeCalDay=null;
+function openCalDay(key){
+  activeCalDay=key;
+  const d=new Date(key+'T12:00:00');
+  document.getElementById('calday-title').textContent=d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).replace(/^\w/,c=>c.toUpperCase());
+  document.getElementById('calday-sub').textContent='';
+  const todayKey = isoDay(new Date());
+  if(key === todayKey){
+    const h = String(new Date().getHours()).padStart(2,'0');
+    document.getElementById('calday-event-time').value = h+':00';
+  } else {
+    document.getElementById('calday-event-time').value = '09:00';
+  }
+  renderCalDayBody();
+  openOverlay('calday-overlay');
+  setTimeout(()=>document.getElementById('calday-event-text')?.focus(),200);
+}
+function closeCalDay(){ closeOverlay('calday-overlay'); activeCalDay=null; }
+function renderCalDayBody(){
+  const key=activeCalDay; if(!key) return;
+  const body=document.getElementById('calday-body');
+  const HOURS = [];
+  for(let h=1;h<=23;h++) HOURS.push(String(h).padStart(2,'0'));
+  const hourMap = {};
+  HOURS.forEach(h=>{ hourMap[h]=[]; });
+  clienti.forEach(c=>{
+    const v=visits[c.id]; if(!v||!v.visitDate) return;
+    if(isoDay(new Date(v.visitDate))!==key) return;
+    const d=new Date(v.visitDate);
+    const h=String(d.getHours()).padStart(2,'0');
+    if(hourMap[h]) hourMap[h].push({type:'visit',c,time:fmtTime(v.visitDate)});
+    else hourMap['07'].push({type:'visit',c,time:fmtTime(v.visitDate)});
+  });
+  (calNotes[key]||[]).forEach((n,idx)=>{
+    const d=new Date(n.time);
+    const h=String(d.getHours()).padStart(2,'0');
+    if(hourMap[h]) hourMap[h].push({type:'event',n,idx});
+    else hourMap['07'].push({type:'event',n,idx});
+  });
+  let html='<div class="timeline-wrap">';
+  HOURS.forEach(h=>{
+    const items=hourMap[h]||[];
+    const hasItems=items.length>0;
+    html+=`<div class="timeline-row${hasItems?' timeline-row-active':''}"><div class="timeline-hour">${h}:00</div><div class="timeline-content">`;
+    items.forEach(item=>{
+      if(item.type==='visit'){
+        const c=item.c;
+        html+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="timeline-visit-chip"><svg width="9" height="11" viewBox="0 0 13 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 1C3.46 1 1 3.46 1 6.5c0 4.25 5.5 8.5 5.5 8.5S12 10.75 12 6.5C12 3.46 9.54 1 6.5 1z"/><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>${escH(c.nome)}<span class="timeline-visit-time">${item.time}</span></div><button class="timeline-del" onclick="deleteCalVisit('${c.id}')" title="Rimuovi visita">&times;</button></div>`;
+      } else {
+        const n=item.n; const idx=item.idx;
+        html+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="timeline-event-chip"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${escH(n.text)}</div><button class="timeline-del" onclick="deleteCalNote('${key}',${idx})" title="Elimina evento">&times;</button></div>`;
+      }
+    });
+    html+='</div></div>';
+  });
+  html+='</div>';
+  body.innerHTML=html;
+}
+function calDayAddEvent(){
+  const timeEl=document.getElementById('calday-event-time');
+  const textEl=document.getElementById('calday-event-text');
+  const text=(textEl.value||'').trim();
+  if(!text||!activeCalDay) return;
+  const timeParts=(timeEl.value||'09:00').split(':');
+  const h=parseInt(timeParts[0])||9, m=parseInt(timeParts[1])||0;
+  const d=new Date(activeCalDay+'T12:00:00');
+  d.setHours(h,m,0,0);
+  if(!calNotes[activeCalDay]) calNotes[activeCalDay]=[];
+  calNotes[activeCalDay].push({time:d.toISOString(), text});
+  saveAll(); textEl.value=''; renderCalDayBody(); renderCalendar();
+  textEl.focus();
+}
+function calDayAddNote(){ calDayAddEvent(); }
+function deleteCalNote(key,idx){
+  if(!calNotes[key]) return;
+  calNotes[key].splice(idx,1);
+  saveAll(); renderCalDayBody(); renderCalendar();
+}
+function deleteCalVisit(clientId){
+  const v=getV(clientId);
+  v.visitDate=null;
+  saveAll(); renderCalDayBody(); renderCalendar(); renderClients();
+  showToast('Visita rimossa');
+}
+
+let routeSet=new Set();
+function toggleRoute(id){
+  routeSet.has(id)?routeSet.delete(id):routeSet.add(id);
+  updateRouteUI();
+  const btn=document.getElementById('rb-'+id);
+  if(btn){
+    btn.classList.toggle('selected',routeSet.has(id));
+    btn.innerHTML=routeSet.has(id)?'&#10003;':'+';
+  }
+}
+function updateRouteUI(){
+  const n=routeSet.size;
+  document.getElementById('route-main-count').textContent=n;
+  document.getElementById('route-main-btn').disabled=n===0;
+  document.getElementById('route-panel').classList.toggle('visible',n>0);
+  const brc=document.getElementById('bnav-route-count');
+  if(brc){ brc.textContent=n; brc.style.display=n>0?'':'none'; }
+  document.getElementById('route-stops-list').innerHTML=[...routeSet].map(id=>{
+    const c=clienti.find(x=>x.id===id);
+    return c?`<div class="route-stop-chip">${escH(c.nome)}<button onclick="toggleRoute('${id}')">&times;</button></div>`:'';
+  }).join('');
+}
+function clearRoute(){ routeSet.clear(); updateRouteUI(); renderClients(); }
+function openMaps(){
+  if(!routeSet.size) return;
+  const stops=[...routeSet].map(id=>{
+    const v=getV(id); const c=clienti.find(x=>x.id===id);
+    return v.position||((c?c.nome:'')+', Italia');
+  });
+  if(stops.length===1){
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stops[0])}`,'_blank');
+    return;
+  }
+  const origin=encodeURIComponent(stops[0]);
+  const dest=encodeURIComponent(stops[stops.length-1]);
+  const wp=stops.slice(1,-1).map(s=>encodeURIComponent(s)).join('|');
+  let url=`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=driving`;
+  if(wp) url+=`&waypoints=${wp}`;
+  window.open(url,'_blank');
+}
+
+// MAPPA — Leaflet overlay sopra MyMaps iframe
+let KML_CLIENTS = [
+  {nome:'UFFICIO', lon:14.1763585, lat:42.4140109, zona:'CHIETI'},
+  {nome:'Vitelli', lon:14.3476042, lat:42.199125, zona:'CHIETI'},
+  {nome:'Eurocer Style', lon:14.160848, lat:42.4058116, zona:'CHIETI'},
+  {nome:'Less Is More Arredi Di Design', lon:14.1705527, lat:42.3544419, zona:'CHIETI'},
+  {nome:'Giacomucci Abramo E Francesco Snc', lon:14.5804953, lat:42.099776, zona:'CHIETI'},
+  {nome:'NPZ Ceramiche - Lanciano', lon:14.432802, lat:42.2652922, zona:'CHIETI'},
+  {nome:'Laccetti Serramenti', lon:14.6877944, lat:42.167228, zona:'CHIETI'},
+  {nome:'Alcova Solutions s.r.l.s.', lon:14.437609, lat:42.2808687, zona:'CHIETI'},
+  {nome:'Bellante Camillo', lon:14.226675, lat:42.3867082, zona:'CHIETI'},
+  {nome:'de 5', lon:14.7383602, lat:42.0508016, zona:'CHIETI'},
+  {nome:'Lozzi', lon:13.8930453, lat:42.3260512, zona:'PESCARA'},
+  {nome:'COMPOSIZIONI SRL', lon:14.2036033, lat:42.4496902, zona:'PESCARA'},
+  {nome:'Living Solutions', lon:14.1555471, lat:42.5127689, zona:'PESCARA'},
+  {nome:'EXPO STORE', lon:14.2247956, lat:42.460545, zona:'PESCARA'},
+  {nome:'Hydro House & Habita Showroom', lon:14.1991431, lat:42.4423125, zona:'PESCARA'},
+  {nome:'Edilizia Di Filippo srl', lon:13.6749191, lat:42.6699931, zona:'TERAMO'},
+  {nome:'COMAIT', lon:13.9277931, lat:42.8169648, zona:'TERAMO'},
+  {nome:'Idea Pavimenti', lon:13.7582722, lat:42.6830654, zona:'TERAMO'},
+  {nome:'Spazio 7 Gruppo Cantarini', lon:14.0238513, lat:42.6448592, zona:'TERAMO'},
+  {nome:'Plastica Vomano 2 Srl', lon:13.9110206, lat:42.6337587, zona:'TERAMO'},
+  {nome:'Domostile srl', lon:14.0130284, lat:42.6601366, zona:'TERAMO'},
+  {nome:'Santilli Edilizia S.r.l.', lon:13.6295902, lat:42.0101636, zona:'AQUILA'},
+  {nome:'BigMat S.I.M.I.C S.r.l', lon:13.5593986, lat:42.2862629, zona:'AQUILA'},
+  {nome:'Alessandro Buttari Store', lon:13.37102, lat:42.0818257, zona:'AQUILA'},
+  {nome:'Lancia Rivestimenti', lon:13.5351841, lat:41.9625832, zona:'AQUILA'},
+  {nome:'Edil-Fer Corti', lon:13.3668799, lat:42.3639247, zona:'AQUILA'},
+  {nome:"CE.ME.C. L'Aquila", lon:13.3064997, lat:42.42804, zona:'AQUILA'},
+  {nome:'Marini Carmine srl', lon:13.6546227, lat:42.2820239, zona:'AQUILA'},
+  {nome:'Di Giannantonio', lon:13.8172384, lat:42.0977922, zona:'SULMONA'},
+  {nome:'Scalera Pietro S.A.S.', lon:13.9132688, lat:42.0582483, zona:'SULMONA'},
+  {nome:'ICW', lon:13.8901689, lat:42.0966445, zona:'SULMONA'},
+  {nome:'Andrea Montesanto', lon:15.0015375, lat:41.9851918, zona:'MOLISE'},
+];
+
+let ZONA_COLORS = {
+  CHIETI:'#2d6a4f', PESCARA:'#1a73e8', TERAMO:'#8b5e3c',
+  AQUILA:'#7b2d8b', SULMONA:'#b58900', MOLISE:'#c0392b',
+};
+function visitColor(days){
+  if(days===null) return null;
+  if(days<=5) return '#2d6a4f';
+  if(days<=10) return '#b58900';
+  if(days<=15) return '#cb6015';
+  if(days<=20) return '#c0392b';
+  return '#3d3530';
+}
+function findMainClient(nome){
+  const kn = nome.toLowerCase().split(' ')[0];
+  return clienti.find(c =>
+    c.nome.toLowerCase().includes(kn) ||
+    kn.includes(c.nome.toLowerCase().split(' ')[0])
+  ) || null;
+}
+
+let leafletMap = null;
+let leafletMarkers = [];
+function renderMap(){
+  if(typeof L === 'undefined'){
+    setTimeout(renderMap, 200);
+    return;
+  }
+  initLeaflet();
+}
+function initLeaflet(){
+  const container = document.getElementById('leaflet-map');
+  if(!container) return;
+  if(leafletMap){
+    leafletMap.invalidateSize();
+    refreshLeafletMarkers();
+    return;
+  }
+  leafletMap = L.map('leaflet-map', {
+    center: [42.20, 13.90],
+    zoom: 8,
+    zoomControl: false,
+    attributionControl: false,
+    dragging: false,
+    scrollWheelZoom: false,
+    doubleClickZoom: false,
+    touchZoom: false,
+    tap: false,
+  });
+  container.style.background = 'transparent';
+  container.style.pointerEvents = 'none';
+  const paneEl = container.querySelector('.leaflet-map-pane');
+  if(paneEl) paneEl.style.pointerEvents = 'none';
+  refreshLeafletMarkers();
+  setTimeout(() => leafletMap.invalidateSize(), 100);
+  window.addEventListener('message', e => {
+    try {
+      if(e.data && e.data.type === 'mymaps_move') {
+        leafletMap.setView([e.data.lat, e.data.lng], e.data.zoom, {animate:false});
+      }
+    } catch(_){}
+  });
+}
+function pinSvg(outerColor, innerColor){
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36"><path d="M14 1C7.4 1 2 6.4 2 13c0 8.7 12 22 12 22s12-13.3 12-22C26 6.4 20.6 1 14 1z" fill="${outerColor}" stroke="rgba(0,0,0,0.15)" stroke-width="1.2"/><circle cx="14" cy="13" r="6" fill="rgba(0,0,0,0.35)"/><circle cx="14" cy="13" r="4.5" fill="${innerColor}"/></svg>`;
+}
+let _lastRenderedPins = [];
+function refreshLeafletMarkers(){
+  if(!leafletMap) return;
+  leafletMarkers.forEach(m => leafletMap.removeLayer(m));
+  leafletMarkers = [];
+  buildMapFilterBar();
+  // SOLO i pin di MyMaps (KML_CLIENTS) - sincronizzati con la mappa di MyMaps.
+  // Per ogni KML cerco il cliente corrispondente nella lista app per i dati di visita.
+  let allPins = KML_CLIENTS
+    .filter(k => !kmlHidden[k.nome])
+    .map(k => {
+      const mc = findMainClient(k.nome);
+      return {
+        id: mc ? mc.id : null,
+        nome: kmlOverrides[k.nome] || k.nome,
+        originalNome: k.nome,
+        zona: k.zona,
+        lat: k.lat,
+        lon: k.lon,
+        fromApp: !!mc,
+      };
+    });
+  let filtered = allPins;
+  if(mapFilterAzienda){
+    filtered = allPins.filter(p=>{
+      if(!p.fromApp) return false;
+      const c = clienti.find(x=>x.id===p.id);
+      return c && (c.aziende||[]).includes(mapFilterAzienda);
+    });
+  }
+  _lastRenderedPins = filtered;
+  filtered.forEach((p, i) => {
+    const mc = p.fromApp ? clienti.find(x=>x.id===p.id) : null;
+    const v = mc ? getV(mc.id) : null;
+    const days = v ? daysSince(v.visitDate) : null;
+    let lat = p.lat, lon = p.lon;
+    // Le coordinate utente (visit.position) hanno priorita' solo se sono coordinate, non testo libero.
+    if(v && v.position){
+      const raw = v.position;
+      const coordStr = raw.includes('|') ? raw.split('|')[1] : raw;
+      if(coordStr && coordStr.includes(',')){
+        const parts = coordStr.split(',');
+        const la = parseFloat(parts[0]), lo = parseFloat(parts[1]);
+        if(!isNaN(la) && !isNaN(lo)){ lat=la; lon=lo; }
+      }
+    }
+    const outerColor = ZONA_COLORS[p.zona] || '#555';
+    const innerColor = visitColor(days) || '#ffffff';
+    const icon = L.divIcon({
+      html: pinSvg(outerColor, innerColor),
+      className: '',
+      iconSize: [28, 36],
+      iconAnchor: [14, 36],
+      popupAnchor: [0, -38],
+    });
+    const stars = v ? [1,2,3,4,5].map(n => `<span style="color:${n<=(v.stelle||0)?'#d4a017':'#ddd'}">&#9733;</span>`).join('') : '';
+    const daysTxt = days===null ? 'Mai visitato' : days===0 ? 'Oggi' : days+' giorni fa';
+    const lastVis = v && v.visitDate ? `<div style="font-size:0.67rem;color:#aaa;margin-top:1px">${fmtDate(v.visitDate)}</div>` : '';
+    const rawPos = v ? (v.position||'') : '';
+    const displayAddr = rawPos.includes('|') ? rawPos.split('|')[0] : (/^[\d\.,\-\s]+$/.test(rawPos) ? '' : rawPos);
+    const address = displayAddr ? `<div style="font-size:0.7rem;color:#aaa;margin-top:5px"><span>${escH(displayAddr)}</span></div>` : '';
+    const hasPending = v && (v.reminders||[]).some(r=>!r.done);
+    const popup = L.popup({maxWidth: 240, className: 'agmap-popup'}).setContent(
+      `<div style="font-family:Outfit,sans-serif;padding:2px 0;color:#f0eff5">
+        <div style="font-weight:700;font-size:0.88rem;margin-bottom:4px;display:flex;align-items:center;gap:6px">
+          <span style="width:10px;height:10px;border-radius:50%;background:${outerColor};border:2px solid ${innerColor};flex-shrink:0;display:inline-block"></span>
+          ${escH(p.nome)}
+          ${hasPending?'<span style="width:9px;height:9px;border-radius:50%;background:#c0392b;display:inline-block;flex-shrink:0;box-shadow:0 0 6px rgba(192,57,43,0.7)" title="Promemoria in sospeso"></span>':''}
+        </div>
+        ${stars ? `<div style="font-size:0.8rem;margin-bottom:4px">${stars}</div>` : ''}
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${innerColor};display:inline-block;flex-shrink:0"></span>
+          <span style="font-size:0.73rem;font-weight:600;color:${innerColor}">${daysTxt}</span>
+        </div>
+        ${lastVis}
+        ${address}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+          <span style="font-size:0.65rem;background:rgba(255,255,255,0.08);border-radius:4px;padding:2px 7px;color:#aaa">${escH(p.zona)}</span>
+          <button onclick="openPinEdit(${i})" style="background:none;border:1px solid #44444c;border-radius:6px;padding:3px 8px;font-size:0.67rem;font-weight:600;color:#aaa;cursor:pointer;font-family:Outfit,sans-serif">&#9998; Posizione</button>
+        </div>
+      </div>`
+    );
+    const marker = L.marker([lat, lon], {icon}).addTo(leafletMap).bindPopup(popup);
+    leafletMarkers.push(marker);
+  });
+}
+(function(){
+  const s = document.createElement('style');
+  s.textContent = `
+    #leaflet-map { background: transparent !important; }
+    #leaflet-map .leaflet-tile-pane { display: none; }
+    #leaflet-map .leaflet-overlay-pane { pointer-events: none; }
+    #leaflet-map .leaflet-marker-pane { pointer-events: all !important; }
+    #leaflet-map .leaflet-popup-pane { pointer-events: all !important; }
+    #leaflet-map .leaflet-shadow-pane { display: none; }
+    .agmap-popup .leaflet-popup-content-wrapper { background:#1c1c20; border:1px solid #323238; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,0.6); padding:0; color:#f0eff5; }
+    .agmap-popup .leaflet-popup-content { margin:12px 14px; color:#f0eff5; }
+    .agmap-popup .leaflet-popup-tip-container { display:none; }
+    .leaflet-control-zoom { display:none; }
+  `;
+  document.head.appendChild(s);
+})();
+
+let activePinEditIdx = null;
+function openPinEdit(idx){
+  activePinEditIdx = idx;
+  const p = _lastRenderedPins[idx];
+  if(!p) return;
+  const mc = p.fromApp ? clienti.find(x=>x.id===p.id) : findMainClient(p.originalNome||p.nome);
+  const v = mc ? getV(mc.id) : null;
+  document.getElementById('pin-edit-sub').textContent = p.nome;
+  const pos = v ? (v.position||'') : '';
+  let addr='', coords='';
+  if(pos.includes('|')){ [addr,coords]=pos.split('|'); }
+  else if(/^[\d\.,\-\s]+$/.test(pos)){ coords=pos; }
+  else { addr=pos; }
+  document.getElementById('pin-edit-address').value = addr;
+  document.getElementById('pin-edit-coords').value = coords;
+  openOverlay('pin-edit-overlay');
+}
+function closePinEdit(){ closeOverlay('pin-edit-overlay'); activePinEditIdx=null; }
+function pinEditGPS(){
+  if(!navigator.geolocation){ showToast('GPS non disponibile'); return; }
+  showToast('Rilevamento...');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const c = `${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
+    document.getElementById('pin-edit-coords').value = c;
+    showToast('Coordinate rilevate');
+  }, ()=>showToast('Impossibile rilevare'));
+}
+function savePinEdit(){
+  if(activePinEditIdx===null) return;
+  const p = _lastRenderedPins ? _lastRenderedPins[activePinEditIdx] : null;
+  if(!p) return;
+  const mc = p.fromApp ? clienti.find(x=>x.id===p.id) : findMainClient(p.originalNome||p.nome);
+  if(!mc){ showToast('Cliente non trovato'); closePinEdit(); return; }
+  const addr = document.getElementById('pin-edit-address').value.trim();
+  const coords = document.getElementById('pin-edit-coords').value.trim();
+  let pos = '';
+  if(addr && coords) pos = addr + '|' + coords;
+  else if(addr) pos = addr;
+  else if(coords) pos = coords;
+  getV(mc.id).position = pos;
+  saveAll();
+  closePinEdit();
+  if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+  showToast('Posizione salvata per '+p.nome);
+}
+
+function openOverlay(id){ document.getElementById(id).classList.add('open'); }
+function closeOverlay(id){ document.getElementById(id).classList.remove('open'); }
+function closeOverlayBg(e,id,fn){ if(e.target===document.getElementById(id)) fn(); }
+
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+loadAll();
+buildTabs();
+renderClients();
+document.getElementById('home-hbtn').classList.add('active-view');
+setInterval(renderClients, 300000);
+updateAccountButton();
+// Se Firebase si carica dopo, l'auth listener chiamera' onFirebaseAuthChange
+// che richiama updateAccountButton + cloudInit. Niente da fare qui.
+</script>
 </body>
 </html>
