@@ -1794,18 +1794,77 @@ function setStar(id,n){
   card.querySelectorAll('.star').forEach((el,i)=>el.classList.toggle('on',i<v.stelle));
 }
 function savePosition(id,val){
-  getV(id).position=val.trim(); saveAll();
+  const v = getV(id);
+  const oldVal = (v.position||'').trim();
+  const newVal = (val||'').trim();
+  if(oldVal === newVal) return; // niente da fare
+  // Se sto modificando un indirizzo esistente (non vuoto), chiedo conferma
+  if(oldVal !== '' && newVal !== oldVal){
+    const oldPreview = oldVal.length > 80 ? oldVal.substring(0,80)+'…' : oldVal;
+    const newPreview = newVal === '' ? '(vuoto)' : (newVal.length > 80 ? newVal.substring(0,80)+'…' : newVal);
+    const msg = 'Vuoi sostituire l\'indirizzo del cliente?\n\nVecchio:\n' + oldPreview + '\n\nNuovo:\n' + newPreview;
+    const apply = ()=>{
+      v.position = newVal;
+      saveAll();
+      if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+      showToast(newVal === '' ? 'Indirizzo rimosso' : 'Indirizzo aggiornato');
+    };
+    const revert = ()=>{
+      const inp = document.getElementById('pos-'+id);
+      if(inp) inp.value = oldVal;
+    };
+    if(typeof showConfirm === 'function'){
+      showConfirm(msg, apply, revert);
+    } else if(window.confirm(msg)){
+      apply();
+    } else {
+      revert();
+    }
+    return;
+  }
+  // Primo inserimento (campo era vuoto): salva diretto
+  v.position = newVal;
+  saveAll();
   if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
 }
 function geolocate(id){
   if(!navigator.geolocation){showToast('GPS non disponibile');return;}
-  showToast('Rilevamento...');
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const c=`${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
-    getV(id).position=c; saveAll();
-    const inp=document.getElementById('pos-'+id); if(inp) inp.value=c;
-    showToast('Posizione salvata');
-  },()=>showToast('Impossibile rilevare'));
+  // ANTI-OVERWRITE: se c'e' gia' un indirizzo scritto, chiedi conferma prima di sovrascriverlo
+  const v = getV(id);
+  const existing = (v.position||'').trim();
+  // Considera "indirizzo testuale" se contiene lettere (cioe' non sono solo coordinate o pipe)
+  const looksLikeAddress = /[a-zA-Z]/.test(existing) && !/^[-\d.,\s]+$/.test(existing);
+  const doGeo = ()=>{
+    showToast('Rilevamento...');
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const c=`${pos.coords.latitude.toFixed(6)},${pos.coords.longitude.toFixed(6)}`;
+      // Se c'era un indirizzo lo conserviamo nel formato "indirizzo|coords"
+      let newPos = c;
+      if(looksLikeAddress){
+        // Estraggo solo la parte indirizzo (senza eventuali coords gia' presenti)
+        const addrOnly = existing.split('|')[0];
+        newPos = addrOnly + '|' + c;
+      }
+      getV(id).position = newPos;
+      saveAll();
+      const inp=document.getElementById('pos-'+id);
+      if(inp) inp.value = newPos;
+      showToast(looksLikeAddress ? 'Coordinate aggiunte all\'indirizzo' : 'Posizione salvata');
+      if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
+    },()=>showToast('Impossibile rilevare'));
+  };
+  if(looksLikeAddress){
+    // Chiedi conferma prima di toccare l'indirizzo del cliente
+    const addrPreview = existing.split('|')[0];
+    const msg = 'Vuoi rilevare la TUA posizione GPS attuale e aggiungerla all\'indirizzo del cliente?\n\n"' + addrPreview + '"\n\nL\'indirizzo non verrà cancellato: le coordinate verranno aggiunte come riferimento per la mappa.';
+    if(typeof showConfirm === 'function'){
+      showConfirm(msg, doGeo);
+    } else if(window.confirm(msg)){
+      doGeo();
+    }
+    return;
+  }
+  doGeo();
 }
 
 let activeNotesId = null;
