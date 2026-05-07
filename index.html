@@ -91,15 +91,22 @@ body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-se
 header {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 0 24px;
-  display: flex; align-items: center; gap: 14px;
-  height: 58px; position: sticky; top: 0; z-index: 200;
+  padding: 10px 24px 0 24px;
+  display: flex; flex-direction: column; align-items: stretch; gap: 6px;
+  position: sticky; top: 0; z-index: 200;
   backdrop-filter: blur(12px);
 }
-.logo { font-size: 0.92rem; font-weight: 800; letter-spacing: 0.12em; white-space: nowrap; color: var(--text); }
+.header-top-row { display: flex; align-items: center; gap: 12px; min-height: 38px; position: relative; }
+.header-account-slot { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.logo {
+  font-size: 1.05rem; font-weight: 800; letter-spacing: 0.18em;
+  white-space: nowrap; color: var(--text);
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  pointer-events: none;
+}
 .logo span { color: var(--accent); }
 .header-search {
-  flex: 1; max-width: 240px;
+  flex: 0 1 240px; max-width: 240px;
   background: var(--surface2); border: 1px solid var(--border);
   border-radius: 10px; padding: 7px 14px;
   font-family: 'Outfit', sans-serif; font-size: 0.82rem;
@@ -107,17 +114,52 @@ header {
 }
 .header-search:focus { border-color: var(--accent); }
 .header-search::placeholder { color: var(--text-light); }
-.header-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.header-nav-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 4px 0 8px 0;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  flex-wrap: wrap;
+}
+.header-right { display: flex; align-items: center; gap: 6px; }
 .hbtn {
-  width: 36px; height: 36px; border-radius: 10px;
+  width: 38px; height: 38px; border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface2); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.15s; color: var(--text-muted);
+  position: relative;
+  -webkit-tap-highlight-color: rgba(192,57,43,0.2);
+  touch-action: manipulation;
 }
-.hbtn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.hbtn:hover, .hbtn:active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 .hbtn.active-view { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 .hbtn svg { display: block; }
+/* Campanella promemoria */
+.hbtn-bell { position: relative; }
+.hbtn-bell.has-pending { color: var(--red); border-color: var(--red); background: rgba(192,57,43,0.15); animation: bellPulse 1.6s infinite ease-in-out; }
+.hbtn-bell.has-pending svg { animation: bellShake 1.6s infinite ease-in-out; transform-origin: 50% 4px; }
+.hbtn-bell-badge {
+  position: absolute; top: -4px; right: -4px;
+  background: var(--red); color: #fff;
+  font-size: 0.6rem; font-weight: 800; font-family: 'JetBrains Mono', monospace;
+  border-radius: 10px; min-width: 17px; height: 17px;
+  padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 6px rgba(192,57,43,0.7);
+}
+@keyframes bellPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.55); }
+  50% { box-shadow: 0 0 0 8px rgba(192,57,43,0); }
+}
+@keyframes bellShake {
+  0%, 100% { transform: rotate(0); }
+  10% { transform: rotate(-12deg); }
+  20% { transform: rotate(10deg); }
+  30% { transform: rotate(-8deg); }
+  40% { transform: rotate(6deg); }
+  50% { transform: rotate(0); }
+}
 .route-btn {
   background: var(--accent); color: #fff; border: none; border-radius: 10px;
   padding: 7px 14px; font-family: 'Outfit', sans-serif; font-size: 0.78rem; font-weight: 700;
@@ -210,11 +252,12 @@ header {
 .reminder-row-text { font-size: 0.72rem; font-weight: 600; color: var(--red); font-family: 'Outfit', sans-serif; }
 .reminder-row-text.none { color: #a8a4b8; font-weight: 400; }
 
-.card-stripe { height: 2px; background: var(--border); transition: background 0.4s; }
-.card-stripe.verde { background: var(--green); }
-.card-stripe.giallo { background: var(--yellow); }
-.card-stripe.arancio { background: var(--orange); }
-.card-stripe.rosso { background: var(--red); }
+.card-stripe { height: 6px; background: var(--border); transition: background 0.4s, box-shadow 0.4s; border-radius: 14px 14px 0 0; }
+.card-stripe.verde   { background: var(--green);  box-shadow: 0 0 10px rgba(39,174,96,0.45) inset, 0 0 8px rgba(39,174,96,0.35); }
+.card-stripe.giallo  { background: var(--yellow); box-shadow: 0 0 10px rgba(212,160,23,0.45) inset, 0 0 8px rgba(212,160,23,0.35); }
+.card-stripe.arancio { background: var(--orange); box-shadow: 0 0 10px rgba(230,126,34,0.45) inset, 0 0 8px rgba(230,126,34,0.35); }
+.card-stripe.rosso   { background: var(--red);    box-shadow: 0 0 10px rgba(192,57,43,0.45) inset, 0 0 8px rgba(192,57,43,0.35); }
+.card-stripe.nero    { background: var(--black-col); }
 .card-stripe.nero { background: var(--black-col); }
 .card-body { padding: 16px 18px; }
 .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
@@ -569,7 +612,7 @@ header {
 .move-zone-option.current { border-color: var(--border2); color: var(--text-muted); cursor: default; font-weight: 400; }
 .move-zone-option.current:hover { background: var(--surface2); border-color: var(--border2); color: var(--text-muted); }
 
-.bottom-nav { display: none; }
+.bottom-nav { display: none !important; }
 .mobile-search-bar { display: none; }
 
 .toast { position: fixed; top: 66px; right: 20px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); font-size: 0.78rem; font-weight: 600; padding: 9px 16px; border-radius: 10px; opacity: 0; transform: translateY(-6px); transition: all 0.22s; z-index: 999; pointer-events: none; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
@@ -578,16 +621,19 @@ header {
 .timeline-row-active { background: rgba(255,255,255,0.02); }
 
 @media (max-width: 640px) {
-  body { padding-bottom: 70px; }
-  header { padding: 0 12px; gap: 7px; height: 52px; }
-  .logo { font-size: 0.82rem; letter-spacing: 0.08em; }
+  body { padding-bottom: 0; }
+  header { padding: 8px 10px 0 10px; gap: 4px; }
+  .header-top-row { min-height: 36px; gap: 8px; }
+  .logo { font-size: 0.95rem; letter-spacing: 0.16em; }
   .header-search { display: none; }
-  .header-right { gap: 4px; margin-left: auto; }
-  .hbtn { width: 32px; height: 32px; border-radius: 8px; }
+  .header-account-slot { gap: 4px; margin-left: auto; }
+  .header-nav-row { gap: 4px; padding: 4px 0 6px 0; }
+  .hbtn { width: 38px; height: 38px; border-radius: 9px; }
+  .hbtn-bell-badge { top: -3px; right: -3px; min-width: 16px; height: 16px; font-size: 0.55rem; }
   .route-btn { padding: 6px 10px; font-size: 0.72rem; gap: 4px; }
   .route-count { padding: 1px 5px; font-size: 0.65rem; }
 
-  .bottom-nav { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; height: 62px; background: var(--surface); border-top: 1px solid var(--border); z-index: 250; align-items: stretch; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .bottom-nav { display: none !important; }
   .bnav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: none; border: none; cursor: pointer; color: var(--text-muted); transition: color 0.15s; font-family: 'Outfit', sans-serif; padding: 6px 0 4px; -webkit-tap-highlight-color: transparent; }
   .bnav-btn svg { display: block; }
   .bnav-btn span { font-size: 0.52rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -706,30 +752,41 @@ header {
 <body>
 
 <header>
-  <div class="logo">AGENT<span>MAP</span></div>
-  <input class="header-search" type="text" placeholder="Cerca..." id="search" oninput="renderClients()">
-  <div class="header-right">
+  <div class="header-top-row">
+    <input class="header-search" type="text" placeholder="Cerca..." id="search" oninput="renderClients()">
+    <div class="logo">AGENT<span>MAP</span></div>
+    <div class="header-account-slot">
+      <button class="hbtn" id="account-hbtn" onclick="openAccount()" title="Account / Sincronizzazione">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
+      </button>
+      <button class="route-btn" id="route-main-btn" disabled onclick="openMaps()" title="Avvia giro">
+        <svg width="18" height="13" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="22" height="7" rx="2"/><path d="M4 6 L7 2 L17 2 L20 6"/><circle cx="6.5" cy="13" r="2" fill="currentColor" stroke="none"/><circle cx="17.5" cy="13" r="2" fill="currentColor" stroke="none"/></svg>
+        <span class="route-count" id="route-main-count">0</span>
+      </button>
+    </div>
+  </div>
+  <div class="header-nav-row">
     <button class="hbtn" id="home-hbtn" onclick="switchView('clients')" title="Home">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
     </button>
     <button class="hbtn" id="cal-hbtn" onclick="switchView('calendar')" title="Calendario">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     </button>
     <button class="hbtn" id="map-hbtn" onclick="switchView('mappa')" title="Mappa">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
     </button>
     <button class="hbtn" id="giri-hbtn" onclick="switchView('giri')" title="Giri della settimana">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M12 7v5l3 2"/></svg>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M12 7v5l3 2"/></svg>
+    </button>
+    <button class="hbtn hbtn-bell" id="bell-hbtn" onclick="openRemindersOverview()" title="Promemoria">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="hbtn-bell-badge" id="bell-badge" style="display:none">0</span>
+    </button>
+    <button class="hbtn" id="stats-hbtn" onclick="openVisitStats()" title="Statistiche visite">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="14"/></svg>
     </button>
     <button class="hbtn" id="gear-hbtn" onclick="openSettings()" title="Impostazioni">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    </button>
-    <button class="hbtn" id="account-hbtn" onclick="openAccount()" title="Account / Sincronizzazione">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
-    </button>
-    <button class="route-btn" id="route-main-btn" disabled onclick="openMaps()" title="Avvia giro">
-      <svg width="18" height="13" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="6" width="22" height="7" rx="2"/><path d="M4 6 L7 2 L17 2 L20 6"/><circle cx="6.5" cy="13" r="2" fill="currentColor" stroke="none"/><circle cx="17.5" cy="13" r="2" fill="currentColor" stroke="none"/></svg>
-      <span class="route-count" id="route-main-count">0</span>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
   </div>
 </header>
@@ -1026,6 +1083,46 @@ header {
   </div>
 </div>
 
+<!-- REMINDERS OVERVIEW (campanella) -->
+<div class="overlay" id="reminders-overview-overlay" onclick="closeOverlayBg(event,'reminders-overview-overlay',closeRemindersOverview)">
+  <div class="modal modal-medium" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Promemoria</div>
+        <div class="modal-subtitle" id="rem-overview-subtitle">Tutti i clienti con promemoria attivi</div>
+      </div>
+      <button class="modal-close" onclick="closeRemindersOverview()">&times;</button>
+    </div>
+    <div class="modal-body" id="rem-overview-body" style="padding:14px 16px;max-height:70vh;overflow:auto"></div>
+  </div>
+</div>
+
+<!-- VISIT STATS -->
+<div class="overlay" id="visit-stats-overlay" onclick="closeOverlayBg(event,'visit-stats-overlay',closeVisitStats)">
+  <div class="modal modal-medium" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Statistiche visite</div>
+        <div class="modal-subtitle" id="vs-subtitle">Quante volte sei passato per ogni cliente</div>
+      </div>
+      <button class="modal-close" onclick="closeVisitStats()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:14px 16px;max-height:75vh;overflow:auto">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="cal-nav-btn" onclick="vsPrev()">&lsaquo;</button>
+        <div id="vs-period-label" style="flex:1;text-align:center;font-weight:700;font-size:1rem;color:var(--text)"></div>
+        <button class="cal-nav-btn" onclick="vsNext()">&rsaquo;</button>
+        <select id="vs-mode" onchange="renderVisitStats()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-family:'Outfit',sans-serif;font-size:0.78rem">
+          <option value="month">Mensile</option>
+          <option value="all">Totale</option>
+        </select>
+      </div>
+      <div id="vs-summary" style="font-size:0.72rem;color:var(--text-muted);margin-bottom:10px"></div>
+      <div id="vs-list"></div>
+    </div>
+  </div>
+</div>
+
 <nav class="bottom-nav" id="bottom-nav">
   <button class="bnav-btn active-view" id="bnav-home" onclick="switchView('clients')">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/><path d="M9 21V12h6v9"/></svg>
@@ -1155,6 +1252,8 @@ function saveAll(){
     localStorage.setItem('emilV4', json);
   } catch(e){ console.error('saveAll local failed', e); }
   cloudSave();
+  // Aggiorna il badge campanella ad ogni save (cattura aggiunta/completamento promemoria)
+  if(typeof updateBell === 'function') try { updateBell(); } catch(_){}
 }
 
 // ============ CLOUD SYNC (Firebase Firestore) ============
@@ -1515,9 +1614,14 @@ function updateAccountButton(){
   }
 }
 function getV(id){
-  if(!visits[id]) visits[id]={stelle:0,visitDate:null,position:'',notes:[],reminders:[]};
+  if(!visits[id]) visits[id]={stelle:0,visitDate:null,position:'',notes:[],reminders:[],visitHistory:[]};
   if(!visits[id].notes) visits[id].notes=[];
   if(!visits[id].reminders) visits[id].reminders=[];
+  if(!Array.isArray(visits[id].visitHistory)){
+    visits[id].visitHistory = [];
+    // Backfill: la visita più recente conosciuta diventa il primo entry
+    if(visits[id].visitDate) visits[id].visitHistory.push(visits[id].visitDate);
+  }
   return visits[id];
 }
 
@@ -1615,6 +1719,7 @@ function renderClients(){
     html+=`<div class="zone-section"><div class="zone-header"><div class="zone-label">${zona}</div><div class="zone-divider"></div><div class="zone-num">${list.length}</div></div><div class="clients-grid">${list.map(renderCard).join('')}</div></div>`;
   });
   container.innerHTML=html||'<div style="color:var(--text-muted);font-size:0.83rem;padding:16px 0">Nessun cliente trovato.</div>';
+  if(typeof updateBell==='function') updateBell();
 }
 
 function renderCard(c){
@@ -1673,7 +1778,13 @@ function renderCard(c){
 }
 
 function markVisit(id){
-  const v=getV(id); v.visitDate=new Date().toISOString();
+  const v=getV(id);
+  const now = new Date().toISOString();
+  v.visitDate = now;
+  if(!Array.isArray(v.visitHistory)) v.visitHistory = [];
+  // Evita doppio click ravvicinato (stesso minuto)
+  const last = v.visitHistory[v.visitHistory.length-1];
+  if(!last || (Date.now() - new Date(last).getTime()) > 60000) v.visitHistory.push(now);
   saveAll(); renderClients(); showToast('Visita registrata');
 }
 function setStar(id,n){
@@ -2948,12 +3059,250 @@ function showConfirm(message, onYes, onNo){
   no.onclick  = ()=>{ cleanup(); if(onNo) onNo(); };
 }
 
+// ── BELL: contatore promemoria pendenti ───────────────────────────────────────
+function _countPendingReminders(){
+  let totalRem = 0;
+  let clientCount = 0;
+  for(const c of (clienti||[])){
+    const v = visits[c.id];
+    if(!v || !Array.isArray(v.reminders)) continue;
+    const pending = v.reminders.filter(r => r && !r.done);
+    if(pending.length){
+      totalRem += pending.length;
+      clientCount++;
+    }
+  }
+  return { totalRem, clientCount };
+}
+
+function updateBell(){
+  const btn = document.getElementById('bell-hbtn');
+  const badge = document.getElementById('bell-badge');
+  if(!btn || !badge) return;
+  const { totalRem, clientCount } = _countPendingReminders();
+  if(totalRem > 0){
+    btn.classList.add('has-pending');
+    badge.style.display = 'flex';
+    badge.textContent = totalRem > 99 ? '99+' : String(totalRem);
+    btn.title = totalRem + ' promemoria attiv' + (totalRem===1?'o':'i') + ' su ' + clientCount + ' client' + (clientCount===1?'e':'i');
+  } else {
+    btn.classList.remove('has-pending');
+    badge.style.display = 'none';
+    btn.title = 'Promemoria';
+  }
+}
+window.updateBell = updateBell;
+
+function openRemindersOverview(){
+  renderRemindersOverview();
+  document.getElementById('reminders-overview-overlay').classList.add('open');
+}
+function closeRemindersOverview(){ document.getElementById('reminders-overview-overlay').classList.remove('open'); }
+window.openRemindersOverview = openRemindersOverview;
+window.closeRemindersOverview = closeRemindersOverview;
+
+function renderRemindersOverview(){
+  const body = document.getElementById('rem-overview-body');
+  const sub = document.getElementById('rem-overview-subtitle');
+  if(!body) return;
+  // Costruisci lista clienti con almeno un promemoria pendente
+  const rows = [];
+  for(const c of (clienti||[])){
+    const v = visits[c.id];
+    if(!v || !Array.isArray(v.reminders)) continue;
+    const pending = v.reminders.filter(r => r && !r.done);
+    if(pending.length) rows.push({ cliente: c, pending });
+  }
+  // Ordina per numero promemoria (decrescente) poi per nome
+  rows.sort((a,b)=>{
+    if(b.pending.length !== a.pending.length) return b.pending.length - a.pending.length;
+    return (a.cliente.nome||'').localeCompare(b.cliente.nome||'');
+  });
+  const totalRem = rows.reduce((n,r)=>n+r.pending.length, 0);
+  if(sub) sub.textContent = totalRem ? (totalRem + ' promemoria attivi su ' + rows.length + ' clienti') : 'Nessun promemoria attivo';
+  if(!rows.length){
+    body.innerHTML = '<div style="text-align:center;padding:30px 18px;color:var(--text-muted);font-size:0.84rem">✨ Nessun promemoria pendente.<br>Tutti i clienti sono in regola!</div>';
+    return;
+  }
+  // Stato di espansione (default: collapsed)
+  if(!window._remOpenIds) window._remOpenIds = new Set();
+  body.innerHTML = rows.map(r => {
+    const c = r.cliente;
+    const isOpen = window._remOpenIds.has(c.id);
+    const itemsHtml = isOpen
+      ? '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">' + r.pending.map((rem, idx)=>{
+          const dt = rem.date ? fmtDateTime(rem.date) : '';
+          return '<div style="background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.2);border-radius:8px;padding:8px 30px 8px 11px;position:relative">' +
+            '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.62rem;color:var(--text-muted);margin-bottom:3px">' + escH(dt) + '</div>' +
+            '<div style="font-size:0.78rem;color:var(--text);line-height:1.45;white-space:pre-wrap;word-break:break-word">' + escH(rem.text||'') + '</div>' +
+            '<button onclick="markReminderDoneFromOverview(\''+c.id+'\','+_indexOfReminder(c.id, rem)+');event.stopPropagation()" title="Segna come fatto" style="position:absolute;top:6px;right:6px;background:none;border:1px solid var(--green);color:var(--green);width:24px;height:24px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.74rem;-webkit-tap-highlight-color:rgba(39,174,96,0.3);touch-action:manipulation">&#10003;</button>' +
+          '</div>';
+        }).join('') + '</div>'
+      : '';
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer;-webkit-tap-highlight-color:rgba(192,57,43,0.18);touch-action:manipulation" onclick="toggleRemOverviewClient(\''+c.id+'\')">' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;color:var(--text);font-size:0.92rem">' + escH(c.nome||'') + '</div>' +
+          '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:2px">' + escH(c.zona||'') + '</div>' +
+        '</div>' +
+        '<div style="background:var(--accent);color:#fff;border-radius:14px;min-width:28px;height:24px;padding:0 8px;font-family:\'JetBrains Mono\',monospace;font-size:0.74rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + r.pending.length + '</div>' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);transition:transform 0.18s;transform:rotate(' + (isOpen?'90':'0') + 'deg);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>' +
+      '</div>' +
+      itemsHtml +
+    '</div>';
+  }).join('');
+}
+window.renderRemindersOverview = renderRemindersOverview;
+
+function toggleRemOverviewClient(cid){
+  if(!window._remOpenIds) window._remOpenIds = new Set();
+  if(window._remOpenIds.has(cid)) window._remOpenIds.delete(cid);
+  else window._remOpenIds.add(cid);
+  renderRemindersOverview();
+}
+window.toggleRemOverviewClient = toggleRemOverviewClient;
+
+function _indexOfReminder(cid, rem){
+  const v = visits[cid];
+  if(!v || !Array.isArray(v.reminders)) return -1;
+  return v.reminders.findIndex(r => r === rem || (r && rem && r.date===rem.date && r.text===rem.text));
+}
+
+function markReminderDoneFromOverview(cid, idx){
+  const v = visits[cid];
+  if(!v || !Array.isArray(v.reminders) || idx<0 || idx>=v.reminders.length) return;
+  v.reminders[idx].done = true;
+  saveAll();
+  updateBell();
+  renderRemindersOverview();
+  // Aggiorna anche la card cliente se visibile
+  if(typeof renderClients === 'function') try{ renderClients(); }catch(_){}
+  showToast('Promemoria completato');
+}
+window.markReminderDoneFromOverview = markReminderDoneFromOverview;
+
+// ── VISIT STATS ───────────────────────────────────────────────────────────────
+let _vsYear  = new Date().getFullYear();
+let _vsMonth = new Date().getMonth(); // 0-based
+let _vsMode  = 'month'; // 'month' | 'all'
+
+function openVisitStats(){
+  const today = new Date();
+  _vsYear  = today.getFullYear();
+  _vsMonth = today.getMonth();
+  document.getElementById('vs-mode').value = _vsMode;
+  document.getElementById('visit-stats-overlay').classList.add('open');
+  renderVisitStats();
+}
+function closeVisitStats(){ document.getElementById('visit-stats-overlay').classList.remove('open'); }
+window.openVisitStats = openVisitStats;
+window.closeVisitStats = closeVisitStats;
+
+function vsPrev(){
+  _vsMode = document.getElementById('vs-mode').value;
+  if(_vsMode === 'all') return;
+  _vsMonth--;
+  if(_vsMonth < 0){ _vsMonth = 11; _vsYear--; }
+  renderVisitStats();
+}
+function vsNext(){
+  _vsMode = document.getElementById('vs-mode').value;
+  if(_vsMode === 'all') return;
+  _vsMonth++;
+  if(_vsMonth > 11){ _vsMonth = 0; _vsYear++; }
+  renderVisitStats();
+}
+window.vsPrev = vsPrev;
+window.vsNext = vsNext;
+
+function _getVisitDates(v){
+  if(!v) return [];
+  if(Array.isArray(v.visitHistory) && v.visitHistory.length) return v.visitHistory;
+  return v.visitDate ? [v.visitDate] : [];
+}
+
+function renderVisitStats(){
+  _vsMode = document.getElementById('vs-mode').value;
+  const lbl = document.getElementById('vs-period-label');
+  const sum = document.getElementById('vs-summary');
+  const list = document.getElementById('vs-list');
+  if(!list) return;
+  // Etichetta periodo
+  if(_vsMode === 'all'){
+    if(lbl) lbl.textContent = 'Tutto il periodo';
+  } else {
+    if(lbl) lbl.textContent = MONTHS_IT[_vsMonth] + ' ' + _vsYear;
+  }
+  // Conta visite per cliente
+  const rows = [];
+  let totalVisits = 0;
+  let activeClients = 0;
+  for(const c of (clienti||[])){
+    const v = visits[c.id];
+    const dates = _getVisitDates(v);
+    let n = 0;
+    let lastDate = null;
+    for(const iso of dates){
+      const d = new Date(iso);
+      if(_vsMode === 'month'){
+        if(d.getFullYear() === _vsYear && d.getMonth() === _vsMonth){
+          n++;
+          if(!lastDate || d > new Date(lastDate)) lastDate = iso;
+        }
+      } else {
+        n++;
+        if(!lastDate || d > new Date(lastDate)) lastDate = iso;
+      }
+    }
+    if(n > 0){
+      rows.push({ cliente: c, n, lastDate });
+      totalVisits += n;
+      activeClients++;
+    } else {
+      rows.push({ cliente: c, n: 0, lastDate: null });
+    }
+  }
+  // Ordina: visite decrescente, poi nome
+  rows.sort((a,b)=>{
+    if(b.n !== a.n) return b.n - a.n;
+    return (a.cliente.nome||'').localeCompare(b.cliente.nome||'');
+  });
+  // Filtra: solo clienti con almeno una visita (default), oppure mostra tutto
+  const visited = rows.filter(r => r.n > 0);
+  if(sum){
+    sum.textContent = visited.length
+      ? (totalVisits + ' visite totali su ' + activeClients + ' client' + (activeClients===1?'e':'i'))
+      : 'Nessuna visita registrata in questo periodo.';
+  }
+  if(!visited.length){
+    list.innerHTML = '<div style="text-align:center;padding:24px 14px;color:var(--text-muted);font-size:0.82rem">Nessuna visita nel periodo selezionato.</div>';
+    return;
+  }
+  const maxN = visited[0].n;
+  list.innerHTML = visited.map(r => {
+    const pct = Math.max(8, Math.round((r.n / maxN) * 100));
+    const dt = r.lastDate ? fmtDate(r.lastDate) : '';
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;color:var(--text);font-size:0.9rem">' + escH(r.cliente.nome||'') + '</div>' +
+          '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:2px">' + escH(r.cliente.zona||'') + (dt? ' · ultima: '+escH(dt) : '') + '</div>' +
+        '</div>' +
+        '<div style="background:var(--accent);color:#fff;border-radius:14px;min-width:30px;height:24px;padding:0 9px;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + r.n + '</div>' +
+      '</div>' +
+      '<div style="height:5px;background:var(--surface3);border-radius:3px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-hover))"></div></div>' +
+    '</div>';
+  }).join('');
+}
+window.renderVisitStats = renderVisitStats;
+
 loadAll();
 buildTabs();
 renderClients();
 document.getElementById('home-hbtn').classList.add('active-view');
-setInterval(renderClients, 300000);
+setInterval(()=>{ renderClients(); updateBell(); }, 300000);
 updateAccountButton();
+updateBell();
 // Se Firebase si carica dopo, l'auth listener chiamera' onFirebaseAuthChange
 // che richiama updateAccountButton + cloudInit. Niente da fare qui.
 </script>
