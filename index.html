@@ -543,12 +543,52 @@ header {
 .giri-title { font-size: 1.3rem; font-weight: 700; color: var(--text); margin: 0; flex: 1; }
 .giri-clear-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-family: 'Outfit', sans-serif; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
 .giri-clear-btn:hover { border-color: var(--red); color: var(--red); }
+.giri-history-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-family: 'Outfit', sans-serif; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+.giri-history-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+/* Filtri persistenti nel modal aggiunta visita */
+.giri-filter-bar { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.giri-filter-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); width: 100%; margin-bottom: 2px; }
+.giri-filter-chip { background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); border-radius: 14px; padding: 4px 10px; font-family: 'Outfit', sans-serif; font-size: 0.7rem; font-weight: 700; cursor: pointer; transition: all 0.12s; -webkit-tap-highlight-color: rgba(192,57,43,0.2); touch-action: manipulation; }
+.giri-filter-chip:hover { border-color: var(--accent); color: var(--accent); }
+.giri-filter-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+/* Cronologia */
+.giri-hist-entry { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+.giri-hist-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; -webkit-tap-highlight-color: rgba(192,57,43,0.18); touch-action: manipulation; }
+.giri-hist-title { font-weight: 700; color: var(--text); font-size: 0.95rem; }
+.giri-hist-dates { font-family: 'JetBrains Mono', monospace; font-size: 0.66rem; color: var(--text-muted); margin-top: 3px; }
+.giri-hist-count { background: var(--accent); color: white; border-radius: 14px; padding: 2px 9px; font-size: 0.72rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; flex-shrink: 0; }
+.giri-hist-body { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.giri-hist-entry.open .giri-hist-body { display: block; }
+.giri-hist-day { margin-bottom: 9px; }
+.giri-hist-day-name { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--accent-hover); margin-bottom: 4px; }
+.giri-hist-day-visit { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 6px 9px; margin-bottom: 4px; font-size: 0.8rem; display: flex; gap: 8px; align-items: center; }
+.giri-hist-day-visit .ghv-time { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--accent-hover); flex-shrink: 0; min-width: 38px; }
+.giri-hist-day-visit .ghv-name { font-weight: 600; color: var(--text); flex: 1; min-width: 0; }
+.giri-hist-day-visit .ghv-zone { font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: var(--surface3); border-radius: 3px; padding: 1px 5px; }
+.giri-hist-del { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 7px; padding: 5px 10px; font-family: 'Outfit', sans-serif; font-size: 0.7rem; font-weight: 600; cursor: pointer; margin-top: 8px; -webkit-tap-highlight-color: rgba(192,57,43,0.2); touch-action: manipulation; }
+.giri-hist-del:hover { border-color: var(--red); color: var(--red); }
+.giri-hist-empty { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 30px 14px; }
 .giri-sub { font-size: 0.78rem; color: var(--text-muted); margin: 0; }
-.giri-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; }
-@media (max-width: 1100px) { .giri-grid { grid-template-columns: repeat(4, 1fr); } }
-@media (max-width: 750px) { .giri-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px) { .giri-grid { grid-template-columns: 1fr; gap: 10px; } }
-.giri-day { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; min-height: 200px; display: flex; flex-direction: column; transition: border-color 0.2s; }
+/* Layout 4+3: Lun-Gio sopra (4 colonne), Ven-Dom sotto (3 colonne) */
+.giri-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+.giri-grid .giri-day:nth-child(1),
+.giri-grid .giri-day:nth-child(2),
+.giri-grid .giri-day:nth-child(3),
+.giri-grid .giri-day:nth-child(4) { grid-column: span 3; }
+.giri-grid .giri-day:nth-child(5),
+.giri-grid .giri-day:nth-child(6),
+.giri-grid .giri-day:nth-child(7) { grid-column: span 4; }
+@media (max-width: 900px) {
+  /* Tablet: Lun-Mar / Mer-Gio / Ven-Sab / Dom */
+  .giri-grid { grid-template-columns: repeat(2, 1fr); }
+  .giri-grid .giri-day { grid-column: span 1 !important; }
+}
+@media (max-width: 520px) {
+  /* Telefono: tutto in colonna unica per leggere bene i nomi */
+  .giri-grid { grid-template-columns: 1fr; gap: 10px; }
+  .giri-grid .giri-day { grid-column: span 1 !important; }
+}
+.giri-day { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; min-height: 240px; display: flex; flex-direction: column; transition: border-color 0.2s; }
 .giri-day.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-dim); }
 .giri-day-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
 .giri-day-name { font-size: 0.85rem; font-weight: 700; color: var(--text); letter-spacing: 0.04em; }
@@ -560,7 +600,7 @@ header {
 .giri-visit-time { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 700; color: var(--accent-hover); flex-shrink: 0; padding-top: 1px; min-width: 38px; }
 .giri-visit-time.no-time { color: var(--text-light); }
 .giri-visit-body { flex: 1; min-width: 0; }
-.giri-visit-name { font-size: 0.82rem; font-weight: 600; color: var(--text); line-height: 1.25; word-break: break-word; }
+.giri-visit-name { font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.3; word-break: break-word; hyphens: auto; }
 .giri-visit-zone { display: inline-block; font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: var(--surface3); border-radius: 4px; padding: 1px 5px; margin-top: 3px; }
 .giri-visit-note { font-size: 0.7rem; color: var(--text-muted); font-style: italic; margin-top: 4px; line-height: 1.35; }
 .giri-visit-del { background: none; border: none; color: var(--text-light); font-size: 1rem; cursor: pointer; padding: 2px 4px; line-height: 1; flex-shrink: 0; transition: color 0.15s; }
@@ -838,9 +878,15 @@ header {
     <div class="giri-header">
       <div class="giri-title-row">
         <h2 class="giri-title">Giri della settimana</h2>
-        <button class="giri-clear-btn" onclick="clearAllGiri()" title="Svuota tutta la settimana">&#128465; Svuota</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="giri-history-btn" onclick="openGiriHistory()" title="Cronologia settimane passate">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 10 9 10"/><polyline points="12 7 12 12 15 14"/></svg>
+            Cronologia
+          </button>
+          <button class="giri-clear-btn" onclick="clearAllGiri()" title="Svuota tutta la settimana">&#128465; Svuota</button>
+        </div>
       </div>
-      <p class="giri-sub">Pianifica clienti e orari per ogni giorno. Tutto si salva automaticamente.</p>
+      <p class="giri-sub" id="giri-sub-text">Pianifica clienti e orari per ogni giorno. Ogni lunedi la settimana si archivia automaticamente.</p>
     </div>
     <div class="giri-grid" id="giri-grid"></div>
   </div>
@@ -863,7 +909,7 @@ header {
 </div>
 
 <div class="overlay" id="giri-add-overlay" onclick="closeOverlayBg(event,'giri-add-overlay',closeGiroAdd)">
-  <div class="modal" style="max-width:380px">
+  <div class="modal" style="max-width:420px">
     <div class="modal-header">
       <div>
         <div class="modal-title">Aggiungi visita</div>
@@ -872,6 +918,13 @@ header {
       <button class="modal-close" onclick="closeGiroAdd()">&times;</button>
     </div>
     <div class="modal-body">
+      <!-- Filtri persistenti zona/azienda -->
+      <div class="giri-filter-bar" id="giri-filter-zona">
+        <span class="giri-filter-label">Filtra per zona</span>
+      </div>
+      <div class="giri-filter-bar" id="giri-filter-azienda">
+        <span class="giri-filter-label">Filtra per azienda</span>
+      </div>
       <div style="margin-bottom:14px">
         <div class="client-edit-label" style="margin-bottom:6px">Cliente *</div>
         <input class="add-client-input" type="text" id="giri-add-search" placeholder="Cerca per nome..." oninput="filterGiroClientList()" autocomplete="off">
@@ -889,9 +942,23 @@ header {
       </div>
     </div>
     <div class="modal-footer" style="display:flex;gap:8px">
-      <button onclick="closeGiroAdd()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Annulla</button>
-      <button onclick="confirmAddGiro()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Salva visita</button>
+      <button onclick="closeGiroAdd()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Chiudi</button>
+      <button onclick="confirmAddGiro()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Salva e continua</button>
     </div>
+  </div>
+</div>
+
+<!-- CRONOLOGIA GIRI SETTIMANE PASSATE -->
+<div class="overlay" id="giri-history-overlay" onclick="closeOverlayBg(event,'giri-history-overlay',closeGiriHistory)">
+  <div class="modal" style="max-width:540px;max-height:88vh">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Cronologia giri</div>
+        <div class="modal-subtitle" id="giri-history-subtitle">Settimane archiviate</div>
+      </div>
+      <button class="modal-close" onclick="closeGiriHistory()">&times;</button>
+    </div>
+    <div class="modal-body" id="giri-history-body" style="padding:14px 16px;max-height:74vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -1155,40 +1222,10 @@ header {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const DEFAULT_ZONES = ['CHIETI','PESCARA','SULMONA','TERAMO','AQUILA','MOLISE','VASTO'];
-const DEFAULT_CLIENTS = [
-  {id:'ch1',zona:'CHIETI',nome:'CHIETI',contatti:'EMANUELE'},
-  {id:'ch2',zona:'CHIETI',nome:'ALCOVA',contatti:''},
-  {id:'ch3',zona:'CHIETI',nome:'BELLANTE',contatti:''},
-  {id:'ch4',zona:'CHIETI',nome:'EUROCER',contatti:''},
-  {id:'ch5',zona:'CHIETI',nome:'LESS IS MORE',contatti:''},
-  {id:'ch6',zona:'CHIETI',nome:'LIVING',contatti:'FABIO / SABBIA'},
-  {id:'ch7',zona:'CHIETI',nome:'EXPO STORE',contatti:'STEFANO'},
-  {id:'ch8',zona:'CHIETI',nome:'HYDRO HOUSE',contatti:'MONIA'},
-  {id:'ch9',zona:'CHIETI',nome:'EDILPROJECT',contatti:''},
-  {id:'ch10',zona:'CHIETI',nome:'COMPOSIZIONI',contatti:''},
-  {id:'pe1',zona:'PESCARA',nome:'SCALERA PIETRO',contatti:''},
-  {id:'pe2',zona:'PESCARA',nome:'ICW',contatti:'CARLA / MASSIMO'},
-  {id:'pe3',zona:'PESCARA',nome:'PIERLUIGI COLETTA',contatti:''},
-  {id:'pe4',zona:'PESCARA',nome:'NPZ',contatti:''},
-  {id:'pe5',zona:'PESCARA',nome:'LACCETTI',contatti:''},
-  {id:'pe6',zona:'PESCARA',nome:'RACHELE ROSITO',contatti:'RACHELE'},
-  {id:'pe7',zona:'PESCARA',nome:'MATERIA',contatti:''},
-  {id:'su1',zona:'SULMONA',nome:'SULMONA',contatti:'SANDRO'},
-  {id:'te1',zona:'TERAMO',nome:'TERAMO',contatti:''},
-  {id:'te2',zona:'TERAMO',nome:'COMAIT',contatti:'MASSIMO / ACHILLE / GIANNI'},
-  {id:'te3',zona:'TERAMO',nome:'IDEA PAVIMENTI',contatti:'GIACOMO / BERARDO'},
-  {id:'te4',zona:'TERAMO',nome:'EDIL 83',contatti:'ALESSANDRA'},
-  {id:'te5',zona:'TERAMO',nome:'SPAZIO 7',contatti:'ANDREA CANTARINI / GIACOMO'},
-  {id:'te6',zona:'TERAMO',nome:'PLASTICA VOMANO',contatti:''},
-  {id:'te7',zona:'TERAMO',nome:'DOMOSTILE',contatti:''},
-  {id:'aq1',zona:'AQUILA',nome:'AQUILA',contatti:'EDY'},
-  {id:'aq2',zona:'AQUILA',nome:'SIMIC',contatti:'VALERIA'},
-  {id:'aq3',zona:'AQUILA',nome:'EDIL-FER',contatti:'STEFANO / VALERIO'},
-  {id:'aq4',zona:'AQUILA',nome:'BUTTARI',contatti:'MARINI CARMINE'},
-  {id:'mo1',zona:'MOLISE',nome:'MOLISE',contatti:''},
-  {id:'mo2',zona:'MOLISE',nome:'MONTESANTO',contatti:''},
-  {id:'va1',zona:'VASTO',nome:'VASTO',contatti:''},
-];
+// Lista vuota: i clienti reali arrivano da Firebase (cloud) o da localStorage.
+// Lasciandola vuota si evita che, caricando la nuova versione del file,
+// appaiano clienti di esempio che si sovrappongono ai tuoi dati reali.
+const DEFAULT_CLIENTS = [];
 
 let zoneOrder=[], clienti=[], visits={}, calNotes={};
 let aziende=[];
@@ -1198,6 +1235,77 @@ let kmlSync=null;        // lista KML importata (sostituisce KML_CLIENTS quando 
 let kmlSyncDate=null;    // ISO date dell'ultimo import
 // Giri settimanali: { lun:[{id, clientId, time, note}], mar:[...], ... }
 let giri={lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
+// Cronologia settimane passate: [{weekKey:'2026-W21', from:isoDate, to:isoDate, days:{lun:[...],...}}]
+let giriHistory = [];
+// Settimana corrente associata al `giri` corrente (per detection del rollover)
+let giriCurrentWeekKey = null;
+
+// Calcola chiave ISO settimana es. "2026-W21" (lunedi-domenica)
+function _isoWeekKey(d){
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7; // 1..7 con Domenica=7
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+  const weekNum = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return date.getUTCFullYear() + '-W' + String(weekNum).padStart(2,'0');
+}
+function _currentWeekKey(){ return _isoWeekKey(new Date()); }
+// Estremi della settimana ISO di una data (lunedi - domenica, locale)
+function _isoWeekRange(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = x.getDay() || 7; // 1=Lun..7=Dom
+  const mon = new Date(x); mon.setDate(x.getDate() - (dow-1));
+  const dom = new Date(mon); dom.setDate(mon.getDate() + 6);
+  return { from: mon.toISOString(), to: dom.toISOString() };
+}
+
+// Archivia (se non vuota) la settimana corrente e resetta i giri.
+function _archiveCurrentWeekIfAny(prevWeekKey){
+  const hasAnyVisit = Object.values(giri).some(a => Array.isArray(a) && a.length > 0);
+  if(hasAnyVisit && prevWeekKey){
+    // Calcola le date di quella settimana
+    // Parse weekKey "2026-W21" → ricava lunedi/domenica
+    const m = /^(\d{4})-W(\d{2})$/.exec(prevWeekKey);
+    let from = null, to = null;
+    if(m){
+      const year = parseInt(m[1],10);
+      const week = parseInt(m[2],10);
+      // 4 gennaio è sempre nella settimana 1 ISO
+      const jan4 = new Date(year, 0, 4);
+      const dowJan4 = jan4.getDay() || 7;
+      const monW1 = new Date(jan4); monW1.setDate(jan4.getDate() - (dowJan4-1));
+      const mon = new Date(monW1); mon.setDate(monW1.getDate() + (week-1)*7);
+      const dom = new Date(mon); dom.setDate(mon.getDate() + 6);
+      from = mon.toISOString();
+      to = dom.toISOString();
+    }
+    if(!Array.isArray(giriHistory)) giriHistory = [];
+    giriHistory.unshift({
+      weekKey: prevWeekKey,
+      from, to,
+      archivedAt: new Date().toISOString(),
+      days: JSON.parse(JSON.stringify(giri))
+    });
+    // Limita la cronologia a 52 settimane per non far esplodere lo storage
+    if(giriHistory.length > 52) giriHistory.length = 52;
+  }
+  giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
+}
+
+// Controlla se siamo passati a una nuova settimana: archivia e resetta
+function _checkWeekRollover(){
+  const nowKey = _currentWeekKey();
+  if(!giriCurrentWeekKey){
+    giriCurrentWeekKey = nowKey;
+    return false;
+  }
+  if(giriCurrentWeekKey !== nowKey){
+    _archiveCurrentWeekIfAny(giriCurrentWeekKey);
+    giriCurrentWeekKey = nowKey;
+    return true;
+  }
+  return false;
+}
 
 function loadAll(){
   try {
@@ -1219,6 +1327,10 @@ function loadAll(){
     if(s.giri && typeof s.giri==='object'){
       giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[], ...s.giri};
     }
+    if(Array.isArray(s.giriHistory)) giriHistory = s.giriHistory;
+    giriCurrentWeekKey = s.giriCurrentWeekKey || null;
+    // Controlla rollover settimanale: se è passata una settimana, archivia
+    _checkWeekRollover();
   } catch(e){
     console.error('loadAll: JSON parse failed, attempting backup recovery', e);
     // Tenta recovery dal backup di emergenza
@@ -1239,9 +1351,11 @@ function reset(){
   kmlOverrides={}; kmlHidden={};
   kmlSync=null; kmlSyncDate=null;
   giri={lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
+  giriHistory = [];
+  giriCurrentWeekKey = _currentWeekKey();
 }
 function buildState(){
-  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri};
+  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey};
 }
 function saveAll(){
   try {
@@ -1430,6 +1544,14 @@ function applyCloudState(s){
         giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[], ...s.giri};
       }
     }
+    // Cronologia giri: tieni la versione con più settimane (no loss-protection)
+    if(Array.isArray(s.giriHistory)){
+      const localH = Array.isArray(giriHistory) ? giriHistory.length : 0;
+      if(s.giriHistory.length >= localH) giriHistory = s.giriHistory;
+    }
+    if(s.giriCurrentWeekKey) giriCurrentWeekKey = s.giriCurrentWeekKey;
+    // Dopo l'apply, verifica eventuale rollover settimanale
+    if(typeof _checkWeekRollover === 'function') _checkWeekRollover();
     try { localStorage.setItem('emilV4', JSON.stringify(buildState())); } catch(_){}
     if(typeof renderClients==='function') renderClients();
     if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
@@ -2214,6 +2336,11 @@ function todayDayKey(){
   return idx === 0 ? 'dom' : GIORNI[idx-1].key;
 }
 function renderGiri(){
+  // Verifica se siamo passati a una nuova settimana: archivia + reset
+  if(_checkWeekRollover()){
+    try { saveAll(); } catch(_){}
+    showToast('Settimana archiviata. Inizio nuova settimana.');
+  }
   const grid = document.getElementById('giri-grid');
   if(!grid) return;
   const today = todayDayKey();
@@ -2254,6 +2381,49 @@ function renderGiri(){
 let _activeGiroDay = null;
 let _selectedGiroClientId = null;
 let _pickerClientId = null;
+// Filtri persistenti nel modal aggiunta (sopravvivono dopo ogni salvataggio)
+let _giroAddFilterZona = '';    // '' = Tutte
+let _giroAddFilterAzienda = ''; // '' = Tutte (id azienda)
+
+function _renderGiroFilters(){
+  // Zone disponibili dai clienti attuali
+  const zoneBar = document.getElementById('giri-filter-zona');
+  if(zoneBar){
+    const zonesUsed = [...new Set(clienti.map(c=>c.zona).filter(Boolean))].sort();
+    const chips = ['<span class="giri-filter-label">Filtra per zona</span>',
+      '<button class="giri-filter-chip'+(_giroAddFilterZona===''?' active':'')+'" data-kind="zona" data-value="" onclick="setGiroAddFilter(this.dataset.kind,this.dataset.value)">Tutte</button>'
+    ];
+    zonesUsed.forEach(z => {
+      chips.push('<button class="giri-filter-chip'+(_giroAddFilterZona===z?' active':'')+'" data-kind="zona" data-value="'+escA(z)+'" onclick="setGiroAddFilter(this.dataset.kind,this.dataset.value)">'+escH(z)+'</button>');
+    });
+    zoneBar.innerHTML = chips.join('');
+  }
+  // Aziende
+  const azBar = document.getElementById('giri-filter-azienda');
+  if(azBar){
+    if(!Array.isArray(aziende) || aziende.length === 0){
+      azBar.style.display = 'none';
+    } else {
+      azBar.style.display = '';
+      const chips = ['<span class="giri-filter-label">Filtra per azienda</span>',
+        '<button class="giri-filter-chip'+(_giroAddFilterAzienda===''?' active':'')+'" data-kind="azienda" data-value="" onclick="setGiroAddFilter(this.dataset.kind,this.dataset.value)">Tutte</button>'
+      ];
+      aziende.slice().sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).forEach(a => {
+        chips.push('<button class="giri-filter-chip'+(_giroAddFilterAzienda===a.id?' active':'')+'" data-kind="azienda" data-value="'+escA(a.id)+'" onclick="setGiroAddFilter(this.dataset.kind,this.dataset.value)">'+escH(a.nome||'')+'</button>');
+      });
+      azBar.innerHTML = chips.join('');
+    }
+  }
+}
+
+function setGiroAddFilter(kind, value){
+  if(kind === 'zona') _giroAddFilterZona = value || '';
+  if(kind === 'azienda') _giroAddFilterAzienda = value || '';
+  _renderGiroFilters();
+  filterGiroClientList();
+}
+window.setGiroAddFilter = setGiroAddFilter;
+
 function openGiroAdd(dayKey, preClientId){
   _activeGiroDay = dayKey;
   _selectedGiroClientId = preClientId || null;
@@ -2263,6 +2433,8 @@ function openGiroAdd(dayKey, preClientId){
   document.getElementById('giri-add-search').value = preCli ? preCli.nome : '';
   document.getElementById('giri-add-time').value = '';
   document.getElementById('giri-add-note').value = '';
+  // I filtri PERSISTONO tra aperture diverse (volontariamente)
+  _renderGiroFilters();
   filterGiroClientList();
   openOverlay('giri-add-overlay');
   if(!preCli) setTimeout(()=>document.getElementById('giri-add-search')?.focus(), 80);
@@ -2324,15 +2496,18 @@ function filterGiroClientList(){
   if(!list) return;
   const filtered = clienti
     .slice()
+    .filter(c => !_giroAddFilterZona || c.zona === _giroAddFilterZona)
+    .filter(c => !_giroAddFilterAzienda || (Array.isArray(c.aziende) && c.aziende.includes(_giroAddFilterAzienda)))
     .sort((a,b)=>a.zona.localeCompare(b.zona)||a.nome.localeCompare(b.nome))
     .filter(c => !q || c.nome.toLowerCase().includes(q) || (c.contatti||'').toLowerCase().includes(q));
   if(filtered.length === 0){
     list.classList.add('visible');
-    list.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Nessun cliente trovato</div>';
+    list.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Nessun cliente trovato' +
+      ((_giroAddFilterZona||_giroAddFilterAzienda)?' con questi filtri':'') + '</div>';
     return;
   }
   list.classList.add('visible');
-  list.innerHTML = filtered.slice(0,40).map(c=>
+  list.innerHTML = filtered.slice(0,60).map(c=>
     `<div class="giri-client-option${_selectedGiroClientId===c.id?' selected':''}" onclick="selectGiroClient('${c.id}')">
       <span>${escH(c.nome)}</span>
       <span class="giri-client-option-zone">${escH(c.zona)}</span>
@@ -2368,9 +2543,17 @@ function confirmAddGiro(){
     time, note,
   });
   saveAll();
-  closeGiroAdd();
+  // NON chiudere il modal: l'utente vuole continuare ad aggiungere clienti
+  // con gli stessi filtri attivi. Pulisci solo la selezione e i campi.
+  _selectedGiroClientId = null;
+  const srch = document.getElementById('giri-add-search'); if(srch) srch.value = '';
+  const tm = document.getElementById('giri-add-time'); if(tm) tm.value = '';
+  const nt = document.getElementById('giri-add-note'); if(nt) nt.value = '';
+  filterGiroClientList();
   renderGiri();
   showToast(cli.nome+' aggiunto a '+GIORNI.find(g=>g.key===_activeGiroDay).name);
+  // Riporta il focus al campo ricerca per la prossima aggiunta
+  setTimeout(()=>document.getElementById('giri-add-search')?.focus(), 50);
 }
 function removeGiro(dayKey, id){
   if(!giri[dayKey]) return;
@@ -2384,12 +2567,112 @@ function removeGiro(dayKey, id){
   }
 }
 function clearAllGiri(){
-  if(!confirm('Svuotare tutti i giri della settimana? Questa azione non si pu\u00f2 annullare.')) return;
+  // Archivia in cronologia anche quando l'utente svuota manualmente
+  const hasAny = Object.values(giri).some(a => Array.isArray(a) && a.length > 0);
+  const msg = hasAny
+    ? 'Svuotare tutti i giri della settimana? Verranno archiviati in cronologia.'
+    : 'Svuotare tutti i giri della settimana? Questa azione non si pu\u00f2 annullare.';
+  if(!confirm(msg)) return;
+  if(hasAny){
+    if(!Array.isArray(giriHistory)) giriHistory = [];
+    const wkey = giriCurrentWeekKey || _currentWeekKey();
+    // Calcola da/a per la settimana corrente
+    const range = _isoWeekRange(new Date());
+    giriHistory.unshift({
+      weekKey: wkey + '_manual',
+      from: range.from,
+      to: range.to,
+      archivedAt: new Date().toISOString(),
+      manual: true,
+      days: JSON.parse(JSON.stringify(giri))
+    });
+    if(giriHistory.length > 52) giriHistory.length = 52;
+  }
   giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
   saveAll();
   renderGiri();
-  showToast('Settimana svuotata');
+  showToast(hasAny ? 'Settimana archiviata e svuotata' : 'Settimana svuotata');
 }
+
+// \u2500\u2500 CRONOLOGIA GIRI \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+function openGiriHistory(){
+  renderGiriHistory();
+  openOverlay('giri-history-overlay');
+}
+function closeGiriHistory(){ closeOverlay('giri-history-overlay'); }
+window.openGiriHistory = openGiriHistory;
+window.closeGiriHistory = closeGiriHistory;
+
+function renderGiriHistory(){
+  const body = document.getElementById('giri-history-body');
+  const sub = document.getElementById('giri-history-subtitle');
+  if(!body) return;
+  const list = Array.isArray(giriHistory) ? giriHistory.slice() : [];
+  if(sub) sub.textContent = list.length
+    ? (list.length + ' settiman' + (list.length===1?'a archiviata':'e archiviate'))
+    : 'Nessuna settimana archiviata';
+  if(!list.length){
+    body.innerHTML = '<div class="giri-hist-empty">\u2728 La cronologia \u00e8 vuota.<br><br>Ogni lunedi i giri della settimana precedente vengono archiviati qui automaticamente.<br>Puoi anche archiviare manualmente cliccando "Svuota".</div>';
+    return;
+  }
+  body.innerHTML = list.map((entry, idx)=>{
+    const wk = entry.weekKey || '';
+    const from = entry.from ? new Date(entry.from) : null;
+    const to = entry.to ? new Date(entry.to) : null;
+    const fmtD = d => d ? d.toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric'}) : '';
+    const dateRange = from && to ? (fmtD(from) + ' &mdash; ' + fmtD(to)) : '';
+    const days = entry.days || {};
+    let total = 0;
+    GIORNI.forEach(g => { if(Array.isArray(days[g.key])) total += days[g.key].length; });
+    const daysHtml = GIORNI.map(g=>{
+      const list = Array.isArray(days[g.key]) ? days[g.key] : [];
+      if(!list.length) return '';
+      return '<div class="giri-hist-day">' +
+        '<div class="giri-hist-day-name">' + g.name + ' &middot; ' + list.length + ' visit' + (list.length===1?'a':'e') + '</div>' +
+        list.map(v=>{
+          const cli = clienti.find(c=>c.id===v.clientId);
+          const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
+          const zona = cli ? cli.zona : '';
+          return '<div class="giri-hist-day-visit">' +
+            '<span class="ghv-time">' + (v.time || '--:--') + '</span>' +
+            '<span class="ghv-name">' + escH(nome) + '</span>' +
+            (zona ? '<span class="ghv-zone">' + escH(zona) + '</span>' : '') +
+          '</div>';
+        }).join('') +
+      '</div>';
+    }).join('');
+    return '<div class="giri-hist-entry" id="ghe-'+idx+'">' +
+      '<div class="giri-hist-head" onclick="toggleGiriHistEntry(\''+idx+'\')">' +
+        '<div>' +
+          '<div class="giri-hist-title">' + (wk.replace(/_manual$/, '') || 'Settimana ') + (entry.manual ? ' <span style="font-size:0.65rem;color:var(--text-muted);font-weight:500">(manuale)</span>' : '') + '</div>' +
+          (dateRange ? '<div class="giri-hist-dates">' + dateRange + '</div>' : '') +
+        '</div>' +
+        '<div class="giri-hist-count">' + total + '</div>' +
+      '</div>' +
+      '<div class="giri-hist-body">' +
+        (total ? daysHtml : '<div style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:8px">Nessuna visita.</div>') +
+        '<button class="giri-hist-del" onclick="deleteGiriHistEntry('+idx+');event.stopPropagation()">&#128465; Elimina dalla cronologia</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+window.renderGiriHistory = renderGiriHistory;
+
+function toggleGiriHistEntry(idx){
+  const el = document.getElementById('ghe-'+idx);
+  if(el) el.classList.toggle('open');
+}
+window.toggleGiriHistEntry = toggleGiriHistEntry;
+
+function deleteGiriHistEntry(idx){
+  if(!Array.isArray(giriHistory) || idx < 0 || idx >= giriHistory.length) return;
+  if(!confirm('Eliminare questa settimana dalla cronologia? L\'operazione non si pu\u00f2 annullare.')) return;
+  giriHistory.splice(idx, 1);
+  saveAll();
+  renderGiriHistory();
+  showToast('Settimana eliminata');
+}
+window.deleteGiriHistEntry = deleteGiriHistEntry;
 function renameTarget(origName, newName){
   newName = (newName||'').trim();
   if(!newName || newName === origName){
