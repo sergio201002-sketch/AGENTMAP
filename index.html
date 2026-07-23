@@ -2080,8 +2080,8 @@ function renderCardCompact(c){
       <span class="client-row-dot ${sc}"></span>
       <span class="client-row-name">${escH(c.nome)}</span>
       ${hasPending?`<span class="client-row-rem-dot" onclick="openReminders('${c.id}')" title="Promemoria in sospeso"></span>`:''}
-      ${logosHtml}
       <span class="client-row-meta">${fmtDate(v.visitDate)}</span>${chip}
+      ${logosHtml}
       <button class="client-row-toggle${extraOpen?' open':''}" onclick="toggleRowExtra('${c.id}', event)" title="Altre azioni">${extraOpen?'&times;':'+'}</button>
     </div>
     <div class="client-row-extra${extraOpen?' open':''}">
