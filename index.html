@@ -195,9 +195,9 @@ header {
 /* CLIENTS VIEW */
 .main { padding: 24px; max-width: 1300px; margin: 0 auto; }
 .legend-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+.legend-bar .view-toggle { margin-left: auto; flex-shrink: 0; }
 .clients-filter-row { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
 .clients-filter-row .azienda-filter-bar { flex: 1; min-width: 0; margin-bottom: 0; }
-.clients-filter-row .view-toggle { margin-left: auto; flex-shrink: 0; }
 .view-toggle { display: inline-flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 3px; gap: 2px; }
 .view-toggle-btn { width: 32px; height: 30px; border: none; background: none; border-radius: 7px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); transition: all 0.15s; }
 .view-toggle-btn:hover { color: var(--accent); }
@@ -914,9 +914,6 @@ header {
       <div class="legend-item"><div class="legend-pip" style="background:var(--orange)"></div>10-15g</div>
       <div class="legend-item"><div class="legend-pip" style="background:var(--red)"></div>15-20g</div>
       <div class="legend-item"><div class="legend-pip" style="background:var(--black-col)"></div>20+g</div>
-    </div>
-    <div class="clients-filter-row">
-      <div id="azienda-filter-bar" class="azienda-filter-bar"></div>
       <div class="view-toggle">
         <button class="view-toggle-btn" id="view-toggle-grid" onclick="setClientViewMode('grid')" title="Vista a schede">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -925,6 +922,9 @@ header {
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
       </div>
+    </div>
+    <div class="clients-filter-row">
+      <div id="azienda-filter-bar" class="azienda-filter-bar"></div>
     </div>
     <div id="zones-container"></div>
   </div>
