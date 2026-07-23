@@ -447,6 +447,8 @@ header {
 .cal-month-title { font-size: 1.05rem; font-weight: 700; flex: 1; color: var(--text); }
 .cal-today-btn { background: none; border: 1px solid var(--border); border-radius: 9px; padding: 6px 13px; font-family: 'Nunito', sans-serif; font-size: 0.74rem; font-weight: 600; color: var(--text); cursor: pointer; transition: all 0.15s; }
 .cal-today-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cal-add-visit-btn { background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 8px 14px; font-family: 'Nunito', sans-serif; font-size: 0.76rem; font-weight: 700; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+.cal-add-visit-btn:hover { background: var(--accent-hover); }
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
 .cal-dow { padding: 10px 0; text-align: center; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); background: var(--surface2); border-bottom: 1px solid var(--border); }
 .cal-cell { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); min-height: 82px; padding: 7px 8px; cursor: pointer; transition: background 0.12s; vertical-align: top; }
@@ -937,6 +939,7 @@ header {
       <div class="cal-month-title" id="cal-month-title"></div>
       <button class="cal-today-btn" onclick="calToday()">Oggi</button>
       <button class="cal-nav-btn" onclick="calNext()">&rsaquo;</button>
+      <button class="cal-add-visit-btn" onclick="openCalAddVisit()" title="Aggiungi visita">+ Visita</button>
     </div>
     <div class="cal-grid" id="cal-grid"></div>
   </div>
@@ -1126,7 +1129,10 @@ header {
       </div>
       <button class="modal-close" onclick="closeCalDay()">&times;</button>
     </div>
-    <div class="modal-body" id="calday-body" style="padding:14px 18px"></div>
+    <div style="padding:0 18px 12px">
+      <button class="cal-add-visit-btn" style="width:100%" onclick="openCalAddVisit(activeCalDay)">+ Aggiungi visita per questo giorno</button>
+    </div>
+    <div class="modal-body" id="calday-body" style="padding:0 18px 14px"></div>
     <div class="modal-footer">
       <div class="add-event-form">
         <input class="add-event-time" type="time" id="calday-event-time" value="09:00">
@@ -1134,6 +1140,39 @@ header {
           onkeydown="if(event.key==='Enter'){event.preventDefault();calDayAddEvent()}">
         <button class="add-event-btn" onclick="calDayAddEvent()">+</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="cal-add-visit-overlay" onclick="closeOverlayBg(event,'cal-add-visit-overlay',closeCalAddVisit)">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Aggiungi visita</div>
+        <div class="modal-subtitle">Registra una visita per un giorno passato</div>
+      </div>
+      <button class="modal-close" onclick="closeCalAddVisit()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <div style="flex:1">
+          <div class="client-edit-label" style="margin-bottom:6px">Data</div>
+          <input class="add-client-input" type="date" id="cal-add-visit-date">
+        </div>
+        <div style="flex:1">
+          <div class="client-edit-label" style="margin-bottom:6px">Orario</div>
+          <input class="add-client-input" type="time" id="cal-add-visit-time" value="09:00">
+        </div>
+      </div>
+      <div>
+        <div class="client-edit-label" style="margin-bottom:6px">Cliente *</div>
+        <input class="add-client-input" type="text" id="cal-add-visit-search" placeholder="Cerca per nome..." oninput="filterCalVisitClientList()" autocomplete="off">
+        <div class="giri-client-list" id="cal-add-visit-client-list"></div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px">
+      <button onclick="closeCalAddVisit()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Chiudi</button>
+      <button onclick="confirmCalAddVisit()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Salva visita</button>
     </div>
   </div>
 </div>
@@ -3258,10 +3297,16 @@ function renderCalendar(){
   document.getElementById('cal-month-title').textContent=title;
   const visitIndex={};
   clienti.forEach(c=>{
-    const v=visits[c.id]; if(!v||!v.visitDate) return;
-    const day=isoDay(new Date(v.visitDate));
-    if(!visitIndex[day]) visitIndex[day]=[];
-    visitIndex[day].push(c.id);
+    const v=visits[c.id]; if(!v) return;
+    const hist = Array.isArray(v.visitHistory) && v.visitHistory.length ? v.visitHistory : (v.visitDate ? [v.visitDate] : []);
+    const daysSeen = new Set();
+    hist.forEach(iso=>{
+      const day=isoDay(new Date(iso));
+      if(daysSeen.has(day)) return;
+      daysSeen.add(day);
+      if(!visitIndex[day]) visitIndex[day]=[];
+      visitIndex[day].push(c.id);
+    });
   });
   const today=isoDay(new Date());
   const firstDay=new Date(calYear,calMonth,1);
@@ -3338,12 +3383,16 @@ function renderCalDayBody(){
   const hourMap = {};
   HOURS.forEach(h=>{ hourMap[h]=[]; });
   clienti.forEach(c=>{
-    const v=visits[c.id]; if(!v||!v.visitDate) return;
-    if(isoDay(new Date(v.visitDate))!==key) return;
-    const d=new Date(v.visitDate);
-    const h=String(d.getHours()).padStart(2,'0');
-    if(hourMap[h]) hourMap[h].push({type:'visit',c,time:fmtTime(v.visitDate)});
-    else hourMap['07'].push({type:'visit',c,time:fmtTime(v.visitDate)});
+    const v=visits[c.id]; if(!v) return;
+    const hist = Array.isArray(v.visitHistory) && v.visitHistory.length ? v.visitHistory : (v.visitDate ? [v.visitDate] : []);
+    hist.forEach(iso=>{
+      if(isoDay(new Date(iso))!==key) return;
+      const d=new Date(iso);
+      const h=String(d.getHours()).padStart(2,'0');
+      const entry={type:'visit',c,time:fmtTime(iso),iso};
+      if(hourMap[h]) hourMap[h].push(entry);
+      else hourMap['07'].push(entry);
+    });
   });
   (calNotes[key]||[]).forEach((n,idx)=>{
     const d=new Date(n.time);
@@ -3359,7 +3408,7 @@ function renderCalDayBody(){
     items.forEach(item=>{
       if(item.type==='visit'){
         const c=item.c;
-        html+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="timeline-visit-chip"><svg width="9" height="11" viewBox="0 0 13 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 1C3.46 1 1 3.46 1 6.5c0 4.25 5.5 8.5 5.5 8.5S12 10.75 12 6.5C12 3.46 9.54 1 6.5 1z"/><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>${escH(c.nome)}<span class="timeline-visit-time">${item.time}</span></div><button class="timeline-del" onclick="deleteCalVisit('${c.id}')" title="Rimuovi visita">&times;</button></div>`;
+        html+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="timeline-visit-chip"><svg width="9" height="11" viewBox="0 0 13 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 1C3.46 1 1 3.46 1 6.5c0 4.25 5.5 8.5 5.5 8.5S12 10.75 12 6.5C12 3.46 9.54 1 6.5 1z"/><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>${escH(c.nome)}<span class="timeline-visit-time">${item.time}</span></div><button class="timeline-del" onclick="deleteCalVisit('${c.id}','${item.iso}')" title="Rimuovi visita">&times;</button></div>`;
       } else {
         const n=item.n; const idx=item.idx;
         html+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="timeline-event-chip"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${escH(n.text)}</div><button class="timeline-del" onclick="deleteCalNote('${key}',${idx})" title="Elimina evento">&times;</button></div>`;
@@ -3390,11 +3439,83 @@ function deleteCalNote(key,idx){
   calNotes[key].splice(idx,1);
   saveAll(); renderCalDayBody(); renderCalendar();
 }
-function deleteCalVisit(clientId){
+function deleteCalVisit(clientId, iso){
   const v=getV(clientId);
-  v.visitDate=null;
+  if(iso && Array.isArray(v.visitHistory)){
+    const idx=v.visitHistory.indexOf(iso);
+    if(idx!==-1) v.visitHistory.splice(idx,1);
+  } else {
+    v.visitHistory=[];
+  }
+  _recomputeVisitDate(v);
   saveAll(); renderCalDayBody(); renderCalendar(); renderClients();
   showToast('Visita rimossa');
+}
+
+// ── AGGIUNGI VISITA (retroattiva, da Calendario) ──────────────────────────
+let _calAddVisitSelectedId = null;
+function _recomputeVisitDate(v){
+  if(!Array.isArray(v.visitHistory) || !v.visitHistory.length){ v.visitDate = null; return; }
+  v.visitDate = v.visitHistory.slice().sort().pop();
+}
+function openCalAddVisit(presetDay){
+  _calAddVisitSelectedId = null;
+  document.getElementById('cal-add-visit-date').value = presetDay || isoDay(new Date());
+  document.getElementById('cal-add-visit-time').value = '09:00';
+  document.getElementById('cal-add-visit-search').value = '';
+  filterCalVisitClientList();
+  openOverlay('cal-add-visit-overlay');
+  setTimeout(()=>document.getElementById('cal-add-visit-search')?.focus(), 80);
+}
+function closeCalAddVisit(){
+  closeOverlay('cal-add-visit-overlay');
+  _calAddVisitSelectedId = null;
+}
+function filterCalVisitClientList(){
+  const q = (document.getElementById('cal-add-visit-search').value||'').toLowerCase().trim();
+  const list = document.getElementById('cal-add-visit-client-list');
+  if(!list) return;
+  const filtered = clienti.slice()
+    .sort((a,b)=>a.zona.localeCompare(b.zona)||a.nome.localeCompare(b.nome))
+    .filter(c => !q || c.nome.toLowerCase().includes(q) || (c.contatti||'').toLowerCase().includes(q));
+  if(!filtered.length){
+    list.classList.add('visible');
+    list.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Nessun cliente trovato</div>';
+    return;
+  }
+  list.classList.add('visible');
+  list.innerHTML = filtered.slice(0,60).map(c=>
+    `<div class="giri-client-option${_calAddVisitSelectedId===c.id?' selected':''}" onclick="selectCalVisitClient('${c.id}')">
+      <span>${escH(c.nome)}</span>
+      <span class="giri-client-option-zone">${escH(c.zona)}</span>
+    </div>`).join('');
+}
+function selectCalVisitClient(id){
+  _calAddVisitSelectedId = id;
+  const c = clienti.find(x=>x.id===id);
+  if(c) document.getElementById('cal-add-visit-search').value = c.nome;
+  filterCalVisitClientList();
+}
+function confirmCalAddVisit(){
+  if(!_calAddVisitSelectedId){ showToast('Seleziona un cliente dalla lista'); return; }
+  const cli = clienti.find(c=>c.id===_calAddVisitSelectedId);
+  if(!cli){ showToast('Cliente non trovato'); return; }
+  const dateVal = document.getElementById('cal-add-visit-date').value;
+  if(!dateVal){ showToast('Seleziona una data'); return; }
+  const timeVal = document.getElementById('cal-add-visit-time').value || '09:00';
+  const d = new Date(dateVal+'T'+timeVal+':00');
+  const v = getV(cli.id);
+  if(!Array.isArray(v.visitHistory)) v.visitHistory = [];
+  v.visitHistory.push(d.toISOString());
+  _recomputeVisitDate(v);
+  saveAll();
+  renderCalendar();
+  if(activeCalDay) renderCalDayBody();
+  if(typeof renderClients==='function') renderClients();
+  showToast('Visita aggiunta per '+cli.nome);
+  _calAddVisitSelectedId = null;
+  document.getElementById('cal-add-visit-search').value = '';
+  filterCalVisitClientList();
 }
 
 let routeSet=new Set();
