@@ -1965,10 +1965,10 @@ let clientFilterAzienda = null; // null = tutte le aziende
 function sortAziendeByFilter(list){
   if(!clientFilterAzienda) return list;
   const idx = list.findIndex(a=>a.id===clientFilterAzienda);
-  if(idx<=0) return list;
+  if(idx<0 || idx===list.length-1) return list;
   const copy = list.slice();
   const [picked] = copy.splice(idx,1);
-  copy.unshift(picked);
+  copy.push(picked);
   return copy;
 }
 function buildAziendaFilterBar(){
