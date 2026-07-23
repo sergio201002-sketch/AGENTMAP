@@ -270,6 +270,9 @@ header {
 @media (max-width: 600px){
   .azienda-filter-bar { gap: 5px; margin-bottom: 12px; }
   .azienda-filter-chip { font-size: 0.72rem; padding: 5px 11px; min-height: 32px; }
+  .azienda-filter-chip:not(.azienda-filter-chip-all) { padding: 5px 9px; gap: 0; }
+  .azienda-filter-chip-name { display: none; max-width: 0; overflow: hidden; }
+  .azienda-filter-chip.active .azienda-filter-chip-name { display: inline; max-width: 200px; margin-left: 6px; }
 }
 .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.68rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
 .legend-pip { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
@@ -1959,13 +1962,22 @@ function zoneMatchesCurrentFilter(zona){
 }
 
 let clientFilterAzienda = null; // null = tutte le aziende
+function sortAziendeByFilter(list){
+  if(!clientFilterAzienda) return list;
+  const idx = list.findIndex(a=>a.id===clientFilterAzienda);
+  if(idx<=0) return list;
+  const copy = list.slice();
+  const [picked] = copy.splice(idx,1);
+  copy.unshift(picked);
+  return copy;
+}
 function buildAziendaFilterBar(){
   const bar = document.getElementById('azienda-filter-bar');
   if(!bar) return;
   if(!aziende.length){ bar.innerHTML=''; return; }
   bar.innerHTML = `<span class="azienda-filter-label">Azienda:</span>`
-    + `<div class="azienda-filter-chip${clientFilterAzienda===null?' active':''}" onclick="setClientFilterAzienda(null)">Tutte</div>`
-    + aziende.map(a=>`<div class="azienda-filter-chip${clientFilterAzienda===a.id?' active':''}" onclick="setClientFilterAzienda('${a.id}')">${a.logo?`<img src="${escA(a.logo)}" alt="">`:'\u{1F3E2}'}${escH(a.nome)}</div>`).join('');
+    + `<div class="azienda-filter-chip azienda-filter-chip-all${clientFilterAzienda===null?' active':''}" onclick="setClientFilterAzienda(null)">Tutte</div>`
+    + aziende.map(a=>`<div class="azienda-filter-chip${clientFilterAzienda===a.id?' active':''}" onclick="setClientFilterAzienda('${a.id}')">${a.logo?`<img src="${escA(a.logo)}" alt="">`:'\u{1F3E2}'}<span class="azienda-filter-chip-name">${escH(a.nome)}</span></div>`).join('');
 }
 function setClientFilterAzienda(id){
   clientFilterAzienda = id;
@@ -2023,7 +2035,7 @@ function renderCard(c){
     <span class="reminder-row-text${hasPending?'':' none'}">${hasPending?escH(pendingRem[0].text.substring(0,36))+(pendingRem[0].text.length>36?'...':''):'Nessun promemoria'}</span>
     ${hasPending&&pendingRem.length>1?`<span class="rem-badge" style="font-size:0.65rem;color:var(--red);margin-left:auto;font-family:'JetBrains Mono',monospace;flex-shrink:0">+${pendingRem.length-1}</span>`:'<span class="rem-badge"></span>'}
   </div>`;
-  const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean);
+  const clientAziende = sortAziendeByFilter((c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean));
   const logosHtml = aziende.length > 0 ? `<div class="card-logos-row">${clientAziende.map(a=>`<div class="logo-slot" title="${escA(a.nome)}">${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<div class="logo-slot-nome">${escH(a.nome.substring(0,6))}</div>`}</div>`).join('')}<div class="logo-slot-add" onclick="openAssignAzienda('${c.id}')" title="Assegna azienda">+</div></div>` : '';
   return `<div class="client-card" id="card-${c.id}">
     <div class="card-stripe ${sc}"></div>
@@ -2072,7 +2084,7 @@ function renderCardCompact(c){
   const chip=days!==null?`<span class="days-chip ${chipKey(days)}">${days}g</span>`:'';
   const pendingRem = (v.reminders||[]).filter(r=>!r.done);
   const hasPending = pendingRem.length > 0;
-  const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean);
+  const clientAziende = sortAziendeByFilter((c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean));
   const logosHtml = clientAziende.length ? `<div class="client-row-logos">${clientAziende.map(a=>`<div class="client-row-logo" data-nome="${escA(a.nome)}" onclick="event.stopPropagation();toggleAziendaTooltip(this)">${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<span>${escH(a.nome.substring(0,2))}</span>`}</div>`).join('')}</div>` : '';
   const extraOpen = openRowExtra.has(c.id);
   return `<div class="client-row-wrap" id="card-${c.id}">
@@ -3725,10 +3737,62 @@ function closeRemindersOverview(){ document.getElementById('reminders-overview-o
 window.openRemindersOverview = openRemindersOverview;
 window.closeRemindersOverview = closeRemindersOverview;
 
+let remOverviewTab = 'attivi';
+function setRemOverviewTab(tab){
+  remOverviewTab = tab;
+  renderRemindersOverview();
+}
+window.setRemOverviewTab = setRemOverviewTab;
+function renderRemOverviewTabsHtml(){
+  return `<div style="display:flex;gap:6px;margin-bottom:12px">
+    <button onclick="setRemOverviewTab('attivi')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.78rem;font-weight:700;background:${remOverviewTab==='attivi'?'var(--accent)':'var(--surface2)'};color:${remOverviewTab==='attivi'?'#fff':'var(--text-muted)'}">Attivi</button>
+    <button onclick="setRemOverviewTab('cronologia')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.78rem;font-weight:700;background:${remOverviewTab==='cronologia'?'var(--accent)':'var(--surface2)'};color:${remOverviewTab==='cronologia'?'#fff':'var(--text-muted)'}">Cronologia</button>
+  </div>`;
+}
+function renderRemHistoryList(){
+  const items = [];
+  for(const c of (clienti||[])){
+    const v = visits[c.id];
+    if(!v || !Array.isArray(v.reminders)) continue;
+    v.reminders.forEach((r,idx)=>{ if(r && r.done) items.push({cliente:c, rem:r, idx}); });
+  }
+  items.sort((a,b)=> new Date(b.rem.date||0) - new Date(a.rem.date||0));
+  if(!items.length){
+    return '<div style="text-align:center;padding:30px 18px;color:var(--text-muted);font-size:0.84rem">Nessun promemoria completato ancora.</div>';
+  }
+  return items.map(it=>{
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;color:var(--text);font-size:0.86rem">' + escH(it.cliente.nome||'') + '</div>' +
+          '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.62rem;color:var(--text-muted);margin-top:2px">' + escH(fmtDateTime(it.rem.date)) + ' &middot; <span style="color:var(--green)">&#10003; Fatto</span></div>' +
+        '</div>' +
+        '<button onclick="undoReminderDoneFromOverview(\''+it.cliente.id+'\','+it.idx+')" title="Segna come da fare" style="background:none;border:1px solid var(--border2);color:var(--text-muted);width:26px;height:26px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.85rem;flex-shrink:0">&#8634;</button>' +
+      '</div>' +
+      '<div style="font-size:0.78rem;color:var(--text);line-height:1.45;white-space:pre-wrap;word-break:break-word;margin-top:6px">' + escH(it.rem.text||'') + '</div>' +
+    '</div>';
+  }).join('');
+}
+function undoReminderDoneFromOverview(cid, idx){
+  const v = visits[cid];
+  if(!v || !Array.isArray(v.reminders) || idx<0 || idx>=v.reminders.length) return;
+  v.reminders[idx].done = false;
+  saveAll();
+  updateBell();
+  renderRemindersOverview();
+  if(typeof renderClients === 'function') try{ renderClients(); }catch(_){}
+  showToast('Promemoria riattivato');
+}
+window.undoReminderDoneFromOverview = undoReminderDoneFromOverview;
 function renderRemindersOverview(){
   const body = document.getElementById('rem-overview-body');
   const sub = document.getElementById('rem-overview-subtitle');
   if(!body) return;
+  if(remOverviewTab === 'cronologia'){
+    if(sub) sub.textContent = 'Promemoria completati';
+    body.innerHTML = renderRemOverviewTabsHtml() + renderRemHistoryList();
+    return;
+  }
   // Costruisci lista clienti con almeno un promemoria pendente
   const rows = [];
   for(const c of (clienti||[])){
@@ -3745,12 +3809,12 @@ function renderRemindersOverview(){
   const totalRem = rows.reduce((n,r)=>n+r.pending.length, 0);
   if(sub) sub.textContent = totalRem ? (totalRem + ' promemoria attivi su ' + rows.length + ' clienti') : 'Nessun promemoria attivo';
   if(!rows.length){
-    body.innerHTML = '<div style="text-align:center;padding:30px 18px;color:var(--text-muted);font-size:0.84rem">✨ Nessun promemoria pendente.<br>Tutti i clienti sono in regola!</div>';
+    body.innerHTML = renderRemOverviewTabsHtml() + '<div style="text-align:center;padding:30px 18px;color:var(--text-muted);font-size:0.84rem">✨ Nessun promemoria pendente.<br>Tutti i clienti sono in regola!</div>';
     return;
   }
   // Stato di espansione (default: collapsed)
   if(!window._remOpenIds) window._remOpenIds = new Set();
-  body.innerHTML = rows.map(r => {
+  body.innerHTML = renderRemOverviewTabsHtml() + rows.map(r => {
     const c = r.cliente;
     const isOpen = window._remOpenIds.has(c.id);
     const itemsHtml = isOpen
