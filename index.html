@@ -533,7 +533,8 @@ header {
 .note-add-btn { background: var(--accent); border: none; border-radius: 9px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 1.1rem; flex-shrink: 0; transition: background 0.15s; }
 .note-add-btn:hover { background: var(--accent-hover); }
 
-.settings-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 18px; flex-shrink: 0; }
+.settings-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 18px; flex-shrink: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.settings-tabs::-webkit-scrollbar { display: none; }
 .settings-tab { padding: 11px 16px; font-size: 0.76rem; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; font-family: 'Nunito', sans-serif; white-space: nowrap; }
 .settings-tab:hover { color: var(--text); }
 .settings-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -2399,7 +2400,7 @@ function setSettingsTab(t){
 }
 function renderSettingsTabs(){
   document.getElementById('settings-tabs').innerHTML =
-    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['targhet','Targhet mappa'],['salvataggi','Salvataggi']].map(([k,l])=>
+    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['targhet','Targhet mappa'],['salvataggi','Salvataggi'],['esporta','Esporta clienti']].map(([k,l])=>
       `<button class="settings-tab${settingsTab===k?' active':''}" onclick="setSettingsTab('${k}')">${l}</button>`
     ).join('');
 }
@@ -2411,7 +2412,129 @@ function renderSettings(){
   else if(settingsTab === 'aziende') body.innerHTML = renderAziendeTab();
   else if(settingsTab === 'targhet') body.innerHTML = renderTarghetTab();
   else if(settingsTab === 'salvataggi') body.innerHTML = renderSalvataggiTab();
+  else if(settingsTab === 'esporta') body.innerHTML = renderEsportaTab();
   else body.innerHTML = renderAggiungiTab();
+}
+function renderEsportaTab(){
+  const totalClienti = clienti.length;
+  const totalZone = zoneOrder.length;
+  return `<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.05em">ESPORTA ELENCO CLIENTI</div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
+      <div style="font-size:0.86rem;font-weight:700;color:var(--text);margin-bottom:6px">&#128196; PDF con i loghi</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.55;margin-bottom:12px">
+        Documento stampabile, diviso per zona (${totalZone}), con nome cliente e i quadratini delle aziende collegate
+        &mdash; logo vero quando presente, iniziali se manca. Si apre in una nuova scheda con un pulsante
+        <strong>"Stampa / Salva PDF"</strong>.
+      </div>
+      <button class="add-client-btn" onclick="exportClientiPDF()">&#128196; Esporta clienti (PDF)</button>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px">
+      <div style="font-size:0.86rem;font-weight:700;color:var(--text);margin-bottom:6px">&#128202; Excel (solo testo)</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.55;margin-bottom:12px">
+        File .xlsx apribile in Excel/Google Sheets con zona, cliente e nomi delle aziende collegate in colonne
+        &mdash; senza immagini dei loghi (Excel non le supporta bene senza programmi a pagamento). Utile per
+        filtrare, ordinare o incollare altrove.
+      </div>
+      <button class="add-client-btn" onclick="exportClientiExcel()">&#128202; Esporta clienti (Excel) &middot; ${totalClienti} clienti</button>
+    </div>`;
+}
+function _loadScriptOnce(src){
+  return new Promise((resolve, reject)=>{
+    if(document.querySelector('script[data-src="'+src+'"]')){ resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.dataset.src = src;
+    s.onload = ()=>resolve();
+    s.onerror = ()=>reject(new Error('load failed: '+src));
+    document.head.appendChild(s);
+  });
+}
+async function exportClientiExcel(){
+  try {
+    if(typeof XLSX === 'undefined'){
+      showToast('Preparazione file Excel...');
+      await _loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
+    }
+    const rows = [['Zona','Cliente','Titolari/Referenti','Aziende collegate']];
+    zoneOrder.forEach(zona=>{
+      clienti.filter(c=>c.zona===zona).sort((a,b)=>a.nome.localeCompare(b.nome)).forEach(c=>{
+        const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean).map(a=>a.nome).join(', ');
+        rows.push([zona, c.nome, c.contatti||'', clientAziende]);
+      });
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{wch:14},{wch:28},{wch:22},{wch:34}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Clienti');
+    XLSX.writeFile(wb, 'clienti.xlsx');
+    showToast('File Excel scaricato');
+  } catch(e){
+    console.error('Export Excel fallito', e);
+    showToast('Esportazione Excel non riuscita');
+  }
+}
+function exportClientiPDF(){
+  const win = window.open('', '_blank');
+  if(!win){ showToast('Il browser ha bloccato la nuova scheda: consenti i popup per questo sito'); return; }
+  const oggi = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+  const zoneHtml = zoneOrder.map(zona=>{
+    const list = clienti.filter(c=>c.zona===zona).sort((a,b)=>a.nome.localeCompare(b.nome));
+    if(!list.length) return '';
+    const rows = list.map(c=>{
+      const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean);
+      const logosHtml = clientAziende.length ? `<div class="exp-logos">${clientAziende.map(a=>`
+        <div class="exp-logo">
+          <div class="exp-logo-sq">${a.logo?`<img src="${a.logo}" alt="">`:`<span>${escH((a.nome||'').substring(0,2).toUpperCase())}</span>`}</div>
+          <div class="exp-logo-name">${escH(a.nome||'')}</div>
+        </div>`).join('')}</div>` : '<div class="exp-logos exp-logos-empty">&mdash;</div>';
+      return `<div class="exp-row">
+        <div class="exp-client-name">${escH(c.nome)}</div>
+        ${logosHtml}
+      </div>`;
+    }).join('');
+    return `<div class="exp-zone">
+      <div class="exp-zone-title">${escH(zona)} <span class="exp-zone-count">${list.length} client${list.length===1?'e':'i'}</span></div>
+      ${rows}
+    </div>`;
+  }).join('');
+  const html = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">
+<title>Elenco clienti</title>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;padding:28px 34px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#171e19;background:#fff;}
+  .exp-header{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #ca0013;padding-bottom:12px;margin-bottom:22px;}
+  .exp-title{font-size:1.4rem;font-weight:800;letter-spacing:-0.01em;}
+  .exp-title span{color:#ca0013;}
+  .exp-date{font-size:0.78rem;color:#6f7a74;}
+  .exp-zone{margin-bottom:22px;break-inside:avoid-page;}
+  .exp-zone-title{font-size:0.72rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#6f7a74;border-bottom:1px solid rgba(183,198,194,0.5);padding-bottom:6px;margin-bottom:8px;display:flex;align-items:baseline;gap:8px;}
+  .exp-zone-count{font-weight:600;color:#a3ada7;text-transform:none;letter-spacing:normal;font-size:0.7rem;}
+  .exp-row{display:flex;align-items:center;gap:14px;padding:8px 4px;border-bottom:1px solid rgba(183,198,194,0.35);break-inside:avoid;}
+  .exp-client-name{font-size:0.88rem;font-weight:700;flex:1;min-width:0;}
+  .exp-logos{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+  .exp-logos-empty{color:#a3ada7;font-size:0.8rem;}
+  .exp-logo{display:flex;flex-direction:column;align-items:center;gap:3px;width:52px;}
+  .exp-logo-sq{width:30px;height:30px;border-radius:7px;border:1.3px solid rgba(183,198,194,0.6);background:#f8f9fc;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+  .exp-logo-sq img{width:100%;height:100%;object-fit:contain;}
+  .exp-logo-sq span{font-size:0.6rem;font-weight:700;color:#7d859c;}
+  .exp-logo-name{font-size:0.52rem;font-weight:600;color:#6f7a74;text-align:center;line-height:1.2;word-break:break-word;}
+  @media print{
+    body{padding:14px 20px;}
+    .exp-print-btn{display:none;}
+  }
+  .exp-print-btn{position:fixed;top:16px;right:16px;background:#ca0013;color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:0.84rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(202,0,19,0.3);}
+  .exp-print-btn:hover{background:#a5000f;}
+</style></head>
+<body>
+  <button class="exp-print-btn" onclick="window.print()">&#128424; Stampa / Salva PDF</button>
+  <div class="exp-header">
+    <div class="exp-title">Elenco <span>Clienti</span></div>
+    <div class="exp-date">Generato il ${oggi}</div>
+  </div>
+  ${zoneHtml || '<div style="color:#6f7a74">Nessun cliente da esportare.</div>'}
+</body></html>`;
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
 }
 let targhetSearch = '';
 function buildTarghetListHTML(){
