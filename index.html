@@ -2846,11 +2846,14 @@ function renderGiri(){
       const time = v.time || '';
       const canUp = idx > 0;
       const canDown = idx < list.length - 1;
+      const cv = cli ? getV(cli.id) : null;
+      const days = cv ? daysSince(cv.visitDate) : null;
+      const daysChip = days!==null ? `<span class="days-chip ${chipKey(days)}">${days}g</span>` : '';
       return `<div class="giri-visit">
         <div class="giri-visit-time${time?'':' no-time'}">${time||'--:--'}</div>
         <div class="giri-visit-body">
           <div class="giri-visit-name">${escH(nome)}</div>
-          ${zona ? `<span class="giri-visit-zone">${escH(zona)}</span>` : ''}
+          ${zona ? `<span class="giri-visit-zone">${escH(zona)}</span>` : ''}${daysChip}
           ${v.note ? `<div class="giri-visit-note">${escH(v.note)}</div>` : ''}
         </div>
         <div class="giri-visit-actions">
