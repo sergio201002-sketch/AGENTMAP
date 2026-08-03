@@ -2526,7 +2526,16 @@ function exportClientiPDF(mode){
     const list = filteredClienti.filter(c=>c.zona===zona).sort((a,b)=>a.nome.localeCompare(b.nome));
     if(!list.length) return '';
     const rows = list.map(c=>{
-      const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean);
+      let clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean);
+      if(exportFilterAzienda){
+        const idx = clientAziende.findIndex(a=>a.id===exportFilterAzienda);
+        if(idx>=0 && idx!==clientAziende.length-1){
+          const copy = clientAziende.slice();
+          const [picked] = copy.splice(idx,1);
+          copy.push(picked);
+          clientAziende = copy;
+        }
+      }
       const logosHtml = clientAziende.length ? `<div class="exp-logos">${clientAziende.map(a=>_exportLogoHtml(a, useRealImage)).join('')}</div>` : '<span class="exp-dash">&mdash;</span>';
       return `<div class="exp-row"><div class="exp-client-name">${escH(c.nome)}</div>${logosHtml}</div>`;
     }).join('');
@@ -2553,6 +2562,10 @@ function exportClientiPDF(mode){
   .exp-logo img{width:100%;height:100%;object-fit:contain;}
   .exp-logo span{font-size:0.42rem;font-weight:700;color:#7d859c;}
   .exp-dash{color:#a3ada7;font-size:0.7rem;flex-shrink:0;}
+  .exp-header-left{display:flex;align-items:center;gap:10px;min-width:0;}
+  .exp-header-logo{width:38px;height:38px;border-radius:8px;border:1.5px solid rgba(183,198,194,0.6);background:#f8f9fc;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+  .exp-header-logo img{width:100%;height:100%;object-fit:contain;}
+  .exp-header-logo span{font-size:0.9rem;font-weight:800;color:#7d859c;}
   @media print{
     body{padding:8px 14px;}
     .exp-print-btn{display:none;}
@@ -2563,7 +2576,10 @@ function exportClientiPDF(mode){
 <body>
   <button class="exp-print-btn" onclick="window.print()">&#128424; Stampa / Salva PDF</button>
   <div class="exp-header">
-    <div class="exp-title">Elenco <span>Clienti</span>${filterAz ? ` &mdash; ${escH(filterAz.nome)}` : ''}</div>
+    <div class="exp-header-left">
+      ${filterAz ? `<div class="exp-header-logo">${filterAz.logo?`<img src="${filterAz.logo}" alt="">`:`<span>${escH(filterAz.nome.substring(0,2).toUpperCase())}</span>`}</div>` : ''}
+      <div class="exp-title">Elenco <span>Clienti</span>${filterAz ? ` &mdash; ${escH(filterAz.nome)}` : ''}</div>
+    </div>
     <div class="exp-date">Generato il ${oggi} &middot; ${totalClienti} client${totalClienti===1?'e':'i'}</div>
   </div>
   <div class="exp-cols">${bodyHtml || '<div style="color:#6f7a74">Nessun cliente da esportare.</div>'}</div>
