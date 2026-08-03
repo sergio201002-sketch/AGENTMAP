@@ -290,6 +290,7 @@ header {
   box-shadow: 0 1px 3px rgba(20,24,36,0.05), 0 6px 18px rgba(20,24,36,0.07);
   transition: box-shadow 0.25s, transform 0.25s;
 }
+.client-suspended { opacity: 0.4; }
 .client-card:hover { box-shadow: 0 4px 12px rgba(20,24,36,0.08), 0 14px 30px rgba(20,24,36,0.1); transform: translateY(-2px); }
 .client-card .client-name { color: var(--text); }
 .client-card .contacts { color: var(--text-muted); }
@@ -533,8 +534,10 @@ header {
 .note-add-btn { background: var(--accent); border: none; border-radius: 9px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: white; font-size: 1.1rem; flex-shrink: 0; transition: background 0.15s; }
 .note-add-btn:hover { background: var(--accent-hover); }
 
-.settings-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 18px; flex-shrink: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-.settings-tabs::-webkit-scrollbar { display: none; }
+.settings-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 18px; flex-shrink: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+.settings-tabs::-webkit-scrollbar { height: 6px; }
+.settings-tabs::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+.settings-tabs::-webkit-scrollbar-track { background: transparent; }
 .settings-tab { padding: 11px 16px; font-size: 0.76rem; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; font-family: 'Nunito', sans-serif; white-space: nowrap; }
 .settings-tab:hover { color: var(--text); }
 .settings-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
@@ -2077,7 +2080,7 @@ function renderCard(c){
   </div>`;
   const clientAziende = sortAziendeByFilter((c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean));
   const logosHtml = aziende.length > 0 ? `<div class="card-logos-row">${clientAziende.map(a=>`<div class="logo-slot" title="${escA(a.nome)}">${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<div class="logo-slot-nome">${escH(a.nome.substring(0,6))}</div>`}</div>`).join('')}<div class="logo-slot-add" onclick="openAssignAzienda('${c.id}')" title="Assegna azienda">+</div></div>` : '';
-  return `<div class="client-card" id="card-${c.id}">
+  return `<div class="client-card${c.sospeso?' client-suspended':''}" id="card-${c.id}">
     <div class="card-stripe ${sc}"></div>
     <div class="card-body">
       <div class="card-top">
@@ -2127,7 +2130,7 @@ function renderCardCompact(c){
   const clientAziende = sortAziendeByFilter((c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean));
   const logosHtml = clientAziende.length ? `<div class="client-row-logos">${clientAziende.map(a=>`<div class="client-row-logo" data-nome="${escA(a.nome)}" onclick="event.stopPropagation();toggleAziendaTooltip(this)">${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<span>${escH(a.nome.substring(0,2))}</span>`}</div>`).join('')}</div>` : '';
   const extraOpen = openRowExtra.has(c.id);
-  return `<div class="client-row-wrap" id="card-${c.id}">
+  return `<div class="client-row-wrap${c.sospeso?' client-suspended':''}" id="card-${c.id}">
     <div class="client-row">
       <span class="client-row-dot ${sc}"></span>
       <span class="client-row-name">${escH(c.nome)}</span>
@@ -2400,7 +2403,7 @@ function setSettingsTab(t){
 }
 function renderSettingsTabs(){
   document.getElementById('settings-tabs').innerHTML =
-    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['targhet','Targhet mappa'],['salvataggi','Salvataggi'],['esporta','Esporta clienti']].map(([k,l])=>
+    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['targhet','Targhet mappa'],['salvataggi','Salvataggi'],['esporta','Esporta clienti'],['sospendi','Sospendi clienti']].map(([k,l])=>
       `<button class="settings-tab${settingsTab===k?' active':''}" onclick="setSettingsTab('${k}')">${l}</button>`
     ).join('');
 }
@@ -2413,6 +2416,7 @@ function renderSettings(){
   else if(settingsTab === 'targhet') body.innerHTML = renderTarghetTab();
   else if(settingsTab === 'salvataggi') body.innerHTML = renderSalvataggiTab();
   else if(settingsTab === 'esporta') body.innerHTML = renderEsportaTab();
+  else if(settingsTab === 'sospendi') body.innerHTML = renderSospendiTab();
   else body.innerHTML = renderAggiungiTab();
 }
 let exportFilterAzienda = null; // null = tutte le aziende
@@ -2421,7 +2425,8 @@ function setExportFilterAzienda(id){
   renderSettings();
 }
 function _exportFilteredClienti(){
-  return exportFilterAzienda ? clienti.filter(c=>(c.aziende||[]).includes(exportFilterAzienda)) : clienti;
+  const attivi = clienti.filter(c=>!c.sospeso);
+  return exportFilterAzienda ? attivi.filter(c=>(c.aziende||[]).includes(exportFilterAzienda)) : attivi;
 }
 function renderEsportaTab(){
   const filtered = _exportFilteredClienti();
@@ -2462,6 +2467,47 @@ function renderEsportaTab(){
       </div>
       <button class="add-client-btn" onclick="exportClientiExcel()">&#128202; Esporta clienti (Excel) &middot; ${totalClienti} clienti</button>
     </div>`;
+}
+let sospendiSearch = '';
+function renderSospendiTab(){
+  const totalSospesi = clienti.filter(c=>c.sospeso).length;
+  return `<div style="font-size:0.8rem;color:var(--text-muted);line-height:1.55;margin-bottom:12px">
+      Un cliente sospeso appare più trasparente nella schermata principale e non viene incluso nelle esportazioni (PDF ed Excel).
+      Utile per clienti chiusi o inattivi che non vuoi eliminare del tutto.
+      ${totalSospesi ? `<br><strong>${totalSospesi} client${totalSospesi===1?'e sospeso':'i sospesi'}</strong> al momento.` : ''}
+    </div>
+    <input class="settings-search" id="sospendi-search-input" type="text" placeholder="Cerca cliente..." value="${escA(sospendiSearch)}" oninput="onSospendiSearchInput(this.value)">
+    <div id="sospendi-list">${buildSospendiListHTML()}</div>`;
+}
+function buildSospendiListHTML(){
+  const sq = (sospendiSearch||'').toLowerCase();
+  const filtered = [...clienti].sort((a,b)=>a.zona.localeCompare(b.zona)||a.nome.localeCompare(b.nome))
+    .filter(c=>c.nome.toLowerCase().includes(sq));
+  if(!filtered.length) return '<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:20px 0">Nessun cliente trovato.</div>';
+  return filtered.map(c=>`<div class="zone-manage-item">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:0.86rem;color:var(--text)${c.sospeso?';opacity:0.5':''}">${escH(c.nome)}</div>
+        <div style="font-size:0.68rem;color:var(--text-muted)">${escH(c.zona)}</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.74rem;font-weight:600;color:${c.sospeso?'var(--accent)':'var(--text-muted)'};flex-shrink:0">
+        <input type="checkbox" style="width:17px;height:17px" ${c.sospeso?'checked':''} onchange="toggleClientSospeso('${c.id}')">
+        Sospeso
+      </label>
+    </div>`).join('');
+}
+function onSospendiSearchInput(v){
+  sospendiSearch = v;
+  const list = document.getElementById('sospendi-list');
+  if(list) list.innerHTML = buildSospendiListHTML();
+}
+function toggleClientSospeso(id){
+  const c = clienti.find(x=>x.id===id); if(!c) return;
+  c.sospeso = !c.sospeso;
+  saveAll();
+  const list = document.getElementById('sospendi-list');
+  if(list) list.innerHTML = buildSospendiListHTML();
+  if(typeof renderClients === 'function') renderClients();
+  showToast(c.nome + (c.sospeso ? ' sospeso' : ' riattivato'));
 }
 function _loadScriptOnce(src){
   return new Promise((resolve, reject)=>{
