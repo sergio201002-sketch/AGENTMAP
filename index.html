@@ -2420,13 +2420,18 @@ function renderEsportaTab(){
   const totalZone = zoneOrder.length;
   return `<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.05em">ESPORTA ELENCO CLIENTI</div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
-      <div style="font-size:0.86rem;font-weight:700;color:var(--text);margin-bottom:6px">&#128196; PDF con i loghi</div>
+      <div style="font-size:0.86rem;font-weight:700;color:var(--text);margin-bottom:6px">&#128196; PDF &mdash; scegli il layout</div>
       <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.55;margin-bottom:12px">
-        Documento stampabile, diviso per zona (${totalZone}), con nome cliente e i quadratini delle aziende collegate
-        &mdash; logo vero quando presente, iniziali se manca. Si apre in una nuova scheda con un pulsante
-        <strong>"Stampa / Salva PDF"</strong>.
+        Documento stampabile, diviso per zona (${totalZone}) con nome cliente in grassetto rosso e i quadratini delle aziende collegate.
+        Si apre in una nuova scheda con un pulsante <strong>"Stampa / Salva PDF"</strong>. Le prime 3 opzioni usano colori ben distinti
+        per non confondere le aziende; l'ultima mostra il logo vero caricato in Aziende.
       </div>
-      <button class="add-client-btn" onclick="exportClientiPDF()">&#128196; Esporta clienti (PDF)</button>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <button class="add-client-btn" style="flex:1;min-width:130px;margin-top:0" onclick="exportClientiPDF('1col')">1 colonna</button>
+        <button class="add-client-btn" style="flex:1;min-width:130px;margin-top:0" onclick="exportClientiPDF('2col')">2 colonne</button>
+        <button class="add-client-btn" style="flex:1;min-width:130px;margin-top:0" onclick="exportClientiPDF('3col')">3 colonne</button>
+        <button class="add-client-btn" style="flex:1;min-width:130px;margin-top:0" onclick="exportClientiPDF('realimg')">Con loghi reali</button>
+      </div>
     </div>
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px">
       <div style="font-size:0.86rem;font-weight:700;color:var(--text);margin-bottom:6px">&#128202; Excel (solo testo)</div>
@@ -2472,53 +2477,59 @@ async function exportClientiExcel(){
     showToast('Esportazione Excel non riuscita');
   }
 }
-function exportClientiPDF(){
+const EXPORT_BADGE_PALETTE = ['#ca0013','#1d63d8','#1f9d5f','#8b2fd1','#e08a00','#0a9396','#c2185b','#5d4037','#455a64','#7cb342'];
+function _exportBadgeColor(azienda){
+  const idx = aziende.findIndex(a=>a.id===azienda.id);
+  return EXPORT_BADGE_PALETTE[(idx>=0?idx:0) % EXPORT_BADGE_PALETTE.length];
+}
+function _exportLogoHtml(a, useRealImage){
+  const nome = a.nome||'';
+  if(useRealImage){
+    return `<div class="exp-logo" title="${escA(nome)}">${a.logo?`<img src="${a.logo}" alt="${escA(nome)}">`:`<span>${escH(nome.substring(0,2).toUpperCase())}</span>`}</div>`;
+  }
+  return `<div class="exp-logo" style="background:${_exportBadgeColor(a)};border-color:transparent" title="${escA(nome)}"><span style="color:#fff">${escH(nome.substring(0,2).toUpperCase())}</span></div>`;
+}
+function exportClientiPDF(mode){
+  mode = mode || 'realimg';
+  const useRealImage = mode === 'realimg';
+  const columns = mode === '1col' ? 1 : (mode === '3col' ? 3 : 2);
   const win = window.open('', '_blank');
   if(!win){ showToast('Il browser ha bloccato la nuova scheda: consenti i popup per questo sito'); return; }
   const oggi = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
-  const zoneHtml = zoneOrder.map(zona=>{
+  const totalClienti = clienti.length;
+  const bodyHtml = zoneOrder.map(zona=>{
     const list = clienti.filter(c=>c.zona===zona).sort((a,b)=>a.nome.localeCompare(b.nome));
     if(!list.length) return '';
     const rows = list.map(c=>{
       const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean);
-      const logosHtml = clientAziende.length ? `<div class="exp-logos">${clientAziende.map(a=>`
-        <div class="exp-logo">
-          <div class="exp-logo-sq">${a.logo?`<img src="${a.logo}" alt="">`:`<span>${escH((a.nome||'').substring(0,2).toUpperCase())}</span>`}</div>
-          <div class="exp-logo-name">${escH(a.nome||'')}</div>
-        </div>`).join('')}</div>` : '<div class="exp-logos exp-logos-empty">&mdash;</div>';
-      return `<div class="exp-row">
-        <div class="exp-client-name">${escH(c.nome)}</div>
-        ${logosHtml}
-      </div>`;
+      const logosHtml = clientAziende.length ? `<div class="exp-logos">${clientAziende.map(a=>_exportLogoHtml(a, useRealImage)).join('')}</div>` : '<span class="exp-dash">&mdash;</span>';
+      return `<div class="exp-row"><div class="exp-client-name">${escH(c.nome)}</div>${logosHtml}</div>`;
     }).join('');
-    return `<div class="exp-zone">
-      <div class="exp-zone-title">${escH(zona)} <span class="exp-zone-count">${list.length} client${list.length===1?'e':'i'}</span></div>
-      ${rows}
-    </div>`;
+    return `<div class="exp-zone-title"><b>${escH(zona)}</b><span class="exp-zline"></span><span class="exp-zcount">${list.length} client${list.length===1?'e':'i'}</span></div>${rows}`;
   }).join('');
   const html = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">
 <title>Elenco clienti</title>
 <style>
   *{box-sizing:border-box;}
-  body{margin:0;padding:28px 34px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#171e19;background:#fff;}
-  .exp-header{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #ca0013;padding-bottom:12px;margin-bottom:22px;}
-  .exp-title{font-size:1.4rem;font-weight:800;letter-spacing:-0.01em;}
+  body{margin:0;padding:24px 30px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#171e19;background:#fff;}
+  .exp-header{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #ca0013;padding-bottom:10px;margin-bottom:14px;}
+  .exp-title{font-size:1.3rem;font-weight:800;letter-spacing:-0.01em;}
   .exp-title span{color:#ca0013;}
-  .exp-date{font-size:0.78rem;color:#6f7a74;}
-  .exp-zone{margin-bottom:22px;break-inside:avoid-page;}
-  .exp-zone-title{font-size:0.72rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#6f7a74;border-bottom:1px solid rgba(183,198,194,0.5);padding-bottom:6px;margin-bottom:8px;display:flex;align-items:baseline;gap:8px;}
-  .exp-zone-count{font-weight:600;color:#a3ada7;text-transform:none;letter-spacing:normal;font-size:0.7rem;}
-  .exp-row{display:flex;align-items:center;gap:14px;padding:8px 4px;border-bottom:1px solid rgba(183,198,194,0.35);break-inside:avoid;}
-  .exp-client-name{font-size:0.88rem;font-weight:700;flex:1;min-width:0;}
-  .exp-logos{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
-  .exp-logos-empty{color:#a3ada7;font-size:0.8rem;}
-  .exp-logo{display:flex;flex-direction:column;align-items:center;gap:3px;width:52px;}
-  .exp-logo-sq{width:30px;height:30px;border-radius:7px;border:1.3px solid rgba(183,198,194,0.6);background:#f8f9fc;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
-  .exp-logo-sq img{width:100%;height:100%;object-fit:contain;}
-  .exp-logo-sq span{font-size:0.6rem;font-weight:700;color:#7d859c;}
-  .exp-logo-name{font-size:0.52rem;font-weight:600;color:#6f7a74;text-align:center;line-height:1.2;word-break:break-word;}
+  .exp-date{font-size:0.76rem;color:#6f7a74;}
+  .exp-cols{columns:${columns};column-gap:${columns===3?'16px':'26px'};}
+  .exp-zone-title{font-size:0.78rem;font-weight:800;letter-spacing:0.03em;text-transform:uppercase;color:#ca0013;display:flex;align-items:baseline;gap:8px;margin:10px 0 4px;break-after:avoid;break-inside:avoid;}
+  .exp-zone-title b{color:#ca0013;}
+  .exp-zline{flex:1;height:1px;background:#ca0013;opacity:0.4;align-self:center;}
+  .exp-zcount{color:#6f7a74;font-weight:600;text-transform:none;letter-spacing:normal;font-size:0.8em;white-space:nowrap;}
+  .exp-row{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid rgba(183,198,194,0.3);break-inside:avoid;font-size:0.78rem;}
+  .exp-client-name{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:6px;}
+  .exp-logos{display:flex;gap:4px;flex-shrink:0;}
+  .exp-logo{width:22px;height:22px;border-radius:5px;border:1.3px solid rgba(183,198,194,0.6);background:#f8f9fc;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+  .exp-logo img{width:100%;height:100%;object-fit:contain;}
+  .exp-logo span{font-size:0.5rem;font-weight:700;color:#7d859c;}
+  .exp-dash{color:#a3ada7;font-size:0.76rem;flex-shrink:0;}
   @media print{
-    body{padding:14px 20px;}
+    body{padding:10px 16px;}
     .exp-print-btn{display:none;}
   }
   .exp-print-btn{position:fixed;top:16px;right:16px;background:#ca0013;color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:0.84rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(202,0,19,0.3);}
@@ -2528,9 +2539,9 @@ function exportClientiPDF(){
   <button class="exp-print-btn" onclick="window.print()">&#128424; Stampa / Salva PDF</button>
   <div class="exp-header">
     <div class="exp-title">Elenco <span>Clienti</span></div>
-    <div class="exp-date">Generato il ${oggi}</div>
+    <div class="exp-date">Generato il ${oggi} &middot; ${totalClienti} client${totalClienti===1?'e':'i'}</div>
   </div>
-  ${zoneHtml || '<div style="color:#6f7a74">Nessun cliente da esportare.</div>'}
+  <div class="exp-cols">${bodyHtml || '<div style="color:#6f7a74">Nessun cliente da esportare.</div>'}</div>
 </body></html>`;
   win.document.open();
   win.document.write(html);
