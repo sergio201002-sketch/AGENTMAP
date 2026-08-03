@@ -2415,16 +2415,36 @@ function renderSettings(){
   else if(settingsTab === 'esporta') body.innerHTML = renderEsportaTab();
   else body.innerHTML = renderAggiungiTab();
 }
+let exportFilterAzienda = null; // null = tutte le aziende
+function setExportFilterAzienda(id){
+  exportFilterAzienda = id || null;
+  renderSettings();
+}
+function _exportFilteredClienti(){
+  return exportFilterAzienda ? clienti.filter(c=>(c.aziende||[]).includes(exportFilterAzienda)) : clienti;
+}
 function renderEsportaTab(){
-  const totalClienti = clienti.length;
-  const totalZone = zoneOrder.length;
+  const filtered = _exportFilteredClienti();
+  const totalClienti = filtered.length;
+  const totalZone = zoneOrder.filter(z=>filtered.some(c=>c.zona===z)).length;
+  const filterAz = exportFilterAzienda ? aziende.find(a=>a.id===exportFilterAzienda) : null;
+  const filterBarHtml = aziende.length ? `
+    <div style="margin-bottom:12px">
+      <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:6px;font-family:'JetBrains Mono',monospace;letter-spacing:0.05em">FILTRA PER AZIENDA (OPZIONALE)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">
+        <div class="azienda-filter-chip${!exportFilterAzienda?' active':''}" onclick="setExportFilterAzienda(null)">Tutte</div>
+        ${aziende.map(a=>`<div class="azienda-filter-chip${exportFilterAzienda===a.id?' active':''}" onclick="setExportFilterAzienda('${a.id}')">${a.logo?`<img src="${escA(a.logo)}" alt="">`:'\u{1F3E2}'}${escH(a.nome)}</div>`).join('')}
+      </div>
+    </div>` : '';
   return `<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.05em">ESPORTA ELENCO CLIENTI</div>
+    ${filterBarHtml}
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px">
       <div style="font-size:0.86rem;font-weight:700;color:var(--text);margin-bottom:6px">&#128196; PDF &mdash; scegli il layout</div>
       <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.55;margin-bottom:12px">
         Documento stampabile, diviso per zona (${totalZone}) con nome cliente in grassetto rosso e i quadratini delle aziende collegate.
         Si apre in una nuova scheda con un pulsante <strong>"Stampa / Salva PDF"</strong>. Le prime 3 opzioni usano colori ben distinti
         per non confondere le aziende; l'ultima mostra il logo vero caricato in Aziende.
+        ${filterAz ? `<br><strong>Filtro attivo: solo clienti di ${escH(filterAz.nome)}</strong> (${totalClienti} client${totalClienti===1?'e':'i'}).` : ''}
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         <button class="add-client-btn" style="flex:1;min-width:130px;margin-top:0" onclick="exportClientiPDF('1col')">1 colonna</button>
@@ -2459,9 +2479,10 @@ async function exportClientiExcel(){
       showToast('Preparazione file Excel...');
       await _loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
     }
+    const filteredClienti = _exportFilteredClienti();
     const rows = [['Zona','Cliente','Titolari/Referenti','Aziende collegate']];
     zoneOrder.forEach(zona=>{
-      clienti.filter(c=>c.zona===zona).sort((a,b)=>a.nome.localeCompare(b.nome)).forEach(c=>{
+      filteredClienti.filter(c=>c.zona===zona).sort((a,b)=>a.nome.localeCompare(b.nome)).forEach(c=>{
         const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean).map(a=>a.nome).join(', ');
         rows.push([zona, c.nome, c.contatti||'', clientAziende]);
       });
@@ -2470,7 +2491,9 @@ async function exportClientiExcel(){
     ws['!cols'] = [{wch:14},{wch:28},{wch:22},{wch:34}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Clienti');
-    XLSX.writeFile(wb, 'clienti.xlsx');
+    const filterAz = exportFilterAzienda ? aziende.find(a=>a.id===exportFilterAzienda) : null;
+    const fileName = filterAz ? `clienti_${filterAz.nome.replace(/[^a-z0-9]+/gi,'_')}.xlsx` : 'clienti.xlsx';
+    XLSX.writeFile(wb, fileName);
     showToast('File Excel scaricato');
   } catch(e){
     console.error('Export Excel fallito', e);
@@ -2496,9 +2519,11 @@ function exportClientiPDF(mode){
   const win = window.open('', '_blank');
   if(!win){ showToast('Il browser ha bloccato la nuova scheda: consenti i popup per questo sito'); return; }
   const oggi = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
-  const totalClienti = clienti.length;
+  const filteredClienti = _exportFilteredClienti();
+  const totalClienti = filteredClienti.length;
+  const filterAz = exportFilterAzienda ? aziende.find(a=>a.id===exportFilterAzienda) : null;
   const bodyHtml = zoneOrder.map(zona=>{
-    const list = clienti.filter(c=>c.zona===zona).sort((a,b)=>a.nome.localeCompare(b.nome));
+    const list = filteredClienti.filter(c=>c.zona===zona).sort((a,b)=>a.nome.localeCompare(b.nome));
     if(!list.length) return '';
     const rows = list.map(c=>{
       const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean);
@@ -2538,7 +2563,7 @@ function exportClientiPDF(mode){
 <body>
   <button class="exp-print-btn" onclick="window.print()">&#128424; Stampa / Salva PDF</button>
   <div class="exp-header">
-    <div class="exp-title">Elenco <span>Clienti</span></div>
+    <div class="exp-title">Elenco <span>Clienti</span>${filterAz ? ` &mdash; ${escH(filterAz.nome)}` : ''}</div>
     <div class="exp-date">Generato il ${oggi} &middot; ${totalClienti} client${totalClienti===1?'e':'i'}</div>
   </div>
   <div class="exp-cols">${bodyHtml || '<div style="color:#6f7a74">Nessun cliente da esportare.</div>'}</div>
