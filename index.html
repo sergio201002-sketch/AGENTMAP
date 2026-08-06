@@ -219,6 +219,8 @@ header {
 .filter-adv-dot:hover { border-color: var(--accent); }
 .filter-adv-dot.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
 .filter-adv-dot-pip { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.filter-adv-toggle-row { display: flex; align-items: center; gap: 8px; font-family: 'Nunito', sans-serif; font-size: 0.8rem; font-weight: 600; color: var(--text); cursor: pointer; }
+.filter-adv-toggle-row input { width: 17px; height: 17px; cursor: pointer; accent-color: var(--accent); }
 .azienda-filter-bar { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
 .azienda-filter-bar:empty { display: none; }
 
@@ -409,13 +411,22 @@ header {
 /* COMPANY LOGOS on card */
 .card-logos-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; min-height: 40px; align-items: center; }
 .logo-slot {
+  position: relative;
   width: 38px; height: 38px; border-radius: 8px;
   border: 1.5px solid var(--border2); background: #f8f9fc;
   display: flex; align-items: center; justify-content: center;
-  overflow: hidden; cursor: default; transition: border-color 0.15s; flex-shrink: 0;
+  cursor: default; transition: border-color 0.15s; flex-shrink: 0;
 }
 .logo-slot img { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; }
-.logo-slot-nome { font-size: 0.46rem; font-weight: 700; color: #7d859c; text-align: center; line-height: 1.2; padding: 2px 3px; word-break: break-word; max-width: 36px; }
+.logo-slot-nome { font-size: 0.46rem; font-weight: 700; color: #7d859c; text-align: center; line-height: 1.2; padding: 2px 3px; word-break: break-word; max-width: 36px; overflow: hidden; }
+.az-pending-frame { border-color: var(--yellow) !important; border-style: dashed !important; }
+.az-pending-badge {
+  position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; z-index: 2;
+  background: var(--surface); border: 1.5px solid var(--yellow); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; color: var(--yellow);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.az-pending-badge svg { width: 9px; height: 9px; display: block; }
 .logo-slot-add {
   width: 38px; height: 38px; border-radius: 8px;
   border: 1.5px dashed #c7cddb; background: transparent;
@@ -631,6 +642,10 @@ header {
 /* GIRI DELLA SETTIMANA */
 .giri-main { padding: 18px 20px 90px; max-width: 1400px; margin: 0 auto; }
 .giri-header { margin-bottom: 18px; }
+.giri-mode-tabs { display: inline-flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 11px; padding: 3px; gap: 2px; margin-bottom: 12px; }
+.giri-mode-tab { border: none; background: none; padding: 9px 16px; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.giri-mode-tab:hover { color: var(--accent); }
+.giri-mode-tab.active { background: var(--accent); color: #fff; }
 .giri-title-row { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
 .giri-title { font-size: 1.3rem; font-weight: 700; color: var(--text); margin: 0; flex: 1; }
 .giri-clear-btn { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-family: 'Nunito', sans-serif; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
@@ -680,6 +695,15 @@ header {
   .giri-grid { grid-template-columns: 1fr; gap: 10px; }
   .giri-grid .giri-day { grid-column: span 1 !important; }
 }
+.giro-continuo-week { margin-bottom: 26px; }
+.giro-continuo-week-title { font-size: 0.9rem; font-weight: 800; color: var(--accent); margin-bottom: 10px; letter-spacing: 0.02em; }
+.giro-continuo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+@media (max-width: 900px) {
+  .giro-continuo-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 520px) {
+  .giro-continuo-grid { grid-template-columns: 1fr; gap: 10px; }
+}
 .giri-day { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; min-height: 240px; display: flex; flex-direction: column; transition: border-color 0.2s; }
 .giri-day.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-dim); }
 .giri-day-header { display: flex; align-items: center; justify-content: space-between; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
@@ -694,7 +718,7 @@ header {
 .giri-visit-body { flex: 1; min-width: 0; }
 .giri-visit-name { font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.3; word-break: break-word; hyphens: auto; }
 .giri-visit-zone { display: inline-block; font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: var(--surface3); border-radius: 4px; padding: 1px 5px; margin-top: 3px; }
-.giri-visit-note { font-size: 0.7rem; color: var(--text-muted); font-style: italic; margin-top: 4px; line-height: 1.35; }
+.giri-visit-note { font-size: 0.7rem; color: var(--accent); font-weight: 700; margin-top: 4px; line-height: 1.35; }
 .giri-visit-del { background: none; border: none; color: var(--text-light); font-size: 1rem; cursor: pointer; padding: 2px 4px; line-height: 1; flex-shrink: 0; transition: color 0.15s; }
 .giri-visit-del:hover { color: var(--red); }
 .giri-visit-actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; align-items: center; }
@@ -963,6 +987,12 @@ header {
         <div class="filter-adv-label">Mostra solo</div>
         <div class="filter-adv-dots-row" id="filter-adv-dots"></div>
       </div>
+      <div class="filter-adv-section">
+        <label class="filter-adv-toggle-row">
+          <input type="checkbox" id="filter-adv-noaz-check" onchange="toggleHideNoAzienda(this.checked)">
+          Nascondi clienti senza aziende collegate
+        </label>
+      </div>
     </div>
     <div class="clients-filter-row">
       <div id="azienda-filter-bar" class="azienda-filter-bar"></div>
@@ -997,19 +1027,24 @@ header {
 <div class="view" id="view-giri">
   <div class="main giri-main">
     <div class="giri-header">
+      <div class="giri-mode-tabs">
+        <button class="giri-mode-tab active" id="giri-mode-settimana-btn" onclick="setGiriViewMode('settimana')">Giri della settimana</button>
+        <button class="giri-mode-tab" id="giri-mode-continuo-btn" onclick="setGiriViewMode('continuo')">Giro continuo</button>
+      </div>
       <div class="giri-title-row">
-        <h2 class="giri-title">Giri della settimana</h2>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="giri-history-btn" onclick="openGiriHistory()" title="Cronologia settimane passate">
+        <h2 class="giri-title" id="giri-title-text">Giri della settimana</h2>
+        <div style="display:flex;gap:8px;align-items:center" id="giri-header-actions">
+          <button class="giri-history-btn" onclick="openGiriHistory()" title="Cronologia settimane passate" id="giri-history-visible-btn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><polyline points="3 4 3 10 9 10"/><polyline points="12 7 12 12 15 14"/></svg>
             Cronologia
           </button>
-          <button class="giri-clear-btn" onclick="clearAllGiri()" title="Svuota tutta la settimana">&#128465; Svuota</button>
+          <button class="giri-clear-btn" onclick="clearAllGiri()" title="Svuota tutta la settimana" id="giri-clear-visible-btn">&#128465; Svuota</button>
         </div>
       </div>
       <p class="giri-sub" id="giri-sub-text">Pianifica clienti e orari per ogni giorno. Ogni lunedi la settimana si archivia automaticamente.</p>
     </div>
     <div class="giri-grid" id="giri-grid"></div>
+    <div id="giro-continuo-container" style="display:none"></div>
   </div>
 </div>
 
@@ -1125,6 +1160,23 @@ header {
       <button class="modal-close" onclick="closeAssignAzienda()">&times;</button>
     </div>
     <div class="modal-body" id="assign-az-body"></div>
+  </div>
+</div>
+
+<div class="overlay" id="az-status-overlay" onclick="closeOverlayBg(event,'az-status-overlay',closeAzStatus)">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Nuova collaborazione</div>
+        <div class="modal-subtitle" id="az-status-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeAzStatus()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:0.85rem;color:var(--text);line-height:1.5;margin-bottom:16px">A che punto è questa collaborazione?</div>
+      <button class="add-client-btn" style="margin-bottom:8px" onclick="confirmAzStatus('attivo')">&#9989; Ci lavoro già</button>
+      <button class="add-client-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="confirmAzStatus('in_corso')">&#8987; È in corso / da avviare</button>
+    </div>
   </div>
 </div>
 
@@ -1397,6 +1449,22 @@ let giri={lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
 let giriHistory = [];
 // Settimana corrente associata al `giri` corrente (per detection del rollover)
 let giriCurrentWeekKey = null;
+// Giro continuo: rotazione fissa di 15 giorni (3 settimane x lun-ven) che NON si azzera mai da sola.
+// Chiavi tipo 's1_lun', 's1_mar', ... 's3_ven'. L'utente lo modifica manualmente quando vuole.
+let giroContinuo = {};
+let giriViewMode = 'settimana'; // 'settimana' | 'continuo'
+const GIRO_CONTINUO_SETTIMANE = [1,2,3];
+const GIRO_CONTINUO_GIORNI = [
+  {key:'lun', name:'Lunedì'}, {key:'mar', name:'Martedì'}, {key:'mer', name:'Mercoledì'},
+  {key:'gio', name:'Giovedì'}, {key:'ven', name:'Venerdì'}
+];
+function _giroContinuoKey(settimana, giornoKey){ return 's'+settimana+'_'+giornoKey; }
+function _giroContinuoDefaults(){
+  const obj = {};
+  GIRO_CONTINUO_SETTIMANE.forEach(s=>{ GIRO_CONTINUO_GIORNI.forEach(g=>{ obj[_giroContinuoKey(s,g.key)] = []; }); });
+  return obj;
+}
+function _giroStore(mode){ return mode==='continuo' ? giroContinuo : giri; }
 
 // Calcola chiave ISO settimana es. "2026-W21" (lunedi-domenica)
 function _isoWeekKey(d){
@@ -1488,6 +1556,7 @@ function loadAll(){
     }
     if(Array.isArray(s.giriHistory)) giriHistory = s.giriHistory;
     giriCurrentWeekKey = s.giriCurrentWeekKey || null;
+    giroContinuo = (s.giroContinuo && typeof s.giroContinuo==='object') ? {..._giroContinuoDefaults(), ...s.giroContinuo} : _giroContinuoDefaults();
     // Controlla rollover settimanale: se è passata una settimana, archivia
     _checkWeekRollover();
   } catch(e){
@@ -1513,9 +1582,10 @@ function reset(){
   giriHistory = [];
   giriCurrentWeekKey = _currentWeekKey();
   zoneGroups=[];
+  giroContinuo = _giroContinuoDefaults();
 }
 function buildState(){
-  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups};
+  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo};
 }
 function saveAll(){
   try {
@@ -1762,6 +1832,13 @@ function applyCloudState(s){
     }
     if(s.giriCurrentWeekKey) giriCurrentWeekKey = s.giriCurrentWeekKey;
     if(Array.isArray(s.zoneGroups)) zoneGroups = s.zoneGroups;
+    if(s.giroContinuo && typeof s.giroContinuo==='object'){
+      const localCount = Object.values(giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
+      const cloudCount = Object.values(s.giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
+      if(cloudCount > 0 || localCount === 0){
+        giroContinuo = {..._giroContinuoDefaults(), ...s.giroContinuo};
+      }
+    }
     // Dopo l'apply, verifica eventuale rollover settimanale
     if(typeof _checkWeekRollover === 'function') _checkWeekRollover();
     try { localStorage.setItem('emilV4', JSON.stringify(buildState())); } catch(_){}
@@ -2042,6 +2119,11 @@ function zoneMatchesCurrentFilter(zona){
 let clientFilterAzienda = null; // null = tutte le aziende
 let clientSortByDays = null; // null | 'asc' (meno visitati prima) | 'desc' (piu' visitati prima)
 let clientDayFilterSet = new Set(); // bucket selezionati: 'verde','giallo','arancio','rosso','nero','mai' (vuoto = tutti)
+let hideClientsWithoutAziende = false;
+function toggleHideNoAzienda(val){
+  hideClientsWithoutAziende = !!val;
+  renderClients();
+}
 const DAY_BUCKETS = [
   {key:'verde', label:'1-5g', color:'var(--green)'},
   {key:'giallo', label:'5-10g', color:'var(--yellow)'},
@@ -2129,6 +2211,7 @@ function renderClients(){
     if(clientFilterAzienda) list=list.filter(c=>(c.aziende||[]).includes(clientFilterAzienda));
     if(q) list=list.filter(c=>c.nome.toLowerCase().includes(q)||(c.contatti||'').toLowerCase().includes(q));
     if(clientDayFilterSet.size) list=list.filter(c=>clientDayFilterSet.has(_clientDayBucket(c)));
+    if(hideClientsWithoutAziende) list=list.filter(c=>(c.aziende||[]).length>0);
     if(!list.length) return;
     if(clientSortByDays){
       list = list.slice().sort((a,b)=>{
@@ -2146,6 +2229,16 @@ function renderClients(){
   if(typeof updateBell==='function') updateBell();
 }
 
+const AZ_HOURGLASS_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12M6 22h12M8 2c0 5 4 5 4 10s-4 5-4 10M16 2c0 5-4 5-4 10s4 5 4 10"/></svg>';
+function _azStatus(c, azId){
+  return (c.aziendeStatus && c.aziendeStatus[azId]) || null;
+}
+function _azPendingBadgeHtml(c, azId){
+  return _azStatus(c,azId)==='in_corso' ? `<span class="az-pending-badge" title="Collaborazione in corso">${AZ_HOURGLASS_SVG}</span>` : '';
+}
+function _azFrameClass(c, azId){
+  return _azStatus(c,azId)==='in_corso' ? ' az-pending-frame' : '';
+}
 function renderCard(c){
   const v=getV(c.id);
   const days=daysSince(v.visitDate);
@@ -2162,7 +2255,7 @@ function renderCard(c){
     ${hasPending&&pendingRem.length>1?`<span class="rem-badge" style="font-size:0.65rem;color:var(--red);margin-left:auto;font-family:'JetBrains Mono',monospace;flex-shrink:0">+${pendingRem.length-1}</span>`:'<span class="rem-badge"></span>'}
   </div>`;
   const clientAziende = sortAziendeByFilter((c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean));
-  const logosHtml = aziende.length > 0 ? `<div class="card-logos-row">${clientAziende.map(a=>`<div class="logo-slot" title="${escA(a.nome)}">${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<div class="logo-slot-nome">${escH(a.nome.substring(0,6))}</div>`}</div>`).join('')}<div class="logo-slot-add" onclick="openAssignAzienda('${c.id}')" title="Assegna azienda">+</div></div>` : '';
+  const logosHtml = aziende.length > 0 ? `<div class="card-logos-row">${clientAziende.map(a=>`<div class="logo-slot${_azFrameClass(c,a.id)}" title="${escA(a.nome)}">${_azPendingBadgeHtml(c,a.id)}${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<div class="logo-slot-nome">${escH(a.nome.substring(0,6))}</div>`}</div>`).join('')}<div class="logo-slot-add" onclick="openAssignAzienda('${c.id}')" title="Assegna azienda">+</div></div>` : '';
   return `<div class="client-card${c.sospeso?' client-suspended':''}" id="card-${c.id}">
     <div class="card-stripe ${sc}"></div>
     <div class="card-body">
@@ -2211,7 +2304,7 @@ function renderCardCompact(c){
   const pendingRem = (v.reminders||[]).filter(r=>!r.done);
   const hasPending = pendingRem.length > 0;
   const clientAziende = sortAziendeByFilter((c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean));
-  const logosHtml = clientAziende.length ? `<div class="client-row-logos">${clientAziende.map(a=>`<div class="client-row-logo" data-nome="${escA(a.nome)}" onclick="event.stopPropagation();toggleAziendaTooltip(this)">${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<span>${escH(a.nome.substring(0,2))}</span>`}</div>`).join('')}</div>` : '';
+  const logosHtml = clientAziende.length ? `<div class="client-row-logos">${clientAziende.map(a=>`<div class="client-row-logo${_azFrameClass(c,a.id)}" data-nome="${escA(a.nome)}" onclick="event.stopPropagation();toggleAziendaTooltip(this)">${_azPendingBadgeHtml(c,a.id)}${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<span>${escH(a.nome.substring(0,2))}</span>`}</div>`).join('')}</div>` : '';
   const extraOpen = openRowExtra.has(c.id);
   return `<div class="client-row-wrap${c.sospeso?' client-suspended':''}" id="card-${c.id}">
     <div class="client-row">
@@ -2911,53 +3004,111 @@ function todayDayKey(){
   const idx = new Date().getDay();
   return idx === 0 ? 'dom' : GIORNI[idx-1].key;
 }
+function _renderGiroVisitHtml(v, idx, list, mode, dayKey){
+  const cli = clienti.find(c=>c.id===v.clientId);
+  const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
+  const zona = cli ? cli.zona : '';
+  const time = v.time || '';
+  const canUp = idx > 0;
+  const canDown = idx < list.length - 1;
+  const cv = cli ? getV(cli.id) : null;
+  const days = cv ? daysSince(cv.visitDate) : null;
+  const daysChip = days!==null ? `<span class="days-chip ${chipKey(days)}">${days}g</span>` : '';
+  return `<div class="giri-visit">
+    <div class="giri-visit-time${time?'':' no-time'}">${time||'--:--'}</div>
+    <div class="giri-visit-body">
+      <div class="giri-visit-name">${escH(nome)}</div>
+      ${zona ? `<span class="giri-visit-zone">${escH(zona)}</span>` : ''}${daysChip}
+      ${v.note ? `<div class="giri-visit-note">${escH(v.note)}</div>` : ''}
+    </div>
+    <div class="giri-visit-actions">
+      <button class="giri-visit-move" onclick="moveGiroUp('${mode}','${dayKey}',${idx})" title="Sposta su"${canUp?'':' disabled'}>&#9650;</button>
+      <button class="giri-visit-move" onclick="moveGiroDown('${mode}','${dayKey}',${idx})" title="Sposta gi&ugrave;"${canDown?'':' disabled'}>&#9660;</button>
+    </div>
+    <button class="giri-visit-del" onclick="removeGiro('${mode}','${dayKey}','${v.id}')" title="Elimina">&times;</button>
+  </div>`;
+}
+function setGiriViewMode(mode){
+  giriViewMode = mode === 'continuo' ? 'continuo' : 'settimana';
+  const bs = document.getElementById('giri-mode-settimana-btn');
+  const bc = document.getElementById('giri-mode-continuo-btn');
+  if(bs) bs.classList.toggle('active', giriViewMode==='settimana');
+  if(bc) bc.classList.toggle('active', giriViewMode==='continuo');
+  const title = document.getElementById('giri-title-text');
+  const sub = document.getElementById('giri-sub-text');
+  const actions = document.getElementById('giri-header-actions');
+  if(giriViewMode==='continuo'){
+    if(title) title.textContent = 'Giro continuo';
+    if(sub) sub.textContent = "Rotazione fissa di 15 giorni (3 settimane, lun–ven). Non si azzera mai da sola: modificala quando vuoi.";
+    if(actions) actions.style.display = 'none';
+  } else {
+    if(title) title.textContent = 'Giri della settimana';
+    if(sub) sub.textContent = 'Pianifica clienti e orari per ogni giorno. Ogni lunedi la settimana si archivia automaticamente.';
+    if(actions) actions.style.display = '';
+  }
+  renderGiri();
+}
 function renderGiri(){
-  // Verifica se siamo passati a una nuova settimana: archivia + reset
+  // Verifica se siamo passati a una nuova settimana: archivia + reset (solo per i giri della settimana)
   if(_checkWeekRollover()){
     try { saveAll(); } catch(_){}
     showToast('Settimana archiviata. Inizio nuova settimana.');
   }
+  const gridWeek = document.getElementById('giri-grid');
+  const contContainer = document.getElementById('giro-continuo-container');
+  if(giriViewMode === 'continuo'){
+    if(gridWeek) gridWeek.style.display = 'none';
+    if(contContainer) contContainer.style.display = '';
+    renderGiroContinuoGrid();
+  } else {
+    if(gridWeek) gridWeek.style.display = '';
+    if(contContainer) contContainer.style.display = 'none';
+    renderGiriSettimanaGrid();
+  }
+}
+function renderGiriSettimanaGrid(){
   const grid = document.getElementById('giri-grid');
   if(!grid) return;
   const today = todayDayKey();
   grid.innerHTML = GIORNI.map(g => {
     const list = (giri[g.key]||[]).slice();
-    const visitsHtml = list.length ? list.map((v, idx) => {
-      const cli = clienti.find(c=>c.id===v.clientId);
-      const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
-      const zona = cli ? cli.zona : '';
-      const time = v.time || '';
-      const canUp = idx > 0;
-      const canDown = idx < list.length - 1;
-      const cv = cli ? getV(cli.id) : null;
-      const days = cv ? daysSince(cv.visitDate) : null;
-      const daysChip = days!==null ? `<span class="days-chip ${chipKey(days)}">${days}g</span>` : '';
-      return `<div class="giri-visit">
-        <div class="giri-visit-time${time?'':' no-time'}">${time||'--:--'}</div>
-        <div class="giri-visit-body">
-          <div class="giri-visit-name">${escH(nome)}</div>
-          ${zona ? `<span class="giri-visit-zone">${escH(zona)}</span>` : ''}${daysChip}
-          ${v.note ? `<div class="giri-visit-note">${escH(v.note)}</div>` : ''}
-        </div>
-        <div class="giri-visit-actions">
-          <button class="giri-visit-move" onclick="moveGiroUp('${g.key}',${idx})" title="Sposta su"${canUp?'':' disabled'}>&#9650;</button>
-          <button class="giri-visit-move" onclick="moveGiroDown('${g.key}',${idx})" title="Sposta gi&ugrave;"${canDown?'':' disabled'}>&#9660;</button>
-        </div>
-        <button class="giri-visit-del" onclick="removeGiro('${g.key}','${v.id}')" title="Elimina">&times;</button>
-      </div>`;
-    }).join('') : '<div class="giri-empty">Nessuna visita programmata</div>';
+    const visitsHtml = list.length ? list.map((v, idx) => _renderGiroVisitHtml(v, idx, list, 'settimana', g.key)).join('') : '<div class="giri-empty">Nessuna visita programmata</div>';
     return `<div class="giri-day${today===g.key?' today':''}">
       <div class="giri-day-header">
         <div class="giri-day-name">${g.name}</div>
         <div class="giri-day-count">${list.length}</div>
       </div>
       <div class="giri-visits">${visitsHtml}</div>
-      <button class="giri-add-btn" onclick="openGiroAdd('${g.key}')">+ Aggiungi visita</button>
+      <button class="giri-add-btn" onclick="openGiroAdd('${g.key}', null, 'settimana')">+ Aggiungi visita</button>
+    </div>`;
+  }).join('');
+}
+function renderGiroContinuoGrid(){
+  const container = document.getElementById('giro-continuo-container');
+  if(!container) return;
+  container.innerHTML = GIRO_CONTINUO_SETTIMANE.map(s => {
+    const dayCards = GIRO_CONTINUO_GIORNI.map(g => {
+      const key = _giroContinuoKey(s, g.key);
+      const list = (giroContinuo[key]||[]).slice();
+      const visitsHtml = list.length ? list.map((v, idx) => _renderGiroVisitHtml(v, idx, list, 'continuo', key)).join('') : '<div class="giri-empty">Nessuna visita programmata</div>';
+      return `<div class="giri-day">
+        <div class="giri-day-header">
+          <div class="giri-day-name">${g.name}</div>
+          <div class="giri-day-count">${list.length}</div>
+        </div>
+        <div class="giri-visits">${visitsHtml}</div>
+        <button class="giri-add-btn" onclick="openGiroAdd('${key}', null, 'continuo')">+ Aggiungi visita</button>
+      </div>`;
+    }).join('');
+    return `<div class="giro-continuo-week">
+      <div class="giro-continuo-week-title">Settimana ${s}</div>
+      <div class="giro-continuo-grid">${dayCards}</div>
     </div>`;
   }).join('');
 }
 
 let _activeGiroDay = null;
+let _activeGiroMode = 'settimana';
 let _selectedGiroClientId = null;
 let _pickerClientId = null;
 // Filtri persistenti nel modal aggiunta (sopravvivono dopo ogni salvataggio)
@@ -3003,11 +3154,20 @@ function setGiroAddFilter(kind, value){
 }
 window.setGiroAddFilter = setGiroAddFilter;
 
-function openGiroAdd(dayKey, preClientId){
+function openGiroAdd(dayKey, preClientId, mode){
   _activeGiroDay = dayKey;
+  _activeGiroMode = mode === 'continuo' ? 'continuo' : 'settimana';
   _selectedGiroClientId = preClientId || null;
-  const day = GIORNI.find(g=>g.key===dayKey);
-  document.getElementById('giri-add-day-label').textContent = day ? day.name : '';
+  let label = '';
+  if(_activeGiroMode === 'continuo'){
+    const m = /^s(\d)_(.+)$/.exec(dayKey);
+    const giorno = m ? GIRO_CONTINUO_GIORNI.find(g=>g.key===m[2]) : null;
+    label = m ? `Settimana ${m[1]} · ${giorno ? giorno.name : ''}` : '';
+  } else {
+    const day = GIORNI.find(g=>g.key===dayKey);
+    label = day ? day.name : '';
+  }
+  document.getElementById('giri-add-day-label').textContent = label;
   const preCli = preClientId ? clienti.find(c=>c.id===preClientId) : null;
   document.getElementById('giri-add-search').value = preCli ? preCli.nome : '';
   document.getElementById('giri-add-time').value = '';
@@ -3046,8 +3206,8 @@ function pickGiriDay(dayKey){
   if(!clientId) return;
   setTimeout(()=>openGiroAdd(dayKey, clientId), 120);
 }
-function moveGiroUp(dayKey, idx){
-  const arr = giri[dayKey];
+function moveGiroUp(mode, dayKey, idx){
+  const arr = _giroStore(mode)[dayKey];
   if(!arr || idx <= 0 || idx >= arr.length) return;
   const tmp = arr[idx-1];
   arr[idx-1] = arr[idx];
@@ -3055,8 +3215,8 @@ function moveGiroUp(dayKey, idx){
   saveAll();
   renderGiri();
 }
-function moveGiroDown(dayKey, idx){
-  const arr = giri[dayKey];
+function moveGiroDown(mode, dayKey, idx){
+  const arr = _giroStore(mode)[dayKey];
   if(!arr || idx < 0 || idx >= arr.length - 1) return;
   const tmp = arr[idx+1];
   arr[idx+1] = arr[idx];
@@ -3109,13 +3269,15 @@ function confirmAddGiro(){
   if(!cli){ showToast('Cliente non trovato'); return; }
   const time = (document.getElementById('giri-add-time').value||'').trim();
   const note = (document.getElementById('giri-add-note').value||'').trim();
-  if(!giri[_activeGiroDay]) giri[_activeGiroDay] = [];
+  const store = _giroStore(_activeGiroMode);
+  const dayLabel = document.getElementById('giri-add-day-label').textContent || '';
+  if(!store[_activeGiroDay]) store[_activeGiroDay] = [];
   // Anti-duplicati nello stesso giorno
-  const dup = giri[_activeGiroDay].find(v=>v.clientId===cli.id);
+  const dup = store[_activeGiroDay].find(v=>v.clientId===cli.id);
   if(dup){
-    if(!confirm(cli.nome+' è già in '+(GIORNI.find(g=>g.key===_activeGiroDay)||{}).name+'. Aggiungere comunque una seconda visita?')) return;
+    if(!confirm(cli.nome+' è già in '+dayLabel+'. Aggiungere comunque una seconda visita?')) return;
   }
-  giri[_activeGiroDay].push({
+  store[_activeGiroDay].push({
     id: 'g'+Date.now()+Math.random().toString(36).slice(2,6),
     clientId: cli.id,
     clientName: cli.nome,
@@ -3130,14 +3292,15 @@ function confirmAddGiro(){
   const nt = document.getElementById('giri-add-note'); if(nt) nt.value = '';
   filterGiroClientList();
   renderGiri();
-  showToast(cli.nome+' aggiunto a '+GIORNI.find(g=>g.key===_activeGiroDay).name);
+  showToast(cli.nome+' aggiunto a '+dayLabel);
   // Riporta il focus al campo ricerca per la prossima aggiunta
   setTimeout(()=>document.getElementById('giri-add-search')?.focus(), 50);
 }
-function removeGiro(dayKey, id){
-  if(!giri[dayKey]) return;
-  const v = giri[dayKey].find(x=>x.id===id);
-  giri[dayKey] = giri[dayKey].filter(x=>x.id!==id);
+function removeGiro(mode, dayKey, id){
+  const store = _giroStore(mode);
+  if(!store[dayKey]) return;
+  const v = store[dayKey].find(x=>x.id===id);
+  store[dayKey] = store[dayKey].filter(x=>x.id!==id);
   saveAll();
   renderGiri();
   if(v){
@@ -3537,15 +3700,20 @@ function openAssignAzienda(clientId){
   const c = clienti.find(x=>x.id===clientId);
   document.getElementById('assign-az-sub').textContent = c ? c.nome : '';
   if(!c.aziende) c.aziende = [];
+  if(!c.aziendeStatus) c.aziendeStatus = {};
   const body = document.getElementById('assign-az-body');
   if(!aziende.length){
     body.innerHTML='<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:20px 0">Nessuna azienda. Aggiungila in Impostazioni > Aziende.</div>';
   } else {
     body.innerHTML = aziende.map(a=>{
       const assigned = c.aziende.includes(a.id);
+      const pending = assigned && _azStatus(c,a.id)==='in_corso';
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="toggleClientAzienda('${clientId}','${a.id}',this)">
-        ${a.logo?`<img src="${a.logo}" style="width:32px;height:32px;object-fit:contain;border-radius:6px;border:1px solid var(--border)">`:'<div style="width:32px;height:32px;border-radius:6px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:1rem">&#127970;</div>'}
-        <span style="flex:1;font-size:0.86rem;font-weight:600">${escH(a.nome)}</span>
+        <div style="position:relative;width:32px;height:32px;flex-shrink:0">
+          ${pending?`<span class="az-pending-badge" title="Collaborazione in corso">${AZ_HOURGLASS_SVG}</span>`:''}
+          ${a.logo?`<img src="${a.logo}" style="width:32px;height:32px;object-fit:contain;border-radius:6px;border:1px ${pending?'dashed var(--yellow)':'solid var(--border)'}">`:`<div style="width:32px;height:32px;border-radius:6px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:1rem;border:1px ${pending?'dashed var(--yellow)':'solid transparent'}">&#127970;</div>`}
+        </div>
+        <span style="flex:1;font-size:0.86rem;font-weight:600">${escH(a.nome)}${pending?' <span style="font-size:0.64rem;color:var(--yellow);font-weight:700">&middot; in corso</span>':''}</span>
         <span style="width:20px;height:20px;border-radius:50%;border:2px solid ${assigned?'var(--accent)':'var(--border2)'};background:${assigned?'var(--accent)':'transparent'};display:flex;align-items:center;justify-content:center;color:white;font-size:0.7rem;flex-shrink:0">${assigned?'\u2713':''}</span>
       </div>`;
     }).join('');
@@ -3553,21 +3721,42 @@ function openAssignAzienda(clientId){
   openOverlay('assign-azienda-overlay');
 }
 function closeAssignAzienda(){ closeOverlay('assign-azienda-overlay'); assignAzClientId=null; }
+let _azStatusPending = null; // {clientId, azId}
 function toggleClientAzienda(clientId, azId, row){
   const c = clienti.find(x=>x.id===clientId);
   if(!c.aziende) c.aziende=[];
+  if(!c.aziendeStatus) c.aziendeStatus={};
   const idx = c.aziende.indexOf(azId);
-  if(idx>=0) c.aziende.splice(idx,1);
-  else c.aziende.push(azId);
-  saveAll();
-  const assigned = c.aziende.includes(azId);
-  const circle = row.querySelector('span:last-child');
-  if(circle){
-    circle.style.borderColor = assigned?'var(--accent)':'var(--border2)';
-    circle.style.background = assigned?'var(--accent)':'transparent';
-    circle.textContent = assigned?'\u2713':'';
+  if(idx>=0){
+    // Rimozione: nessuna domanda, si toglie e basta
+    c.aziende.splice(idx,1);
+    delete c.aziendeStatus[azId];
+    saveAll();
+    renderClients();
+    if(assignAzClientId===clientId) openAssignAzienda(clientId);
+    return;
   }
+  // Nuova assegnazione: chiedi lo stato della collaborazione
+  const az = aziende.find(a=>a.id===azId);
+  _azStatusPending = {clientId, azId};
+  document.getElementById('az-status-sub').textContent = az ? az.nome : '';
+  openOverlay('az-status-overlay');
+}
+function closeAzStatus(){ closeOverlay('az-status-overlay'); _azStatusPending = null; }
+function confirmAzStatus(status){
+  if(!_azStatusPending) return;
+  const {clientId, azId} = _azStatusPending;
+  const c = clienti.find(x=>x.id===clientId);
+  closeOverlay('az-status-overlay');
+  if(!c){ _azStatusPending=null; return; }
+  if(!c.aziende) c.aziende=[];
+  if(!c.aziendeStatus) c.aziendeStatus={};
+  if(!c.aziende.includes(azId)) c.aziende.push(azId);
+  c.aziendeStatus[azId] = status;
+  saveAll();
+  _azStatusPending = null;
   renderClients();
+  if(assignAzClientId===clientId) openAssignAzienda(clientId);
 }
 
 let mapFilterAzienda = null;
