@@ -202,6 +202,23 @@ header {
 .view-toggle-btn { width: 32px; height: 30px; border: none; background: none; border-radius: 7px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); transition: all 0.15s; }
 .view-toggle-btn:hover { color: var(--accent); }
 .view-toggle-btn.active { background: var(--accent); color: #fff; }
+.filter-adv-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; font-family: 'Nunito', sans-serif; font-size: 0.74rem; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
+.filter-adv-btn:hover { border-color: var(--accent); color: var(--accent); }
+.filter-adv-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.filter-adv-panel { display: none; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin: -8px 0 16px; }
+.filter-adv-panel.open { display: block; }
+.filter-adv-section { margin-bottom: 12px; }
+.filter-adv-section:last-child { margin-bottom: 0; }
+.filter-adv-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; font-family: 'JetBrains Mono', monospace; }
+.filter-adv-sort-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.filter-adv-sort-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 7px 12px; font-family: 'Nunito', sans-serif; font-size: 0.76rem; font-weight: 600; color: var(--text); cursor: pointer; transition: all 0.15s; }
+.filter-adv-sort-btn:hover { border-color: var(--accent); color: var(--accent); }
+.filter-adv-sort-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.filter-adv-dots-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.filter-adv-dot { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px; padding: 6px 12px; font-family: 'Nunito', sans-serif; font-size: 0.76rem; font-weight: 600; color: var(--text); cursor: pointer; transition: all 0.15s; }
+.filter-adv-dot:hover { border-color: var(--accent); }
+.filter-adv-dot.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.filter-adv-dot-pip { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .azienda-filter-bar { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
 .azienda-filter-bar:empty { display: none; }
 
@@ -920,6 +937,10 @@ header {
       <div class="legend-item"><div class="legend-pip" style="background:var(--orange)"></div>10-15g</div>
       <div class="legend-item"><div class="legend-pip" style="background:var(--red)"></div>15-20g</div>
       <div class="legend-item"><div class="legend-pip" style="background:var(--black-col)"></div>20+g</div>
+      <button class="filter-adv-btn" id="filter-adv-btn" onclick="toggleAdvFilters()" title="Filtri avanzati">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        Filtri
+      </button>
       <div class="view-toggle">
         <button class="view-toggle-btn" id="view-toggle-grid" onclick="setClientViewMode('grid')" title="Vista a schede">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -927,6 +948,20 @@ header {
         <button class="view-toggle-btn" id="view-toggle-list" onclick="setClientViewMode('list')" title="Vista elenco compatto">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
+      </div>
+    </div>
+    <div class="filter-adv-panel" id="filter-adv-panel">
+      <div class="filter-adv-section">
+        <div class="filter-adv-label">Ordina per giorni dall'ultima visita</div>
+        <div class="filter-adv-sort-row">
+          <button class="filter-adv-sort-btn" data-sort="" onclick="setClientSort(null)">Nessun ordine</button>
+          <button class="filter-adv-sort-btn" data-sort="asc" onclick="setClientSort('asc')">Meno giorni &rarr; pi&ugrave; giorni</button>
+          <button class="filter-adv-sort-btn" data-sort="desc" onclick="setClientSort('desc')">Pi&ugrave; giorni &rarr; meno giorni</button>
+        </div>
+      </div>
+      <div class="filter-adv-section">
+        <div class="filter-adv-label">Mostra solo</div>
+        <div class="filter-adv-dots-row" id="filter-adv-dots"></div>
       </div>
     </div>
     <div class="clients-filter-row">
@@ -2005,6 +2040,41 @@ function zoneMatchesCurrentFilter(zona){
 }
 
 let clientFilterAzienda = null; // null = tutte le aziende
+let clientSortByDays = null; // null | 'asc' (meno visitati prima) | 'desc' (piu' visitati prima)
+let clientDayFilterSet = new Set(); // bucket selezionati: 'verde','giallo','arancio','rosso','nero','mai' (vuoto = tutti)
+const DAY_BUCKETS = [
+  {key:'verde', label:'1-5g', color:'var(--green)'},
+  {key:'giallo', label:'5-10g', color:'var(--yellow)'},
+  {key:'arancio', label:'10-15g', color:'var(--orange)'},
+  {key:'rosso', label:'15-20g', color:'var(--red)'},
+  {key:'nero', label:'20+g', color:'var(--black-col)'},
+  {key:'mai', label:'Mai visitati', color:'var(--text-light)'},
+];
+function toggleAdvFilters(){
+  const panel = document.getElementById('filter-adv-panel');
+  const btn = document.getElementById('filter-adv-btn');
+  if(!panel || !btn) return;
+  const open = panel.classList.toggle('open');
+  btn.classList.toggle('active', open);
+}
+function setClientSort(mode){
+  clientSortByDays = mode || null;
+  document.querySelectorAll('.filter-adv-sort-btn').forEach(b=>b.classList.toggle('active', b.dataset.sort===(clientSortByDays||'')));
+  renderClients();
+}
+function toggleDayFilter(key){
+  if(clientDayFilterSet.has(key)) clientDayFilterSet.delete(key);
+  else clientDayFilterSet.add(key);
+  renderAdvDots();
+  renderClients();
+}
+function renderAdvDots(){
+  const el = document.getElementById('filter-adv-dots');
+  if(!el) return;
+  el.innerHTML = DAY_BUCKETS.map(b=>`<button class="filter-adv-dot${clientDayFilterSet.has(b.key)?' active':''}" onclick="toggleDayFilter('${b.key}')">
+    <span class="filter-adv-dot-pip" style="background:${b.color}"></span>${b.label}
+  </button>`).join('');
+}
 function sortAziendeByFilter(list){
   if(!clientFilterAzienda) return list;
   const idx = list.findIndex(a=>a.id===clientFilterAzienda);
@@ -2042,6 +2112,11 @@ function updateViewToggleUI(){
   if(g) g.classList.toggle('active', clientViewMode==='grid');
   if(l) l.classList.toggle('active', clientViewMode==='list');
 }
+function _clientDayBucket(c){
+  const v=getV(c.id);
+  const days=daysSince(v.visitDate);
+  return days===null ? 'mai' : colorKey(days);
+}
 function renderClients(){
   buildAziendaFilterBar();
   updateViewToggleUI();
@@ -2053,7 +2128,15 @@ function renderClients(){
     let list=clienti.filter(c=>c.zona===zona);
     if(clientFilterAzienda) list=list.filter(c=>(c.aziende||[]).includes(clientFilterAzienda));
     if(q) list=list.filter(c=>c.nome.toLowerCase().includes(q)||(c.contatti||'').toLowerCase().includes(q));
+    if(clientDayFilterSet.size) list=list.filter(c=>clientDayFilterSet.has(_clientDayBucket(c)));
     if(!list.length) return;
+    if(clientSortByDays){
+      list = list.slice().sort((a,b)=>{
+        const da = daysSince(getV(a.id).visitDate); const db = daysSince(getV(b.id).visitDate);
+        const va = da===null ? Infinity : da; const vb = db===null ? Infinity : db;
+        return clientSortByDays==='asc' ? va-vb : vb-va;
+      });
+    }
     const itemsHtml = clientViewMode==='list'
       ? `<div class="clients-list">${list.map(renderCardCompact).join('')}</div>`
       : `<div class="clients-grid">${list.map(renderCard).join('')}</div>`;
@@ -4331,6 +4414,7 @@ window.renderVisitStats = renderVisitStats;
 
 loadAll();
 buildTabs();
+renderAdvDots();
 renderClients();
 document.getElementById('home-hbtn').classList.add('active-view');
 setInterval(()=>{ renderClients(); updateBell(); }, 300000);
