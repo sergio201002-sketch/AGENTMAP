@@ -1764,7 +1764,12 @@ function _stateSize(s){
        + (s.visits?Object.keys(s.visits).length:0) * 10
        + (s.calNotes?Object.keys(s.calNotes).length:0) * 5
        + (s.giri?Object.values(s.giri).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0):0) * 5
-       + (Array.isArray(s.kmlSync)?s.kmlSync.length:0);
+       + (Array.isArray(s.kmlSync)?s.kmlSync.length:0)
+       + (Array.isArray(s.remFolders)?s.remFolders.length:0) * 5
+       + (Array.isArray(s.savedGiri)?s.savedGiri.length:0) * 5
+       + (s.giroContinuo?Object.values(s.giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0):0) * 3
+       + (Array.isArray(s.giriHistory)?s.giriHistory.length:0) * 2
+       + (Array.isArray(s.zoneGroups)?s.zoneGroups.length:0);
 }
 
 async function cloudInit(user){
@@ -4067,14 +4072,14 @@ function renderCalDayBody(){
   HOURS.forEach(h=>{
     const items=hourMap[h]||[];
     const hasItems=items.length>0;
-    html+=`<div class="timeline-row${hasItems?' timeline-row-active':''}"><div class="timeline-hour">${h}:00</div><div class="timeline-content">`;
+    html+=`<div class="timeline-row${hasItems?' timeline-row-active':''}" onclick="openCalAddVisit(activeCalDay,'${h}:00')" title="Aggiungi visita alle ${h}:00"><div class="timeline-hour">${h}:00</div><div class="timeline-content">`;
     items.forEach(item=>{
       if(item.type==='visit'){
         const c=item.c;
-        html+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="timeline-visit-chip"><svg width="9" height="11" viewBox="0 0 13 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 1C3.46 1 1 3.46 1 6.5c0 4.25 5.5 8.5 5.5 8.5S12 10.75 12 6.5C12 3.46 9.54 1 6.5 1z"/><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>${escH(c.nome)}<span class="timeline-visit-time">${item.time}</span></div><button class="timeline-del" onclick="deleteCalVisit('${c.id}','${item.iso}')" title="Rimuovi visita">&times;</button></div>`;
+        html+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="timeline-visit-chip"><svg width="9" height="11" viewBox="0 0 13 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 1C3.46 1 1 3.46 1 6.5c0 4.25 5.5 8.5 5.5 8.5S12 10.75 12 6.5C12 3.46 9.54 1 6.5 1z"/><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>${escH(c.nome)}<span class="timeline-visit-time">${item.time}</span></div><button class="timeline-del" onclick="event.stopPropagation();deleteCalVisit('${c.id}','${item.iso}')" title="Rimuovi visita">&times;</button></div>`;
       } else {
         const n=item.n; const idx=item.idx;
-        html+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="timeline-event-chip"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${escH(n.text)}</div><button class="timeline-del" onclick="deleteCalNote('${key}',${idx})" title="Elimina evento">&times;</button></div>`;
+        html+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><div class="timeline-event-chip"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${escH(n.text)}</div><button class="timeline-del" onclick="event.stopPropagation();deleteCalNote('${key}',${idx})" title="Elimina evento">&times;</button></div>`;
       }
     });
     html+='</div></div>';
@@ -4121,10 +4126,10 @@ function _recomputeVisitDate(v){
   if(!Array.isArray(v.visitHistory) || !v.visitHistory.length){ v.visitDate = null; return; }
   v.visitDate = v.visitHistory.slice().sort().pop();
 }
-function openCalAddVisit(presetDay){
+function openCalAddVisit(presetDay, presetTime){
   _calAddVisitSelectedId = null;
   document.getElementById('cal-add-visit-date').value = presetDay || isoDay(new Date());
-  document.getElementById('cal-add-visit-time').value = '09:00';
+  document.getElementById('cal-add-visit-time').value = presetTime || '09:00';
   document.getElementById('cal-add-visit-search').value = '';
   filterCalVisitClientList();
   openOverlay('cal-add-visit-overlay');
@@ -4689,9 +4694,14 @@ window.submitRemQuickAdd = submitRemQuickAdd;
 function _remFolderStatusBarHtml(doneCount, total){
   if(!total) return '';
   const t = doneCount / total; // 0 = tutti da fare (rosso) → 1 = tutti fatti (verde)
-  const r = Math.round(202 + (31 - 202) * t);
-  const g = Math.round(0 + (157 - 0) * t);
-  const b = Math.round(19 + (95 - 19) * t);
+  let r = 202 + (31 - 202) * t;
+  let g = 0 + (157 - 0) * t;
+  let b = 19 + (95 - 19) * t;
+  const mix = 0.55; // mescola verso un grigio neutro per un colore molto meno acceso
+  const gray = 150;
+  r = Math.round(r * (1-mix) + gray * mix);
+  g = Math.round(g * (1-mix) + gray * mix);
+  b = Math.round(b * (1-mix) + gray * mix);
   return '<div style="height:5px;border-radius:3px;margin-top:9px;background:rgb('+r+','+g+','+b+')"></div>';
 }
 
@@ -4761,7 +4771,7 @@ function renderRemClientFoldersHtml(q){
       '<div style="display:flex;align-items:center;gap:8px">' +
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);flex-shrink:0"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>' +
         '<div style="flex:1;min-width:0">' +
-          '<div style="font-weight:700;color:var(--text);font-size:0.9rem">' + escH(c.nome||'') + '</div>' +
+          '<div style="font-weight:800;color:var(--text);font-size:0.9rem">' + escH(c.nome||'') + '</div>' +
           '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:1px">' + escH(c.zona||'') + ' &middot; ' + r.items.length + ' totali' + (doneCount?', '+doneCount+' fatti':'') + '</div>' +
         '</div>' +
         badgeHtml +
@@ -4893,7 +4903,7 @@ function renderRemCustomFoldersHtml(q){
       '<div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleRemFolderClient(\''+f.id+'\')">' +
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);flex-shrink:0"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>' +
         '<div style="flex:1;min-width:0">' +
-          '<div style="font-weight:700;color:var(--text);font-size:0.9rem">' + escH(f.name) + '</div>' +
+          '<div style="font-weight:800;color:var(--text);font-size:0.9rem">' + escH(f.name) + '</div>' +
           '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:1px">' + sec.items.length + ' promemoria</div>' +
         '</div>' +
         badgeHtml +
