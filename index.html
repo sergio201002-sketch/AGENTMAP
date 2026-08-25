@@ -938,7 +938,7 @@ header {
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span class="hbtn-bell-badge" id="bell-badge" style="display:none">0</span>
     </button>
-    <button class="hbtn" id="stats-hbtn" onclick="openVisitStats()" title="Statistiche visite">
+    <button class="hbtn" id="stats-hbtn" onclick="switchView('stats')" title="Statistiche visite">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="20" x2="4" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="20" y1="20" x2="20" y2="14"/></svg>
     </button>
     <button class="hbtn" id="gear-hbtn" onclick="openSettings()" title="Impostazioni">
@@ -1374,27 +1374,27 @@ header {
 </div>
 
 <!-- VISIT STATS -->
-<div class="overlay" id="visit-stats-overlay" onclick="closeOverlayBg(event,'visit-stats-overlay',closeVisitStats)">
-  <div class="modal modal-medium" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title">Statistiche visite</div>
-        <div class="modal-subtitle" id="vs-subtitle">Quante volte sei passato per ogni cliente</div>
-      </div>
-      <button class="modal-close" onclick="closeVisitStats()">&times;</button>
-    </div>
-    <div class="modal-body" style="padding:14px 16px;max-height:75vh;overflow:auto">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+<div class="view" id="view-stats">
+  <div class="main giri-main">
+    <div id="stats-list-page">
+      <div style="font-size:1.25rem;font-weight:800;color:var(--text)">Statistiche visite</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px" id="vs-subtitle">Quante volte sei passato per ogni cliente</div>
+      <div style="display:flex;align-items:center;gap:8px;margin:16px 0 12px;flex-wrap:wrap">
         <button class="cal-nav-btn" onclick="vsPrev()">&lsaquo;</button>
-        <div id="vs-period-label" style="flex:1;text-align:center;font-weight:700;font-size:1rem;color:var(--text)"></div>
+        <div id="vs-period-label" style="flex:1;text-align:center;font-weight:700;font-size:1rem;color:var(--text);min-width:110px"></div>
         <button class="cal-nav-btn" onclick="vsNext()">&rsaquo;</button>
-        <select id="vs-mode" onchange="renderVisitStats()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
+        <select id="vs-mode" onchange="renderVisitStats()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
           <option value="month">Mensile</option>
           <option value="all">Totale</option>
         </select>
+        <button id="vs-sort-btn" onclick="vsToggleSort()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap"></button>
       </div>
-      <div id="vs-summary" style="font-size:0.72rem;color:var(--text-muted);margin-bottom:10px"></div>
+      <div id="vs-summary" style="font-size:0.72rem;color:var(--text-muted);margin-bottom:12px"></div>
       <div id="vs-list"></div>
+    </div>
+    <div id="stats-detail-page" style="display:none">
+      <button onclick="closeStatsDetail()" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:0.85rem;cursor:pointer;padding:8px 0;margin-bottom:6px;display:flex;align-items:center;gap:6px">&larr; Torna alle statistiche</button>
+      <div id="vs-detail-body"></div>
     </div>
   </div>
 </div>
@@ -1438,6 +1438,7 @@ const DEFAULT_CLIENTS = [];
 
 let zoneOrder=[], clienti=[], visits={}, calNotes={};
 let aziende=[];
+let remFolders=[]; // [{id, name}] — cartelle personalizzate per organizzare i promemoria, trasversali ai clienti
 let zoneGroups=[]; // [{id, zones:['CHIETI','PESCARA']}, ...] — raggruppamenti di zone solo a livello di visualizzazione
 let kmlOverrides={};
 let kmlHidden={};
@@ -1512,8 +1513,8 @@ function _archiveCurrentWeekIfAny(prevWeekKey){
       archivedAt: new Date().toISOString(),
       days: JSON.parse(JSON.stringify(giri))
     });
-    // Limita la cronologia a 52 settimane per non far esplodere lo storage
-    if(giriHistory.length > 52) giriHistory.length = 52;
+    // Limita la cronologia a 16 settimane (~4 mesi) per non far esplodere lo storage
+    if(giriHistory.length > 16) giriHistory.length = 16;
   }
   giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
 }
@@ -1550,6 +1551,7 @@ function loadAll(){
     kmlSync=Array.isArray(s.kmlSync)&&s.kmlSync.length ? s.kmlSync : null;
     kmlSyncDate=s.kmlSyncDate||null;
     zoneGroups=Array.isArray(s.zoneGroups)?s.zoneGroups:[];
+    remFolders=Array.isArray(s.remFolders)?s.remFolders:[];
     if(kmlSync) KML_CLIENTS = kmlSync;
     if(s.giri && typeof s.giri==='object'){
       giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[], ...s.giri};
@@ -1583,9 +1585,10 @@ function reset(){
   giriCurrentWeekKey = _currentWeekKey();
   zoneGroups=[];
   giroContinuo = _giroContinuoDefaults();
+  remFolders=[];
 }
 function buildState(){
-  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo};
+  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders};
 }
 function saveAll(){
   try {
@@ -1610,7 +1613,7 @@ function recordSaveHistory(json){
     const last = hist[hist.length-1];
     if(!last || (now - last.t) > 3*60*1000){
       hist.push({t: now, data: json});
-      if(hist.length > 5) hist = hist.slice(hist.length-5);
+      if(hist.length > 2) hist = hist.slice(hist.length-2);
       localStorage.setItem('agentmapSaveHistory', JSON.stringify(hist));
     }
   } catch(_){}
@@ -1628,7 +1631,7 @@ function forceRecordSaveHistory(json){
     let hist = JSON.parse(localStorage.getItem('agentmapSaveHistory')||'[]');
     if(!Array.isArray(hist)) hist = [];
     hist.push({t: Date.now(), data: json});
-    if(hist.length > 5) hist = hist.slice(hist.length-5);
+    if(hist.length > 2) hist = hist.slice(hist.length-2);
     localStorage.setItem('agentmapSaveHistory', JSON.stringify(hist));
   } catch(_){}
 }
@@ -2076,6 +2079,7 @@ function switchView(v){
   document.getElementById('home-hbtn').classList.toggle('active-view', isClients);
   document.getElementById('map-hbtn').classList.toggle('active-view', v==='mappa');
   const giriHbtn=document.getElementById('giri-hbtn'); if(giriHbtn) giriHbtn.classList.toggle('active-view', v==='giri');
+  const statsHbtn=document.getElementById('stats-hbtn'); if(statsHbtn) statsHbtn.classList.toggle('active-view', v==='stats');
   ['home','cal','gear','map','giri'].forEach(k=>{
     const el=document.getElementById('bnav-'+k);
     if(el) el.classList.remove('active-view');
@@ -2087,6 +2091,7 @@ function switchView(v){
   if(v==='calendar') renderCalendar();
   else if(v==='mappa') { if(typeof renderMap==='function') renderMap(); }
   else if(v==='giri') renderGiri();
+  else if(v==='stats') { closeStatsDetail(); renderVisitStats(); }
   else renderClients();
 }
 
@@ -3328,7 +3333,7 @@ function clearAllGiri(){
       manual: true,
       days: JSON.parse(JSON.stringify(giri))
     });
-    if(giriHistory.length > 52) giriHistory.length = 52;
+    if(giriHistory.length > 16) giriHistory.length = 16;
   }
   giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
   saveAll();
@@ -4355,6 +4360,7 @@ window.openRemindersOverview = openRemindersOverview;
 window.closeRemindersOverview = closeRemindersOverview;
 
 let remOverviewTab = 'attivi';
+let remClienteSearch = '';
 function setRemOverviewTab(tab){
   remOverviewTab = tab;
   renderRemindersOverview();
@@ -4364,8 +4370,192 @@ function renderRemOverviewTabsHtml(){
   return `<div style="display:flex;gap:6px;margin-bottom:12px">
     <button onclick="setRemOverviewTab('attivi')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.78rem;font-weight:700;background:${remOverviewTab==='attivi'?'var(--accent)':'var(--surface2)'};color:${remOverviewTab==='attivi'?'#fff':'var(--text-muted)'}">Attivi</button>
     <button onclick="setRemOverviewTab('cronologia')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.78rem;font-weight:700;background:${remOverviewTab==='cronologia'?'var(--accent)':'var(--surface2)'};color:${remOverviewTab==='cronologia'?'#fff':'var(--text-muted)'}">Cronologia</button>
+    <button onclick="setRemOverviewTab('clienti')" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-family:'Nunito',sans-serif;font-size:0.78rem;font-weight:700;background:${remOverviewTab==='clienti'?'var(--accent)':'var(--surface2)'};color:${remOverviewTab==='clienti'?'#fff':'var(--text-muted)'}">Cartelle</button>
   </div>`;
 }
+function onRemClienteSearchInput(v){
+  remClienteSearch = v;
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+}
+window.onRemClienteSearchInput = onRemClienteSearchInput;
+function _genFolderId(){ return 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+function renderRemFoldersTabHtml(){
+  return '<div style="display:flex;gap:8px;margin-bottom:10px">' +
+      '<input type="text" id="rem-new-folder-input" placeholder="Nome nuova cartella..." onkeydown="if(event.key===\'Enter\'){event.preventDefault();createRemFolderFromInput();}" style="flex:1;box-sizing:border-box;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.8rem;outline:none">' +
+      '<button onclick="createRemFolderFromInput()" style="padding:0 14px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap">+ Crea</button>' +
+    '</div>' +
+    '<input type="text" id="rem-cliente-search-input" placeholder="Cerca cartella, cliente o testo..." value="' + escA(remClienteSearch) + '" oninput="onRemClienteSearchInput(this.value)" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.82rem;margin-bottom:12px;outline:none">' +
+    '<div id="rem-folders-list">' + renderRemFoldersListHtml() + '</div>';
+}
+function createRemFolderFromInput(){
+  const inp = document.getElementById('rem-new-folder-input');
+  const name = ((inp && inp.value) || '').trim();
+  if(!name) return;
+  if(!Array.isArray(remFolders)) remFolders = [];
+  const fid = _genFolderId();
+  remFolders.push({ id: fid, name });
+  if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
+  window._remFolderOpenIds.add(fid);
+  saveAll();
+  if(inp) inp.value = '';
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+  showToast('Cartella creata');
+}
+window.createRemFolderFromInput = createRemFolderFromInput;
+function renameRemFolderPrompt(fid){
+  const f = (remFolders||[]).find(x=>x.id===fid);
+  if(!f) return;
+  const name = window.prompt('Rinomina cartella:', f.name);
+  if(name===null) return;
+  const trimmed = name.trim();
+  if(!trimmed) return;
+  f.name = trimmed;
+  saveAll();
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+}
+window.renameRemFolderPrompt = renameRemFolderPrompt;
+function deleteRemFolderConfirm(fid){
+  const f = (remFolders||[]).find(x=>x.id===fid);
+  if(!f) return;
+  if(!window.confirm('Eliminare la cartella "'+f.name+'"? I promemoria al suo interno torneranno "Senza cartella".')) return;
+  for(const c of (clienti||[])){
+    const v = visits[c.id];
+    if(!v || !Array.isArray(v.reminders)) continue;
+    v.reminders.forEach(r=>{ if(r && r.folderId===fid) r.folderId = null; });
+  }
+  remFolders = (remFolders||[]).filter(x=>x.id!==fid);
+  if(window._remFolderOpenIds) window._remFolderOpenIds.delete(fid);
+  saveAll();
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+  showToast('Cartella eliminata');
+}
+window.deleteRemFolderConfirm = deleteRemFolderConfirm;
+function moveReminderToFolder(cid, idx, folderId){
+  const v = visits[cid];
+  if(!v || !Array.isArray(v.reminders) || idx<0 || idx>=v.reminders.length) return;
+  v.reminders[idx].folderId = folderId || null;
+  saveAll();
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+  showToast(folderId ? 'Promemoria spostato nella cartella' : 'Promemoria rimosso dalla cartella');
+}
+window.moveReminderToFolder = moveReminderToFolder;
+function toggleRemFolderClient(fid){
+  if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
+  if(window._remFolderOpenIds.has(fid)) window._remFolderOpenIds.delete(fid);
+  else window._remFolderOpenIds.add(fid);
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+}
+window.toggleRemFolderClient = toggleRemFolderClient;
+function renderRemFoldersListHtml(){
+  const q = (remClienteSearch||'').trim().toLowerCase();
+  if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
+
+  const byFolder = {};
+  const unassigned = [];
+  for(const c of (clienti||[])){
+    const v = visits[c.id];
+    if(!v || !Array.isArray(v.reminders)) continue;
+    v.reminders.forEach((r, idx)=>{
+      if(!r) return;
+      const entry = { cliente: c, rem: r, idx };
+      if(r.folderId && (remFolders||[]).some(f=>f.id===r.folderId)){
+        (byFolder[r.folderId] = byFolder[r.folderId] || []).push(entry);
+      } else {
+        unassigned.push(entry);
+      }
+    });
+  }
+
+  const folderDefs = [...(remFolders||[]).map(f=>({ id:f.id, name:f.name, _virtual:false })), { id:'__unassigned__', name:'Senza cartella', _virtual:true }];
+
+  const sections = folderDefs.map(f=>{
+    let items = (f._virtual ? unassigned : (byFolder[f.id] || [])).slice();
+    items.sort((a,b)=> new Date(b.rem.date||0) - new Date(a.rem.date||0));
+    if(q){
+      const folderNameMatch = !f._virtual && (f.name||'').toLowerCase().includes(q);
+      if(!folderNameMatch){
+        items = items.filter(it => (it.cliente.nome||'').toLowerCase().includes(q) || (it.rem.text||'').toLowerCase().includes(q));
+      }
+    }
+    return { folder: f, items };
+  });
+
+  const visibleSections = sections.filter(sec=>{
+    if(sec.folder._virtual) return sec.items.length > 0;
+    if(q) return sec.items.length > 0;
+    return true;
+  });
+
+  if(!(remFolders||[]).length && !unassigned.length){
+    return '<div style="text-align:center;padding:30px 18px;color:var(--text-muted);font-size:0.84rem">Crea la tua prima cartella qui sopra per organizzare i promemoria (es. "Inviti a riunione").</div>';
+  }
+  if(!visibleSections.length){
+    return '<div style="text-align:center;padding:30px 18px;color:var(--text-muted);font-size:0.84rem">' + (q ? 'Nessun risultato per &quot;'+escH(remClienteSearch)+'&quot;.' : 'Nessuna cartella. Creane una qui sopra.') + '</div>';
+  }
+
+  return visibleSections.map(sec=>{
+    const f = sec.folder;
+    const isOpen = window._remFolderOpenIds.has(f.id);
+    const pendingCount = sec.items.filter(it=>!it.rem.done).length;
+    const folderOptions = ['<option value="">Senza cartella</option>'].concat((remFolders||[]).map(rf=>'<option value="'+escA(rf.id)+'">'+escH(rf.name)+'</option>')).join('');
+
+    const itemsHtml = isOpen
+      ? '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">' + (sec.items.length ? sec.items.map(it=>{
+          const rem = it.rem, c = it.cliente;
+          const dt = rem.date ? fmtDateTime(rem.date) : '';
+          const isDone = !!rem.done;
+          const bg = isDone ? 'var(--surface)' : 'rgba(202,0,19,0.08)';
+          const bd = isDone ? 'var(--border2)' : 'rgba(202,0,19,0.2)';
+          const doneBtn = isDone
+            ? '<button onclick="undoReminderDoneFromOverview(\''+c.id+'\','+it.idx+');event.stopPropagation()" title="Segna come da fare" style="background:none;border:1px solid var(--border2);color:var(--text-muted);width:24px;height:24px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0">&#8634;</button>'
+            : '<button onclick="markReminderDoneFromOverview(\''+c.id+'\','+it.idx+');event.stopPropagation()" title="Segna come fatto" style="background:none;border:1px solid var(--green);color:var(--green);width:24px;height:24px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.74rem;flex-shrink:0">&#10003;</button>';
+          const optsForThis = folderOptions.replace('value="'+escA(rem.folderId||'')+'"', 'value="'+escA(rem.folderId||'')+'" selected');
+          return '<div style="background:'+bg+';border:1px solid '+bd+';border-radius:8px;padding:8px 11px" onclick="event.stopPropagation()">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">' +
+              '<div style="font-weight:700;color:var(--text);font-size:0.76rem">' + escH(c.nome||'') + '</div>' +
+              '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.6rem;color:var(--text-muted);white-space:nowrap">' + escH(dt) + (isDone ? ' &middot; <span style="color:var(--green)">&#10003;</span>' : '') + '</div>' +
+            '</div>' +
+            '<div style="font-size:0.78rem;color:'+(isDone?'var(--text-muted)':'var(--text)')+';line-height:1.45;white-space:pre-wrap;word-break:break-word;'+(isDone?'text-decoration:line-through':'')+';margin-bottom:7px">' + escH(rem.text||'') + '</div>' +
+            '<div style="display:flex;align-items:center;gap:6px">' +
+              '<select onchange="moveReminderToFolder(\''+c.id+'\','+it.idx+',this.value)" style="flex:1;font-size:0.68rem;padding:5px 6px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:\'Nunito\',sans-serif">' + optsForThis + '</select>' +
+              doneBtn +
+            '</div>' +
+          '</div>';
+        }).join('') : '<div style="color:var(--text-muted);font-size:0.76rem;padding:6px 2px">Cartella vuota.</div>') + '</div>'
+      : '';
+
+    const actionsHtml = f._virtual ? '' :
+      '<button onclick="renameRemFolderPrompt(\''+f.id+'\');event.stopPropagation()" title="Rinomina cartella" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.85rem;padding:2px 4px;line-height:1">&#9998;</button>' +
+      '<button onclick="deleteRemFolderConfirm(\''+f.id+'\');event.stopPropagation()" title="Elimina cartella" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:0.85rem;padding:2px 4px;line-height:1">&#128465;</button>';
+
+    const badgeHtml = pendingCount
+      ? '<div style="background:var(--accent);color:#fff;border-radius:14px;min-width:24px;height:22px;padding:0 7px;font-family:\'JetBrains Mono\',monospace;font-size:0.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + pendingCount + '</div>'
+      : '';
+
+    const folderIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:'+(f._virtual?'var(--text-muted)':'var(--accent)')+';flex-shrink:0"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
+
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px">' +
+      '<div style="display:flex;align-items:center;gap:8px;cursor:pointer;-webkit-tap-highlight-color:rgba(202,0,19,0.18);touch-action:manipulation" onclick="toggleRemFolderClient(\''+f.id+'\')">' +
+        folderIcon +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;color:var(--text);font-size:0.9rem">' + escH(f.name) + '</div>' +
+          '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:1px">' + sec.items.length + ' promemoria</div>' +
+        '</div>' +
+        badgeHtml +
+        actionsHtml +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);transition:transform 0.18s;transform:rotate(' + (isOpen?'90':'0') + 'deg);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>' +
+      '</div>' +
+      itemsHtml +
+    '</div>';
+  }).join('');
+}
+window.renderRemFoldersListHtml = renderRemFoldersListHtml;
 function renderRemHistoryList(){
   const items = [];
   for(const c of (clienti||[])){
@@ -4408,6 +4598,11 @@ function renderRemindersOverview(){
   if(remOverviewTab === 'cronologia'){
     if(sub) sub.textContent = 'Promemoria completati';
     body.innerHTML = renderRemOverviewTabsHtml() + renderRemHistoryList();
+    return;
+  }
+  if(remOverviewTab === 'clienti'){
+    if(sub) sub.textContent = 'Organizza i promemoria in cartelle personalizzate';
+    body.innerHTML = renderRemOverviewTabsHtml() + renderRemFoldersTabHtml();
     return;
   }
   // Costruisci lista clienti con almeno un promemoria pendente
@@ -4490,18 +4685,8 @@ window.markReminderDoneFromOverview = markReminderDoneFromOverview;
 let _vsYear  = new Date().getFullYear();
 let _vsMonth = new Date().getMonth(); // 0-based
 let _vsMode  = 'month'; // 'month' | 'all'
-
-function openVisitStats(){
-  const today = new Date();
-  _vsYear  = today.getFullYear();
-  _vsMonth = today.getMonth();
-  document.getElementById('vs-mode').value = _vsMode;
-  document.getElementById('visit-stats-overlay').classList.add('open');
-  renderVisitStats();
-}
-function closeVisitStats(){ document.getElementById('visit-stats-overlay').classList.remove('open'); }
-window.openVisitStats = openVisitStats;
-window.closeVisitStats = closeVisitStats;
+let _vsSort  = 'desc'; // 'desc' | 'asc'
+let _vsDetailClientId = null;
 
 function vsPrev(){
   _vsMode = document.getElementById('vs-mode').value;
@@ -4520,18 +4705,73 @@ function vsNext(){
 window.vsPrev = vsPrev;
 window.vsNext = vsNext;
 
+function vsToggleSort(){
+  _vsSort = _vsSort === 'desc' ? 'asc' : 'desc';
+  renderVisitStats();
+}
+window.vsToggleSort = vsToggleSort;
+
+function vsEditGoal(cid){
+  const c = (clienti||[]).find(x=>x.id===cid);
+  if(!c) return;
+  const cur = c.obiettivoVisite ? String(c.obiettivoVisite) : '';
+  const val = window.prompt('Obiettivo di visite mensili per ' + (c.nome||'') + ':\n(lascia vuoto per rimuovere l\'obiettivo)', cur);
+  if(val === null) return;
+  const trimmed = val.trim();
+  if(trimmed === ''){
+    delete c.obiettivoVisite;
+  } else {
+    const n = parseInt(trimmed, 10);
+    if(isNaN(n) || n <= 0){ showToast('Inserisci un numero valido'); return; }
+    c.obiettivoVisite = n;
+  }
+  saveAll();
+  if(_vsDetailClientId === cid) renderStatsDetail();
+  else renderVisitStats();
+}
+window.vsEditGoal = vsEditGoal;
+
+function openStatsDetail(cid){
+  _vsDetailClientId = cid;
+  const listPage = document.getElementById('stats-list-page');
+  const detailPage = document.getElementById('stats-detail-page');
+  if(listPage) listPage.style.display = 'none';
+  if(detailPage) detailPage.style.display = '';
+  renderStatsDetail();
+}
+window.openStatsDetail = openStatsDetail;
+
+function closeStatsDetail(){
+  _vsDetailClientId = null;
+  const listPage = document.getElementById('stats-list-page');
+  const detailPage = document.getElementById('stats-detail-page');
+  if(detailPage) detailPage.style.display = 'none';
+  if(listPage) listPage.style.display = '';
+}
+window.closeStatsDetail = closeStatsDetail;
+
 function _getVisitDates(v){
   if(!v) return [];
   if(Array.isArray(v.visitHistory) && v.visitHistory.length) return v.visitHistory;
   return v.visitDate ? [v.visitDate] : [];
 }
 
+function _vsProgressBarHtml(pct, height){
+  const h = height || 7;
+  const color = pct >= 100 ? 'var(--green)' : 'linear-gradient(90deg,var(--accent),var(--accent-hover))';
+  return '<div style="height:'+h+'px;background:var(--surface3);border-radius:'+(h/2)+'px;overflow:hidden"><div style="width:'+Math.min(100,pct)+'%;height:100%;background:'+color+'"></div></div>';
+}
+
 function renderVisitStats(){
-  _vsMode = document.getElementById('vs-mode').value;
+  const modeEl = document.getElementById('vs-mode');
+  if(!modeEl) return;
+  _vsMode = modeEl.value;
   const lbl = document.getElementById('vs-period-label');
   const sum = document.getElementById('vs-summary');
   const list = document.getElementById('vs-list');
+  const sortBtn = document.getElementById('vs-sort-btn');
   if(!list) return;
+  if(sortBtn) sortBtn.textContent = _vsSort === 'desc' ? '↓ Più visite' : '↑ Meno visite';
   // Etichetta periodo
   if(_vsMode === 'all'){
     if(lbl) lbl.textContent = 'Tutto il periodo';
@@ -4559,20 +4799,14 @@ function renderVisitStats(){
         if(!lastDate || d > new Date(lastDate)) lastDate = iso;
       }
     }
-    if(n > 0){
-      rows.push({ cliente: c, n, lastDate });
-      totalVisits += n;
-      activeClients++;
-    } else {
-      rows.push({ cliente: c, n: 0, lastDate: null });
-    }
+    if(n > 0){ totalVisits += n; activeClients++; }
+    rows.push({ cliente: c, n, lastDate });
   }
-  // Ordina: visite decrescente, poi nome
+  // Ordina in base alla direzione scelta, poi per nome
   rows.sort((a,b)=>{
-    if(b.n !== a.n) return b.n - a.n;
+    if(b.n !== a.n) return _vsSort === 'desc' ? (b.n - a.n) : (a.n - b.n);
     return (a.cliente.nome||'').localeCompare(b.cliente.nome||'');
   });
-  // Filtra: solo clienti con almeno una visita (default), oppure mostra tutto
   const visited = rows.filter(r => r.n > 0);
   if(sum){
     sum.textContent = visited.length
@@ -4583,23 +4817,99 @@ function renderVisitStats(){
     list.innerHTML = '<div style="text-align:center;padding:24px 14px;color:var(--text-muted);font-size:0.82rem">Nessuna visita nel periodo selezionato.</div>';
     return;
   }
-  const maxN = visited[0].n;
+  const maxN = Math.max(...visited.map(r=>r.n));
   list.innerHTML = visited.map(r => {
-    const pct = Math.max(8, Math.round((r.n / maxN) * 100));
+    const target = r.cliente.obiettivoVisite || 0;
     const dt = r.lastDate ? fmtDate(r.lastDate) : '';
-    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px">' +
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">' +
+    const showGoal = target > 0 && _vsMode === 'month';
+    let barHtml, metaHtml;
+    if(showGoal){
+      const pct = Math.round((r.n / target) * 100);
+      barHtml = _vsProgressBarHtml(pct);
+      metaHtml = r.n + ' / ' + target + ' visite &middot; ' + pct + '%' + (dt ? ' &middot; ultima: '+escH(dt) : '');
+    } else {
+      const pct = Math.max(8, Math.round((r.n / maxN) * 100));
+      barHtml = '<div style="height:7px;background:var(--surface3);border-radius:4px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:var(--border2)"></div></div>';
+      metaHtml = dt ? ('ultima: '+escH(dt)) : (target ? 'Obiettivo: '+target+'/mese' : 'Nessun obiettivo impostato');
+    }
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:12px 14px;margin-bottom:9px;cursor:pointer" onclick="openStatsDetail(\''+r.cliente.id+'\')">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
         '<div style="flex:1;min-width:0">' +
-          '<div style="font-weight:700;color:var(--text);font-size:0.9rem">' + escH(r.cliente.nome||'') + '</div>' +
-          '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:2px">' + escH(r.cliente.zona||'') + (dt? ' · ultima: '+escH(dt) : '') + '</div>' +
+          '<div style="font-weight:700;color:var(--text);font-size:0.92rem">' + escH(r.cliente.nome||'') + '</div>' +
+          '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:2px">' + escH(r.cliente.zona||'') + '</div>' +
         '</div>' +
+        '<button onclick="event.stopPropagation();vsEditGoal(\''+r.cliente.id+'\')" title="Imposta obiettivo mensile" style="background:none;border:1px solid var(--border2);color:var(--text-muted);width:26px;height:26px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.72rem;flex-shrink:0">&#9998;</button>' +
         '<div style="background:var(--accent);color:#fff;border-radius:14px;min-width:30px;height:24px;padding:0 9px;font-family:\'JetBrains Mono\',monospace;font-size:0.78rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + r.n + '</div>' +
       '</div>' +
-      '<div style="height:5px;background:var(--surface3);border-radius:3px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-hover))"></div></div>' +
+      barHtml +
+      '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:6px">' + metaHtml + '</div>' +
     '</div>';
   }).join('');
 }
 window.renderVisitStats = renderVisitStats;
+
+function renderStatsDetail(){
+  const body = document.getElementById('vs-detail-body');
+  if(!body || !_vsDetailClientId) return;
+  const c = (clienti||[]).find(x=>x.id===_vsDetailClientId);
+  if(!c){ body.innerHTML = ''; return; }
+  const v = visits[c.id];
+  const dates = _getVisitDates(v).slice().sort((a,b)=> new Date(b) - new Date(a));
+  const today = new Date();
+  const thisMonthCount = dates.filter(iso=>{ const d = new Date(iso); return d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth(); }).length;
+  const target = c.obiettivoVisite || 0;
+
+  let html = '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px">' +
+    '<div style="font-weight:800;font-size:1.05rem;color:var(--text)">' + escH(c.nome||'') + '</div>' +
+    '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px">' + escH(c.zona||'') + ' &middot; ' + dates.length + ' visite totali</div>';
+  if(target){
+    const pct = Math.round((thisMonthCount / target) * 100);
+    html += '<div style="margin-top:14px">' +
+      '<div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-bottom:5px"><span>Obiettivo mese corrente</span><span>' + thisMonthCount + ' / ' + target + ' (' + pct + '%)</span></div>' +
+      _vsProgressBarHtml(pct, 8) +
+    '</div>';
+  }
+  html += '<button onclick="vsEditGoal(\''+c.id+'\')" style="margin-top:14px;background:none;border:1px solid var(--border2);color:var(--text-muted);border-radius:8px;padding:7px 11px;font-size:0.72rem;cursor:pointer">' + (target ? 'Modifica obiettivo' : 'Imposta obiettivo mensile') + '</button>' +
+  '</div>';
+
+  if(!dates.length){
+    html += '<div style="text-align:center;padding:26px 14px;color:var(--text-muted);font-size:0.82rem">Nessuna visita registrata.</div>';
+    body.innerHTML = html;
+    return;
+  }
+
+  const groups = [];
+  let curKey = null, curGroup = null;
+  dates.forEach(iso=>{
+    const d = new Date(iso);
+    const key = d.getFullYear() + '-' + d.getMonth();
+    if(key !== curKey){
+      curKey = key;
+      curGroup = { label: MONTHS_IT[d.getMonth()] + ' ' + d.getFullYear(), items: [] };
+      groups.push(curGroup);
+    }
+    curGroup.items.push(iso);
+  });
+
+  html += groups.map(g=>{
+    return '<div style="margin-top:18px">' +
+      '<div style="font-weight:700;font-size:0.76rem;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.03em">' + escH(g.label) + ' &middot; ' + g.items.length + '</div>' +
+      '<div style="display:flex;flex-direction:column;gap:2px">' + g.items.map(iso=>{
+        const d = new Date(iso);
+        const dayLabel = d.toLocaleDateString('it-IT',{weekday:'short', day:'2-digit', month:'2-digit', year:'numeric'});
+        const timeLabel = d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+        return '<div style="display:flex;align-items:center;gap:10px;padding:7px 4px 7px 14px;border-left:2px solid var(--border2);position:relative">' +
+          '<div style="width:7px;height:7px;border-radius:50%;background:var(--accent);position:absolute;left:-4.5px;top:14px"></div>' +
+          '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.76rem;color:var(--text);text-transform:capitalize">' + escH(dayLabel) + '</div>' +
+          '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.68rem;color:var(--text-muted)">' + escH(timeLabel) + '</div>' +
+        '</div>';
+      }).join('') + '</div>' +
+    '</div>';
+  }).join('');
+
+  body.innerHTML = html;
+}
+window.renderStatsDetail = renderStatsDetail;
 
 loadAll();
 buildTabs();
