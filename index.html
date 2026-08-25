@@ -427,6 +427,13 @@ header {
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .az-pending-badge svg { width: 9px; height: 9px; display: block; }
+.client-incorso-badge {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 16px; height: 16px; margin-left: 2px;
+  background: var(--surface); border: 1.5px solid var(--yellow); border-radius: 50%;
+  color: var(--yellow);
+}
+.client-incorso-badge svg { width: 9px; height: 9px; display: block; }
 .logo-slot-add {
   width: 38px; height: 38px; border-radius: 8px;
   border: 1.5px dashed #c7cddb; background: transparent;
@@ -986,6 +993,12 @@ header {
         <label class="filter-adv-toggle-row">
           <input type="checkbox" id="filter-adv-noaz-check" onchange="toggleHideNoAzienda(this.checked)">
           Nascondi clienti senza aziende collegate
+        </label>
+      </div>
+      <div class="filter-adv-section">
+        <label class="filter-adv-toggle-row">
+          <input type="checkbox" id="filter-adv-incorso-check" class="js-hide-incorso-check" onchange="toggleHideInCorso(this.checked)">
+          Nascondi clienti in corso
         </label>
       </div>
     </div>
@@ -2176,6 +2189,13 @@ function toggleHideNoAzienda(val){
   hideClientsWithoutAziende = !!val;
   renderClients();
 }
+let hideInCorsoClients = false;
+function toggleHideInCorso(val){
+  hideInCorsoClients = !!val;
+  document.querySelectorAll('.js-hide-incorso-check').forEach(el=>{ el.checked = hideInCorsoClients; });
+  renderClients();
+}
+window.toggleHideInCorso = toggleHideInCorso;
 const DAY_BUCKETS = [
   {key:'verde', label:'1-5g', color:'var(--green)'},
   {key:'giallo', label:'5-10g', color:'var(--yellow)'},
@@ -2264,6 +2284,7 @@ function renderClients(){
     if(q) list=list.filter(c=>c.nome.toLowerCase().includes(q)||(c.contatti||'').toLowerCase().includes(q));
     if(clientDayFilterSet.size) list=list.filter(c=>clientDayFilterSet.has(_clientDayBucket(c)));
     if(hideClientsWithoutAziende) list=list.filter(c=>(c.aziende||[]).length>0);
+    if(hideInCorsoClients) list=list.filter(c=>!c.inCorso);
     if(!list.length) return;
     if(clientSortByDays){
       list = list.slice().sort((a,b)=>{
@@ -2291,6 +2312,9 @@ function _azPendingBadgeHtml(c, azId){
 function _azFrameClass(c, azId){
   return _azStatus(c,azId)==='in_corso' ? ' az-pending-frame' : '';
 }
+function _clientIncorsoBadgeHtml(c){
+  return c.inCorso ? `<span class="client-incorso-badge" title="Cliente in corso">${AZ_HOURGLASS_SVG}</span>` : '';
+}
 function renderCard(c){
   const v=getV(c.id);
   const days=daysSince(v.visitDate);
@@ -2312,7 +2336,7 @@ function renderCard(c){
     <div class="card-stripe ${sc}"></div>
     <div class="card-body">
       <div class="card-top">
-        <div class="client-name">${escH(c.nome)}</div>
+        <div class="client-name">${escH(c.nome)}${_clientIncorsoBadgeHtml(c)}</div>
         <div class="card-actions">
           <button class="card-action-btn" onclick="openMove('${c.id}')" title="Sposta zona">&#8646;</button>
           <button class="card-action-btn card-action-clock" onclick="openGiriDayPicker('${c.id}')" title="Aggiungi a un giro della settimana"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><polyline points="8 5 8 8 10 9.5"/></svg></button>
@@ -2361,7 +2385,7 @@ function renderCardCompact(c){
   return `<div class="client-row-wrap${c.sospeso?' client-suspended':''}" id="card-${c.id}">
     <div class="client-row">
       <span class="client-row-dot ${sc}"></span>
-      <span class="client-row-name">${escH(c.nome)}</span>
+      <span class="client-row-name">${escH(c.nome)}${_clientIncorsoBadgeHtml(c)}</span>
       ${hasPending?`<span class="client-row-rem-dot" onclick="openReminders('${c.id}')" title="Promemoria in sospeso"></span>`:''}
       <span class="client-row-meta">${fmtDate(v.visitDate)}</span>${chip}
       ${logosHtml}
@@ -2631,7 +2655,7 @@ function setSettingsTab(t){
 }
 function renderSettingsTabs(){
   document.getElementById('settings-tabs').innerHTML =
-    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['targhet','Targhet mappa'],['salvataggi','Salvataggi'],['esporta','Esporta clienti'],['sospendi','Sospendi clienti']].map(([k,l])=>
+    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['targhet','Targhet mappa'],['salvataggi','Salvataggi'],['esporta','Esporta clienti'],['sospendi','Sospendi clienti'],['incorso','Clienti in corso']].map(([k,l])=>
       `<button class="settings-tab${settingsTab===k?' active':''}" onclick="setSettingsTab('${k}')">${l}</button>`
     ).join('');
 }
@@ -2645,6 +2669,7 @@ function renderSettings(){
   else if(settingsTab === 'salvataggi') body.innerHTML = renderSalvataggiTab();
   else if(settingsTab === 'esporta') body.innerHTML = renderEsportaTab();
   else if(settingsTab === 'sospendi') body.innerHTML = renderSospendiTab();
+  else if(settingsTab === 'incorso') body.innerHTML = renderIncorsoTab();
   else body.innerHTML = renderAggiungiTab();
 }
 let exportFilterAzienda = null; // null = tutte le aziende
@@ -2737,6 +2762,71 @@ function toggleClientSospeso(id){
   if(typeof renderClients === 'function') renderClients();
   showToast(c.nome + (c.sospeso ? ' sospeso' : ' riattivato'));
 }
+let incorsoSearch = '';
+function renderIncorsoTab(){
+  const totalIncorso = clienti.filter(c=>c.inCorso).length;
+  return `<div style="font-size:0.8rem;color:var(--text-muted);line-height:1.55;margin-bottom:12px">
+      Un cliente "in corso" è un prospect non ancora confermato: sulla home appare con l'icona a clessidra &#8987;.
+      ${totalIncorso ? `<br><strong>${totalIncorso} client${totalIncorso===1?'e in corso':'i in corso'}</strong> al momento.` : ''}
+    </div>
+    <label class="filter-adv-toggle-row" style="margin-bottom:12px">
+      <input type="checkbox" class="js-hide-incorso-check" ${hideInCorsoClients?'checked':''} onchange="toggleHideInCorso(this.checked)">
+      Nascondi clienti in corso dalla home
+    </label>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="add-client-btn" style="flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="selectAllInCorso()">Seleziona tutti</button>
+      <button class="add-client-btn" style="flex:1;background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="deselectAllInCorso()">Deseleziona tutti</button>
+    </div>
+    <input class="settings-search" id="incorso-search-input" type="text" placeholder="Cerca cliente..." value="${escA(incorsoSearch)}" oninput="onIncorsoSearchInput(this.value)">
+    <div id="incorso-list">${buildIncorsoListHTML()}</div>`;
+}
+function buildIncorsoListHTML(){
+  const sq = (incorsoSearch||'').toLowerCase();
+  const filtered = [...clienti].sort((a,b)=>a.zona.localeCompare(b.zona)||a.nome.localeCompare(b.nome))
+    .filter(c=>c.nome.toLowerCase().includes(sq));
+  if(!filtered.length) return '<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:20px 0">Nessun cliente trovato.</div>';
+  return filtered.map(c=>`<div class="zone-manage-item">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:0.86rem;color:var(--text)">${escH(c.nome)}</div>
+        <div style="font-size:0.68rem;color:var(--text-muted)">${escH(c.zona)}</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:0.74rem;font-weight:600;color:${c.inCorso?'var(--yellow)':'var(--text-muted)'};flex-shrink:0">
+        <input type="checkbox" style="width:17px;height:17px" ${c.inCorso?'checked':''} onchange="toggleClientInCorso('${c.id}')">
+        In corso
+      </label>
+    </div>`).join('');
+}
+function onIncorsoSearchInput(v){
+  incorsoSearch = v;
+  const list = document.getElementById('incorso-list');
+  if(list) list.innerHTML = buildIncorsoListHTML();
+}
+function toggleClientInCorso(id){
+  const c = clienti.find(x=>x.id===id); if(!c) return;
+  c.inCorso = !c.inCorso;
+  saveAll();
+  const list = document.getElementById('incorso-list');
+  if(list) list.innerHTML = buildIncorsoListHTML();
+  if(typeof renderClients === 'function') renderClients();
+  showToast(c.nome + (c.inCorso ? ' segnato come in corso' : ' non più in corso'));
+}
+window.toggleClientInCorso = toggleClientInCorso;
+function selectAllInCorso(){
+  clienti.forEach(c=>{ c.inCorso = true; });
+  saveAll();
+  renderSettings();
+  if(typeof renderClients === 'function') renderClients();
+  showToast('Tutti i clienti segnati come in corso');
+}
+window.selectAllInCorso = selectAllInCorso;
+function deselectAllInCorso(){
+  clienti.forEach(c=>{ delete c.inCorso; });
+  saveAll();
+  renderSettings();
+  if(typeof renderClients === 'function') renderClients();
+  showToast('Nessun cliente più segnato come in corso');
+}
+window.deselectAllInCorso = deselectAllInCorso;
 function _loadScriptOnce(src){
   return new Promise((resolve, reject)=>{
     if(document.querySelector('script[data-src="'+src+'"]')){ resolve(); return; }
@@ -3716,6 +3806,10 @@ function renderAggiungiTab(){
       <label class="add-client-label">Zona *</label>
       <select class="add-client-select" id="new-zona">${zoneOrder.map(z=>`<option value="${escA(z)}">${z}</option>`).join('')}</select>
     </div>
+    <label style="display:flex;align-items:center;gap:9px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 13px;cursor:pointer;font-size:0.82rem;color:var(--text);margin-bottom:14px">
+      <input type="checkbox" id="new-incorso" style="width:17px;height:17px">
+      Cliente in corso (prospect, non ancora confermato)
+    </label>
     <button class="add-client-btn" onclick="addClient()">+ Aggiungi cliente</button>
   </div>`;
 }
@@ -3739,12 +3833,17 @@ function addClient(){
   const nome = (document.getElementById('new-nome').value||'').trim().toUpperCase();
   const contatti = (document.getElementById('new-contatti').value||'').trim();
   const zona = document.getElementById('new-zona').value;
+  const inCorso = !!document.getElementById('new-incorso')?.checked;
   if(!nome){ showToast('Inserisci il nome'); return; }
   const id = 'c' + Date.now();
-  clienti.push({id, zona, nome, contatti, aziende:[]});
+  const newClient = {id, zona, nome, contatti, aziende:[]};
+  if(inCorso) newClient.inCorso = true;
+  clienti.push(newClient);
   saveAll();
   document.getElementById('new-nome').value='';
   document.getElementById('new-contatti').value='';
+  const incorsoCheck = document.getElementById('new-incorso');
+  if(incorsoCheck) incorsoCheck.checked = false;
   showToast('"'+nome+'" aggiunto');
   settingsTab='clienti'; settingsClientSearch=nome;
   renderSettingsTabs(); renderSettings();
