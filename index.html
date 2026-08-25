@@ -858,13 +858,7 @@ header {
   .map-filter-chip { font-size: 0.67rem; padding: 4px 9px; gap: 4px; border-radius: 16px; }
   .map-filter-chip img { width: 12px; height: 12px; }
 
-  .route-panel { padding: 10px 12px; gap: 6px; flex-wrap: nowrap; bottom: 62px; align-items: center; }
-  .route-panel-label { font-size: 0.7rem; flex-shrink: 0; display: none; }
-  .route-stops { flex: 1; overflow-x: auto; flex-wrap: nowrap; gap: 5px; }
-  .route-stops::-webkit-scrollbar { display: none; }
-  .route-stop-chip { font-size: 0.68rem; padding: 3px 7px; flex-shrink: 0; }
-  .open-maps-btn { padding: 9px 14px; font-size: 0.78rem; flex-shrink: 0; border-radius: 10px; }
-  .clear-route-btn { padding: 8px 10px; font-size: 0.72rem; flex-shrink: 0; }
+  .route-panel { display: none !important; }
 
   .overlay { padding: 0; align-items: flex-end; background: rgba(20,24,36,0.4); }
   .modal { max-width: 100% !important; width: 100%; max-height: 90vh !important; border-radius: 24px 24px 0 0; }
@@ -1039,6 +1033,10 @@ header {
             Cronologia
           </button>
           <button class="giri-clear-btn" onclick="clearAllGiri()" title="Svuota tutta la settimana" id="giri-clear-visible-btn">&#128465; Svuota</button>
+          <button class="giri-history-btn" onclick="openSavedGiriOverlay()" title="Giri salvati" id="giri-savedgiri-btn" style="display:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            Giri salvati
+          </button>
         </div>
       </div>
       <p class="giri-sub" id="giri-sub-text">Pianifica clienti e orari per ogni giorno. Ogni lunedi la settimana si archivia automaticamente.</p>
@@ -1115,6 +1113,23 @@ header {
       <button class="modal-close" onclick="closeGiriHistory()">&times;</button>
     </div>
     <div class="modal-body" id="giri-history-body" style="padding:14px 16px;max-height:74vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- GIRI SALVATI (giro continuo) -->
+<div class="overlay" id="saved-giri-overlay" onclick="closeOverlayBg(event,'saved-giri-overlay',closeSavedGiriOverlay)">
+  <div class="modal" style="max-width:540px;max-height:88vh">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Giri salvati</div>
+        <div class="modal-subtitle">Salva il giro continuo attuale e attivalo quando vuoi</div>
+      </div>
+      <button class="modal-close" onclick="closeSavedGiriOverlay()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:14px 16px;max-height:74vh;overflow-y:auto">
+      <div id="saved-giri-new-area"></div>
+      <div id="saved-giri-list" style="margin-top:12px"></div>
+    </div>
   </div>
 </div>
 
@@ -1469,11 +1484,12 @@ let giri={lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
 let giriHistory = [];
 // Settimana corrente associata al `giri` corrente (per detection del rollover)
 let giriCurrentWeekKey = null;
-// Giro continuo: rotazione fissa di 15 giorni (3 settimane x lun-ven) che NON si azzera mai da sola.
-// Chiavi tipo 's1_lun', 's1_mar', ... 's3_ven'. L'utente lo modifica manualmente quando vuole.
+// Giro continuo: rotazione fissa di 20 giorni (4 settimane x lun-ven) che NON si azzera mai da sola.
+// Chiavi tipo 's1_lun', 's1_mar', ... 's4_ven'. L'utente lo modifica manualmente quando vuole.
 let giroContinuo = {};
 let giriViewMode = 'settimana'; // 'settimana' | 'continuo'
-const GIRO_CONTINUO_SETTIMANE = [1,2,3];
+let savedGiri = []; // [{id, name, data:{...snapshot di giroContinuo...}, savedAt}]
+const GIRO_CONTINUO_SETTIMANE = [1,2,3,4];
 const GIRO_CONTINUO_GIORNI = [
   {key:'lun', name:'Lunedì'}, {key:'mar', name:'Martedì'}, {key:'mer', name:'Mercoledì'},
   {key:'gio', name:'Giovedì'}, {key:'ven', name:'Venerdì'}
@@ -1571,6 +1587,7 @@ function loadAll(){
     kmlSyncDate=s.kmlSyncDate||null;
     zoneGroups=Array.isArray(s.zoneGroups)?s.zoneGroups:[];
     remFolders=Array.isArray(s.remFolders)?s.remFolders:[];
+    savedGiri=Array.isArray(s.savedGiri)?s.savedGiri:[];
     if(kmlSync) KML_CLIENTS = kmlSync;
     if(s.giri && typeof s.giri==='object'){
       giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[], ...s.giri};
@@ -1605,9 +1622,10 @@ function reset(){
   zoneGroups=[];
   giroContinuo = _giroContinuoDefaults();
   remFolders=[];
+  savedGiri=[];
 }
 function buildState(){
-  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders};
+  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders,savedGiri};
 }
 function saveAll(){
   try {
@@ -1854,6 +1872,8 @@ function applyCloudState(s){
     }
     if(s.giriCurrentWeekKey) giriCurrentWeekKey = s.giriCurrentWeekKey;
     if(Array.isArray(s.zoneGroups)) zoneGroups = s.zoneGroups;
+    if(Array.isArray(s.remFolders)) remFolders = s.remFolders;
+    if(Array.isArray(s.savedGiri)) savedGiri = s.savedGiri;
     if(s.giroContinuo && typeof s.giroContinuo==='object'){
       const localCount = Object.values(giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
       const cloudCount = Object.values(s.giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
@@ -3062,15 +3082,21 @@ function setGiriViewMode(mode){
   if(bc) bc.classList.toggle('active', giriViewMode==='continuo');
   const title = document.getElementById('giri-title-text');
   const sub = document.getElementById('giri-sub-text');
-  const actions = document.getElementById('giri-header-actions');
+  const histBtn = document.getElementById('giri-history-visible-btn');
+  const clearBtn = document.getElementById('giri-clear-visible-btn');
+  const savedBtn = document.getElementById('giri-savedgiri-btn');
   if(giriViewMode==='continuo'){
     if(title) title.textContent = 'Giro continuo';
-    if(sub) sub.textContent = "Rotazione fissa di 15 giorni (3 settimane, lun–ven). Non si azzera mai da sola: modificala quando vuoi.";
-    if(actions) actions.style.display = 'none';
+    if(sub) sub.textContent = "Rotazione fissa di 20 giorni (4 settimane, lun–ven). Non si azzera mai da sola: modificala quando vuoi.";
+    if(histBtn) histBtn.style.display = 'none';
+    if(clearBtn) clearBtn.style.display = 'none';
+    if(savedBtn) savedBtn.style.display = '';
   } else {
     if(title) title.textContent = 'Giri della settimana';
     if(sub) sub.textContent = 'Pianifica clienti e orari per ogni giorno. Ogni lunedi la settimana si archivia automaticamente.';
-    if(actions) actions.style.display = '';
+    if(histBtn) histBtn.style.display = '';
+    if(clearBtn) clearBtn.style.display = '';
+    if(savedBtn) savedBtn.style.display = 'none';
   }
   renderGiri();
 }
@@ -3132,6 +3158,121 @@ function renderGiroContinuoGrid(){
     </div>`;
   }).join('');
 }
+
+// ── GIRI SALVATI (preset di giro continuo) ──────────────────────────────────
+function _genSavedGiroId(){ return 'sg_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+function _countGiroVisits(data){
+  return Object.values(data||{}).reduce((n,a)=>n+(Array.isArray(a)?a.length:0), 0);
+}
+
+function openSavedGiriOverlay(){
+  window._savedGiriShowInput = false;
+  renderSavedGiriNewArea();
+  renderSavedGiriList();
+  openOverlay('saved-giri-overlay');
+}
+window.openSavedGiriOverlay = openSavedGiriOverlay;
+function closeSavedGiriOverlay(){ closeOverlay('saved-giri-overlay'); }
+window.closeSavedGiriOverlay = closeSavedGiriOverlay;
+
+function renderSavedGiriNewArea(){
+  const area = document.getElementById('saved-giri-new-area');
+  if(!area) return;
+  if(window._savedGiriShowInput){
+    area.innerHTML = '<div style="display:flex;gap:8px">' +
+        '<input type="text" id="saved-giri-name-input" placeholder="Nome del giro (es. Giro estivo)..." onkeydown="if(event.key===\'Enter\'){event.preventDefault();confirmSaveCurrentGiro();}if(event.key===\'Escape\'){cancelSaveCurrentGiro();}" style="flex:1;box-sizing:border-box;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.8rem;outline:none" autofocus>' +
+        '<button onclick="cancelSaveCurrentGiro()" style="padding:0 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);font-weight:600;font-size:0.8rem;cursor:pointer;white-space:nowrap">Annulla</button>' +
+        '<button onclick="confirmSaveCurrentGiro()" style="padding:0 14px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap">Salva</button>' +
+      '</div>';
+    const inp = document.getElementById('saved-giri-name-input');
+    if(inp) inp.focus();
+  } else {
+    area.innerHTML = '<button onclick="showSaveCurrentGiroInput()" style="width:100%;box-sizing:border-box;padding:10px;border-radius:9px;border:1px dashed var(--border2);background:var(--surface);color:var(--text-muted);font-weight:700;font-size:0.8rem;cursor:pointer">+ Salva giro attuale come...</button>';
+  }
+}
+function showSaveCurrentGiroInput(){
+  window._savedGiriShowInput = true;
+  renderSavedGiriNewArea();
+}
+window.showSaveCurrentGiroInput = showSaveCurrentGiroInput;
+function cancelSaveCurrentGiro(){
+  window._savedGiriShowInput = false;
+  renderSavedGiriNewArea();
+}
+window.cancelSaveCurrentGiro = cancelSaveCurrentGiro;
+function confirmSaveCurrentGiro(){
+  const inp = document.getElementById('saved-giri-name-input');
+  const name = ((inp && inp.value) || '').trim();
+  if(!name){ showToast('Scrivi un nome per il giro'); return; }
+  if(!Array.isArray(savedGiri)) savedGiri = [];
+  savedGiri.push({ id: _genSavedGiroId(), name, data: JSON.parse(JSON.stringify(giroContinuo)), savedAt: new Date().toISOString() });
+  saveAll();
+  window._savedGiriShowInput = false;
+  renderSavedGiriNewArea();
+  renderSavedGiriList();
+  showToast('Giro salvato');
+}
+window.confirmSaveCurrentGiro = confirmSaveCurrentGiro;
+
+function renderSavedGiriList(){
+  const list = document.getElementById('saved-giri-list');
+  if(!list) return;
+  if(!(savedGiri||[]).length){
+    list.innerHTML = '<div style="text-align:center;padding:24px 12px;color:var(--text-muted);font-size:0.82rem">Nessun giro salvato ancora.</div>';
+    return;
+  }
+  list.innerHTML = savedGiri.map(sg=>{
+    const count = _countGiroVisits(sg.data);
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:12px 14px;margin-bottom:9px">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;color:var(--text);font-size:0.9rem">' + escH(sg.name) + '</div>' +
+          '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:2px">' + count + ' visite programmate &middot; salvato il ' + escH(fmtDate(sg.savedAt)) + '</div>' +
+        '</div>' +
+        '<button onclick="renameSavedGiro(\''+sg.id+'\')" title="Rinomina" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.85rem;padding:2px 4px;line-height:1">&#9998;</button>' +
+        '<button onclick="deleteSavedGiro(\''+sg.id+'\')" title="Elimina" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:0.85rem;padding:2px 4px;line-height:1">&#128465;</button>' +
+      '</div>' +
+      '<button onclick="activateSavedGiro(\''+sg.id+'\')" style="width:100%;margin-top:9px;background:var(--accent);border:none;color:#fff;border-radius:8px;padding:9px;font-size:0.78rem;font-weight:700;cursor:pointer">Attiva questo giro</button>' +
+    '</div>';
+  }).join('');
+}
+window.renderSavedGiriList = renderSavedGiriList;
+
+function renameSavedGiro(id){
+  const sg = (savedGiri||[]).find(x=>x.id===id);
+  if(!sg) return;
+  const name = window.prompt('Rinomina giro salvato:', sg.name);
+  if(name===null) return;
+  const trimmed = name.trim();
+  if(!trimmed) return;
+  sg.name = trimmed;
+  saveAll();
+  renderSavedGiriList();
+}
+window.renameSavedGiro = renameSavedGiro;
+
+function deleteSavedGiro(id){
+  const sg = (savedGiri||[]).find(x=>x.id===id);
+  if(!sg) return;
+  if(!window.confirm('Eliminare il giro salvato "'+sg.name+'"? Non potrai più recuperarlo.')) return;
+  savedGiri = (savedGiri||[]).filter(x=>x.id!==id);
+  saveAll();
+  renderSavedGiriList();
+  showToast('Giro eliminato');
+}
+window.deleteSavedGiro = deleteSavedGiro;
+
+function activateSavedGiro(id){
+  const sg = (savedGiri||[]).find(x=>x.id===id);
+  if(!sg) return;
+  if(!window.confirm('Attivare "'+sg.name+'"? Diventerà il giro continuo principale (quello attuale verrà sostituito).')) return;
+  giroContinuo = { ..._giroContinuoDefaults(), ...JSON.parse(JSON.stringify(sg.data)) };
+  saveAll();
+  closeSavedGiriOverlay();
+  if(giriViewMode === 'continuo') renderGiri();
+  showToast('Giro "'+sg.name+'" attivato come giro continuo principale');
+}
+window.activateSavedGiro = activateSavedGiro;
 
 let _activeGiroDay = null;
 let _activeGiroMode = 'settimana';
@@ -4374,6 +4515,7 @@ window.updateBell = updateBell;
 
 let remOverviewTab = 'attivi';
 let remClienteSearch = '';
+let _remExpandAllFolders = false;
 function setRemOverviewTab(tab){
   remOverviewTab = tab;
   renderRemindersOverview();
@@ -4393,12 +4535,60 @@ function onRemClienteSearchInput(v){
 }
 window.onRemClienteSearchInput = onRemClienteSearchInput;
 function _genFolderId(){ return 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+function renderRemNewFolderAreaHtml(){
+  if(window._remShowNewFolderInput){
+    return '<div style="display:flex;gap:8px;margin-bottom:10px">' +
+        '<input type="text" id="rem-new-folder-input" placeholder="Nome nuova cartella..." onkeydown="if(event.key===\'Enter\'){event.preventDefault();createRemFolderFromInput();}if(event.key===\'Escape\'){cancelNewFolderInput();}" style="flex:1;box-sizing:border-box;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.8rem;outline:none" autofocus>' +
+        '<button onclick="cancelNewFolderInput()" style="padding:0 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);font-weight:600;font-size:0.8rem;cursor:pointer;white-space:nowrap">Annulla</button>' +
+        '<button onclick="createRemFolderFromInput()" style="padding:0 14px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap">Crea</button>' +
+      '</div>';
+  }
+  return '<button onclick="showNewFolderInput()" style="width:100%;box-sizing:border-box;padding:10px;border-radius:9px;border:1px dashed var(--border2);background:var(--surface);color:var(--text-muted);font-weight:700;font-size:0.8rem;cursor:pointer;margin-bottom:10px">+ Nuova cartella</button>';
+}
+function showNewFolderInput(){
+  window._remShowNewFolderInput = true;
+  const area = document.getElementById('rem-new-folder-area');
+  if(area) area.innerHTML = renderRemNewFolderAreaHtml();
+  const inp = document.getElementById('rem-new-folder-input');
+  if(inp) inp.focus();
+}
+window.showNewFolderInput = showNewFolderInput;
+function cancelNewFolderInput(){
+  window._remShowNewFolderInput = false;
+  const area = document.getElementById('rem-new-folder-area');
+  if(area) area.innerHTML = renderRemNewFolderAreaHtml();
+}
+window.cancelNewFolderInput = cancelNewFolderInput;
+function toggleRemExpandAllFolders(){
+  _remExpandAllFolders = !_remExpandAllFolders;
+  if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
+  if(_remExpandAllFolders){
+    for(const c of (clienti||[])){
+      const v = visits[c.id];
+      if(v && Array.isArray(v.reminders) && v.reminders.length) window._remFolderOpenIds.add('c_'+c.id);
+    }
+    (remFolders||[]).forEach(f=> window._remFolderOpenIds.add(f.id));
+  } else {
+    window._remFolderOpenIds = new Set();
+  }
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+  const btn = document.getElementById('rem-expand-btn');
+  if(btn){
+    btn.style.background = _remExpandAllFolders ? 'var(--accent)' : 'var(--surface2)';
+    btn.style.color = _remExpandAllFolders ? '#fff' : 'var(--text-muted)';
+    btn.style.borderColor = _remExpandAllFolders ? 'var(--accent)' : 'var(--border)';
+  }
+}
+window.toggleRemExpandAllFolders = toggleRemExpandAllFolders;
 function renderRemFoldersTabHtml(){
-  return '<div style="display:flex;gap:8px;margin-bottom:10px">' +
-      '<input type="text" id="rem-new-folder-input" placeholder="Nome nuova cartella..." onkeydown="if(event.key===\'Enter\'){event.preventDefault();createRemFolderFromInput();}" style="flex:1;box-sizing:border-box;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.8rem;outline:none">' +
-      '<button onclick="createRemFolderFromInput()" style="padding:0 14px;border-radius:9px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer;white-space:nowrap">+ Crea</button>' +
+  return '<div id="rem-new-folder-area">' + renderRemNewFolderAreaHtml() + '</div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px">' +
+      '<input type="text" id="rem-cliente-search-input" placeholder="Cerca cartella, cliente o testo..." value="' + escA(remClienteSearch) + '" oninput="onRemClienteSearchInput(this.value)" style="flex:1;min-width:0;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.82rem;outline:none">' +
+      '<button id="rem-expand-btn" onclick="toggleRemExpandAllFolders()" title="Vedi tutte le cartelle già aperte" style="background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);border-radius:9px;width:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
+      '</button>' +
     '</div>' +
-    '<input type="text" id="rem-cliente-search-input" placeholder="Cerca cartella, cliente o testo..." value="' + escA(remClienteSearch) + '" oninput="onRemClienteSearchInput(this.value)" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.82rem;margin-bottom:12px;outline:none">' +
     '<div id="rem-folders-list">' + renderRemFoldersListHtml() + '</div>';
 }
 function createRemFolderFromInput(){
@@ -4411,7 +4601,9 @@ function createRemFolderFromInput(){
   if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
   window._remFolderOpenIds.add(fid);
   saveAll();
-  if(inp) inp.value = '';
+  window._remShowNewFolderInput = false;
+  const area = document.getElementById('rem-new-folder-area');
+  if(area) area.innerHTML = renderRemNewFolderAreaHtml();
   const list = document.getElementById('rem-folders-list');
   if(list) list.innerHTML = renderRemFoldersListHtml();
   showToast('Cartella creata');
@@ -4494,6 +4686,15 @@ function submitRemQuickAdd(fid){
 }
 window.submitRemQuickAdd = submitRemQuickAdd;
 
+function _remFolderStatusBarHtml(doneCount, total){
+  if(!total) return '';
+  const t = doneCount / total; // 0 = tutti da fare (rosso) → 1 = tutti fatti (verde)
+  const r = Math.round(202 + (31 - 202) * t);
+  const g = Math.round(0 + (157 - 0) * t);
+  const b = Math.round(19 + (95 - 19) * t);
+  return '<div style="height:5px;border-radius:3px;margin-top:9px;background:rgb('+r+','+g+','+b+')"></div>';
+}
+
 function _remDoneBtnHtml(cid, idx, isDone){
   return isDone
     ? '<button onclick="undoReminderDoneFromOverview(\''+cid+'\','+idx+');event.stopPropagation()" title="Segna come da fare" style="background:none;border:1px solid var(--border2);color:var(--text-muted);width:24px;height:24px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0">&#8634;</button>'
@@ -4541,6 +4742,18 @@ function renderRemClientFoldersHtml(q){
           '</div>';
         }).join('') + '</div>'
       : '';
+    const quickAddHtml = (isOpen && window._remClientQuickAddId === c.id)
+      ? '<div style="margin-top:8px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px" onclick="event.stopPropagation()">' +
+          '<textarea id="rem-client-quickadd-text-'+c.id+'" placeholder="Testo del promemoria..." rows="2" style="width:100%;box-sizing:border-box;padding:7px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.76rem;resize:vertical;margin-bottom:6px" autofocus></textarea>' +
+          '<div style="display:flex;gap:6px">' +
+            '<button onclick="toggleRemClientQuickAdd(\''+c.id+'\')" style="flex:1;background:none;border:1px solid var(--border2);color:var(--text-muted);border-radius:6px;padding:6px;font-size:0.72rem;cursor:pointer">Annulla</button>' +
+            '<button onclick="submitRemClientQuickAdd(\''+c.id+'\')" style="flex:1;background:var(--accent);border:none;color:#fff;border-radius:6px;padding:6px;font-size:0.72rem;font-weight:700;cursor:pointer">Salva</button>' +
+          '</div>' +
+        '</div>'
+      : '';
+    const addBtnHtml = (isOpen && window._remClientQuickAddId !== c.id)
+      ? '<button onclick="toggleRemClientQuickAdd(\''+c.id+'\');event.stopPropagation()" style="width:100%;margin-top:8px;background:var(--surface);border:1px dashed var(--border2);color:var(--text-muted);border-radius:8px;padding:8px;font-size:0.72rem;font-weight:700;cursor:pointer">+ Aggiungi promemoria</button>'
+      : '';
     const badgeHtml = pendingCount
       ? '<div style="background:var(--accent);color:#fff;border-radius:14px;min-width:24px;height:22px;padding:0 7px;font-family:\'JetBrains Mono\',monospace;font-size:0.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + pendingCount + '</div>'
       : '';
@@ -4554,11 +4767,39 @@ function renderRemClientFoldersHtml(q){
         badgeHtml +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);transition:transform 0.18s;transform:rotate(' + (isOpen?'90':'0') + 'deg);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>' +
       '</div>' +
+      _remFolderStatusBarHtml(doneCount, r.items.length) +
       itemsHtml +
+      quickAddHtml +
+      addBtnHtml +
     '</div>';
   }).join('');
 }
 window.renderRemClientFoldersHtml = renderRemClientFoldersHtml;
+
+function toggleRemClientQuickAdd(cid){
+  window._remClientQuickAddId = (window._remClientQuickAddId === cid) ? null : cid;
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+}
+window.toggleRemClientQuickAdd = toggleRemClientQuickAdd;
+
+function submitRemClientQuickAdd(cid){
+  const txt = document.getElementById('rem-client-quickadd-text-'+cid);
+  const text = ((txt && txt.value) || '').trim();
+  if(!text){ showToast('Scrivi il testo del promemoria'); return; }
+  const v = getV(cid);
+  v.reminders.push({ date: new Date().toISOString(), text, done: false });
+  saveAll();
+  window._remClientQuickAddId = null;
+  if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
+  window._remFolderOpenIds.add('c_'+cid);
+  updateBell();
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+  if(typeof renderClients === 'function') try{ renderClients(); }catch(_){}
+  showToast('Promemoria aggiunto');
+}
+window.submitRemClientQuickAdd = submitRemClientQuickAdd;
 
 function renderRemCustomFoldersHtml(q){
   const byFolder = {};
@@ -4596,6 +4837,7 @@ function renderRemCustomFoldersHtml(q){
     const f = sec.folder;
     const isOpen = window._remFolderOpenIds.has(f.id);
     const pendingCount = sec.items.filter(it=>!it.rem.done).length;
+    const doneCount = sec.items.length - pendingCount;
 
     const itemsHtml = isOpen
       ? '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">' + (sec.items.length ? sec.items.map(it=>{
@@ -4658,6 +4900,7 @@ function renderRemCustomFoldersHtml(q){
         editActionsHtml +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);transition:transform 0.18s;transform:rotate(' + (isOpen?'90':'0') + 'deg);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>' +
       '</div>' +
+      _remFolderStatusBarHtml(doneCount, sec.items.length) +
       itemsHtml +
       quickAddHtml +
       actionsRowHtml +
