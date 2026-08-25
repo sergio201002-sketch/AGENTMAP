@@ -713,8 +713,9 @@ header {
 .giri-visits { flex: 1; display: flex; flex-direction: column; gap: 7px; margin-bottom: 8px; }
 .giri-visit { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 8px 10px; display: flex; align-items: flex-start; gap: 8px; transition: all 0.15s; }
 .giri-visit:hover { border-color: var(--border2); }
-.giri-visit-time { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 700; color: var(--accent-hover); flex-shrink: 0; padding-top: 1px; min-width: 38px; }
+.giri-visit-time { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 700; color: var(--accent-hover); flex-shrink: 0; padding-top: 1px; min-width: 38px; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
 .giri-visit-time.no-time { color: var(--text-light); }
+.giri-visit-time-input { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 700; color: var(--accent-hover); border: 1px solid var(--accent); border-radius: 5px; padding: 2px 3px; width: 68px; background: var(--surface); flex-shrink: 0; }
 .giri-visit-body { flex: 1; min-width: 0; }
 .giri-visit-name { font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.3; word-break: break-word; hyphens: auto; }
 .giri-visit-zone { display: inline-block; font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: var(--surface3); border-radius: 4px; padding: 1px 5px; margin-top: 3px; }
@@ -3066,7 +3067,7 @@ function _renderGiroVisitHtml(v, idx, list, mode, dayKey){
   const days = cv ? daysSince(cv.visitDate) : null;
   const daysChip = days!==null ? `<span class="days-chip ${chipKey(days)}">${days}g</span>` : '';
   return `<div class="giri-visit">
-    <div class="giri-visit-time${time?'':' no-time'}">${time||'--:--'}</div>
+    <div class="giri-visit-time${time?'':' no-time'}" onclick="editGiroTimeStart(this,'${mode}','${dayKey}','${v.id}')" title="Modifica orario">${time||'--:--'}</div>
     <div class="giri-visit-body">
       <div class="giri-visit-name">${escH(nome)}</div>
       ${zona ? `<span class="giri-visit-zone">${escH(zona)}</span>` : ''}${daysChip}
@@ -3468,6 +3469,38 @@ function confirmAddGiro(){
   // Riporta il focus al campo ricerca per la prossima aggiunta
   setTimeout(()=>document.getElementById('giri-add-search')?.focus(), 50);
 }
+function editGiroTimeStart(el, mode, dayKey, id){
+  const arr = _giroStore(mode)[dayKey];
+  const v = arr && arr.find(x=>x.id===id);
+  if(!v) return;
+  const input = document.createElement('input');
+  input.type = 'time';
+  input.className = 'giri-visit-time-input';
+  input.value = v.time || '';
+  input.onclick = function(e){ e.stopPropagation(); };
+  input.onkeydown = function(e){
+    e.stopPropagation();
+    if(e.key==='Enter'){ input.blur(); }
+    if(e.key==='Escape'){ input.dataset.cancel='1'; input.blur(); }
+  };
+  input.onblur = function(){ editGiroTimeCommit(input, mode, dayKey, id); };
+  el.replaceWith(input);
+  input.focus();
+  if(typeof input.showPicker === 'function'){ try{ input.showPicker(); }catch(_){} }
+}
+window.editGiroTimeStart = editGiroTimeStart;
+function editGiroTimeCommit(input, mode, dayKey, id){
+  if(input.dataset.cancel !== '1'){
+    const arr = _giroStore(mode)[dayKey];
+    const v = arr && arr.find(x=>x.id===id);
+    if(v){
+      v.time = input.value || '';
+      saveAll();
+    }
+  }
+  renderGiri();
+}
+window.editGiroTimeCommit = editGiroTimeCommit;
 function removeGiro(mode, dayKey, id){
   const store = _giroStore(mode);
   if(!store[dayKey]) return;
