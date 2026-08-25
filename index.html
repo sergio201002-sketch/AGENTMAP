@@ -934,7 +934,7 @@ header {
     <button class="hbtn" id="giri-hbtn" onclick="switchView('giri')" title="Giri della settimana">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"/><path d="M12 7v5l3 2"/></svg>
     </button>
-    <button class="hbtn hbtn-bell" id="bell-hbtn" onclick="openRemindersOverview()" title="Promemoria">
+    <button class="hbtn hbtn-bell" id="bell-hbtn" onclick="switchView('promemoria')" title="Promemoria">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span class="hbtn-bell-badge" id="bell-badge" style="display:none">0</span>
     </button>
@@ -1360,16 +1360,32 @@ header {
 </div>
 
 <!-- REMINDERS OVERVIEW (campanella) -->
-<div class="overlay" id="reminders-overview-overlay" onclick="closeOverlayBg(event,'reminders-overview-overlay',closeRemindersOverview)">
+<div class="view" id="view-promemoria">
+  <div class="main giri-main">
+    <div style="font-size:1.25rem;font-weight:800;color:var(--text)">Promemoria</div>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px" id="rem-overview-subtitle">Tutti i clienti con promemoria attivi</div>
+    <div id="rem-overview-body" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- PICKER: aggiungi promemoria esistenti a una cartella -->
+<div class="overlay" id="rem-picker-overlay" onclick="closeOverlayBg(event,'rem-picker-overlay',closeRemPicker)">
   <div class="modal modal-medium" onclick="event.stopPropagation()">
     <div class="modal-header">
       <div>
-        <div class="modal-title">Promemoria</div>
-        <div class="modal-subtitle" id="rem-overview-subtitle">Tutti i clienti con promemoria attivi</div>
+        <div class="modal-title">Aggiungi promemoria esistenti</div>
+        <div class="modal-subtitle" id="rem-picker-subtitle">Seleziona i promemoria da aggiungere alla cartella</div>
       </div>
-      <button class="modal-close" onclick="closeRemindersOverview()">&times;</button>
+      <button class="modal-close" onclick="closeRemPicker()">&times;</button>
     </div>
-    <div class="modal-body" id="rem-overview-body" style="padding:14px 16px;max-height:70vh;overflow:auto"></div>
+    <div class="modal-body" style="padding:14px 16px;max-height:65vh;overflow:auto">
+      <input type="text" id="rem-picker-search-input" placeholder="Cerca cliente o testo promemoria..." oninput="onRemPickerSearch(this.value)" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Nunito',sans-serif;font-size:0.82rem;margin-bottom:12px;outline:none">
+      <div id="rem-picker-list"></div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px">
+      <button onclick="closeRemPicker()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Annulla</button>
+      <button id="rem-picker-confirm-btn" onclick="confirmRemPickerAdd()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Aggiungi selezionati</button>
+    </div>
   </div>
 </div>
 
@@ -1388,6 +1404,9 @@ header {
           <option value="all">Totale</option>
         </select>
         <button id="vs-sort-btn" onclick="vsToggleSort()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;white-space:nowrap"></button>
+        <button id="vs-expand-btn" onclick="vsToggleExpandAll()" title="Vedi la cronologia di tutti i clienti" style="background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);border-radius:8px;width:37px;height:35px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
       </div>
       <div id="vs-summary" style="font-size:0.72rem;color:var(--text-muted);margin-bottom:12px"></div>
       <div id="vs-list"></div>
@@ -2080,6 +2099,7 @@ function switchView(v){
   document.getElementById('map-hbtn').classList.toggle('active-view', v==='mappa');
   const giriHbtn=document.getElementById('giri-hbtn'); if(giriHbtn) giriHbtn.classList.toggle('active-view', v==='giri');
   const statsHbtn=document.getElementById('stats-hbtn'); if(statsHbtn) statsHbtn.classList.toggle('active-view', v==='stats');
+  const bellHbtn=document.getElementById('bell-hbtn'); if(bellHbtn) bellHbtn.classList.toggle('active-view', v==='promemoria');
   ['home','cal','gear','map','giri'].forEach(k=>{
     const el=document.getElementById('bnav-'+k);
     if(el) el.classList.remove('active-view');
@@ -2092,6 +2112,7 @@ function switchView(v){
   else if(v==='mappa') { if(typeof renderMap==='function') renderMap(); }
   else if(v==='giri') renderGiri();
   else if(v==='stats') { closeStatsDetail(); renderVisitStats(); }
+  else if(v==='promemoria') renderRemindersOverview();
   else renderClients();
 }
 
@@ -4351,14 +4372,6 @@ function updateBell(){
 }
 window.updateBell = updateBell;
 
-function openRemindersOverview(){
-  renderRemindersOverview();
-  document.getElementById('reminders-overview-overlay').classList.add('open');
-}
-function closeRemindersOverview(){ document.getElementById('reminders-overview-overlay').classList.remove('open'); }
-window.openRemindersOverview = openRemindersOverview;
-window.closeRemindersOverview = closeRemindersOverview;
-
 let remOverviewTab = 'attivi';
 let remClienteSearch = '';
 function setRemOverviewTab(tab){
@@ -4434,16 +4447,16 @@ function deleteRemFolderConfirm(fid){
   showToast('Cartella eliminata');
 }
 window.deleteRemFolderConfirm = deleteRemFolderConfirm;
-function moveReminderToFolder(cid, idx, folderId){
+function removeReminderFromFolder(cid, idx){
   const v = visits[cid];
   if(!v || !Array.isArray(v.reminders) || idx<0 || idx>=v.reminders.length) return;
-  v.reminders[idx].folderId = folderId || null;
+  v.reminders[idx].folderId = null;
   saveAll();
   const list = document.getElementById('rem-folders-list');
   if(list) list.innerHTML = renderRemFoldersListHtml();
-  showToast(folderId ? 'Promemoria spostato nella cartella' : 'Promemoria rimosso dalla cartella');
+  showToast('Promemoria rimosso dalla cartella');
 }
-window.moveReminderToFolder = moveReminderToFolder;
+window.removeReminderFromFolder = removeReminderFromFolder;
 function toggleRemFolderClient(fid){
   if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
   if(window._remFolderOpenIds.has(fid)) window._remFolderOpenIds.delete(fid);
@@ -4452,33 +4465,117 @@ function toggleRemFolderClient(fid){
   if(list) list.innerHTML = renderRemFoldersListHtml();
 }
 window.toggleRemFolderClient = toggleRemFolderClient;
-function renderRemFoldersListHtml(){
-  const q = (remClienteSearch||'').trim().toLowerCase();
-  if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
 
+function toggleRemQuickAdd(fid){
+  window._remQuickAddFolderId = (window._remQuickAddFolderId === fid) ? null : fid;
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+}
+window.toggleRemQuickAdd = toggleRemQuickAdd;
+
+function submitRemQuickAdd(fid){
+  const sel = document.getElementById('rem-quickadd-client-'+fid);
+  const txt = document.getElementById('rem-quickadd-text-'+fid);
+  const cid = sel && sel.value;
+  const text = ((txt && txt.value) || '').trim();
+  if(!cid){ showToast('Seleziona un cliente'); return; }
+  if(!text){ showToast('Scrivi il testo del promemoria'); return; }
+  const v = getV(cid);
+  v.reminders.push({ date: new Date().toISOString(), text, done: false, folderId: fid });
+  saveAll();
+  window._remQuickAddFolderId = null;
+  if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
+  window._remFolderOpenIds.add(fid);
+  updateBell();
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+  if(typeof renderClients === 'function') try{ renderClients(); }catch(_){}
+  showToast('Promemoria aggiunto alla cartella');
+}
+window.submitRemQuickAdd = submitRemQuickAdd;
+
+function _remDoneBtnHtml(cid, idx, isDone){
+  return isDone
+    ? '<button onclick="undoReminderDoneFromOverview(\''+cid+'\','+idx+');event.stopPropagation()" title="Segna come da fare" style="background:none;border:1px solid var(--border2);color:var(--text-muted);width:24px;height:24px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0">&#8634;</button>'
+    : '<button onclick="markReminderDoneFromOverview(\''+cid+'\','+idx+');event.stopPropagation()" title="Segna come fatto" style="background:none;border:1px solid var(--green);color:var(--green);width:24px;height:24px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.74rem;flex-shrink:0">&#10003;</button>';
+}
+
+function renderRemClientFoldersHtml(q){
+  const rows = [];
+  for(const c of (clienti||[])){
+    const v = visits[c.id];
+    if(!v || !Array.isArray(v.reminders) || !v.reminders.length) continue;
+    let items = v.reminders.map((r,idx)=>({rem:r, idx})).filter(it=>it.rem);
+    if(!items.length) continue;
+    if(q){
+      const nameMatch = (c.nome||'').toLowerCase().includes(q);
+      items = nameMatch ? items : items.filter(it => (it.rem.text||'').toLowerCase().includes(q));
+      if(!items.length) continue;
+    }
+    items.sort((a,b)=> new Date(b.rem.date||0) - new Date(a.rem.date||0));
+    rows.push({ cliente: c, items });
+  }
+  rows.sort((a,b)=> (a.cliente.nome||'').localeCompare(b.cliente.nome||''));
+  if(!rows.length){
+    return '<div style="text-align:center;padding:20px 12px;color:var(--text-muted);font-size:0.8rem">' + (q ? 'Nessun cliente corrisponde alla ricerca.' : 'Nessun cliente ha promemoria.') + '</div>';
+  }
+  return rows.map(r=>{
+    const c = r.cliente;
+    const key = 'c_'+c.id;
+    const isOpen = window._remFolderOpenIds.has(key);
+    const pendingCount = r.items.filter(it=>!it.rem.done).length;
+    const doneCount = r.items.length - pendingCount;
+    const itemsHtml = isOpen
+      ? '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">' + r.items.map(it=>{
+          const rem = it.rem;
+          const dt = rem.date ? fmtDateTime(rem.date) : '';
+          const isDone = !!rem.done;
+          const bg = isDone ? 'var(--surface)' : 'rgba(202,0,19,0.08)';
+          const bd = isDone ? 'var(--border2)' : 'rgba(202,0,19,0.2)';
+          return '<div style="background:'+bg+';border:1px solid '+bd+';border-radius:8px;padding:8px 11px;display:flex;align-items:flex-start;gap:8px" onclick="event.stopPropagation()">' +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.62rem;color:var(--text-muted);margin-bottom:3px">' + escH(dt) + (isDone ? ' &middot; <span style="color:var(--green)">&#10003; Fatto</span>' : '') + '</div>' +
+              '<div style="font-size:0.78rem;color:'+(isDone?'var(--text-muted)':'var(--text)')+';line-height:1.45;white-space:pre-wrap;word-break:break-word;'+(isDone?'text-decoration:line-through':'')+'">' + escH(rem.text||'') + '</div>' +
+            '</div>' +
+            _remDoneBtnHtml(c.id, it.idx, isDone) +
+          '</div>';
+        }).join('') + '</div>'
+      : '';
+    const badgeHtml = pendingCount
+      ? '<div style="background:var(--accent);color:#fff;border-radius:14px;min-width:24px;height:22px;padding:0 7px;font-family:\'JetBrains Mono\',monospace;font-size:0.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + pendingCount + '</div>'
+      : '';
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer;-webkit-tap-highlight-color:rgba(202,0,19,0.18);touch-action:manipulation" onclick="toggleRemFolderClient(\''+key+'\')">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);flex-shrink:0"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;color:var(--text);font-size:0.9rem">' + escH(c.nome||'') + '</div>' +
+          '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:1px">' + escH(c.zona||'') + ' &middot; ' + r.items.length + ' totali' + (doneCount?', '+doneCount+' fatti':'') + '</div>' +
+        '</div>' +
+        badgeHtml +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);transition:transform 0.18s;transform:rotate(' + (isOpen?'90':'0') + 'deg);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>' +
+      '</div>' +
+      itemsHtml +
+    '</div>';
+  }).join('');
+}
+window.renderRemClientFoldersHtml = renderRemClientFoldersHtml;
+
+function renderRemCustomFoldersHtml(q){
   const byFolder = {};
-  const unassigned = [];
   for(const c of (clienti||[])){
     const v = visits[c.id];
     if(!v || !Array.isArray(v.reminders)) continue;
     v.reminders.forEach((r, idx)=>{
-      if(!r) return;
-      const entry = { cliente: c, rem: r, idx };
-      if(r.folderId && (remFolders||[]).some(f=>f.id===r.folderId)){
-        (byFolder[r.folderId] = byFolder[r.folderId] || []).push(entry);
-      } else {
-        unassigned.push(entry);
-      }
+      if(!r || !r.folderId) return;
+      (byFolder[r.folderId] = byFolder[r.folderId] || []).push({ cliente: c, rem: r, idx });
     });
   }
 
-  const folderDefs = [...(remFolders||[]).map(f=>({ id:f.id, name:f.name, _virtual:false })), { id:'__unassigned__', name:'Senza cartella', _virtual:true }];
-
-  const sections = folderDefs.map(f=>{
-    let items = (f._virtual ? unassigned : (byFolder[f.id] || [])).slice();
+  const sections = (remFolders||[]).map(f=>{
+    let items = (byFolder[f.id] || []).slice();
     items.sort((a,b)=> new Date(b.rem.date||0) - new Date(a.rem.date||0));
     if(q){
-      const folderNameMatch = !f._virtual && (f.name||'').toLowerCase().includes(q);
+      const folderNameMatch = (f.name||'').toLowerCase().includes(q);
       if(!folderNameMatch){
         items = items.filter(it => (it.cliente.nome||'').toLowerCase().includes(q) || (it.rem.text||'').toLowerCase().includes(q));
       }
@@ -4486,24 +4583,19 @@ function renderRemFoldersListHtml(){
     return { folder: f, items };
   });
 
-  const visibleSections = sections.filter(sec=>{
-    if(sec.folder._virtual) return sec.items.length > 0;
-    if(q) return sec.items.length > 0;
-    return true;
-  });
+  const visibleSections = q ? sections.filter(sec => sec.items.length > 0 || (sec.folder.name||'').toLowerCase().includes(q)) : sections;
 
-  if(!(remFolders||[]).length && !unassigned.length){
-    return '<div style="text-align:center;padding:30px 18px;color:var(--text-muted);font-size:0.84rem">Crea la tua prima cartella qui sopra per organizzare i promemoria (es. "Inviti a riunione").</div>';
+  if(!(remFolders||[]).length){
+    return '<div style="text-align:center;padding:20px 12px;color:var(--text-muted);font-size:0.8rem">Nessuna cartella personalizzata. Creane una qui sopra (es. &quot;Inviti a riunione&quot;) per raccogliere insieme promemoria di più clienti.</div>';
   }
   if(!visibleSections.length){
-    return '<div style="text-align:center;padding:30px 18px;color:var(--text-muted);font-size:0.84rem">' + (q ? 'Nessun risultato per &quot;'+escH(remClienteSearch)+'&quot;.' : 'Nessuna cartella. Creane una qui sopra.') + '</div>';
+    return '<div style="text-align:center;padding:20px 12px;color:var(--text-muted);font-size:0.8rem">Nessuna cartella corrisponde alla ricerca.</div>';
   }
 
   return visibleSections.map(sec=>{
     const f = sec.folder;
     const isOpen = window._remFolderOpenIds.has(f.id);
     const pendingCount = sec.items.filter(it=>!it.rem.done).length;
-    const folderOptions = ['<option value="">Senza cartella</option>'].concat((remFolders||[]).map(rf=>'<option value="'+escA(rf.id)+'">'+escH(rf.name)+'</option>')).join('');
 
     const itemsHtml = isOpen
       ? '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">' + (sec.items.length ? sec.items.map(it=>{
@@ -4512,10 +4604,6 @@ function renderRemFoldersListHtml(){
           const isDone = !!rem.done;
           const bg = isDone ? 'var(--surface)' : 'rgba(202,0,19,0.08)';
           const bd = isDone ? 'var(--border2)' : 'rgba(202,0,19,0.2)';
-          const doneBtn = isDone
-            ? '<button onclick="undoReminderDoneFromOverview(\''+c.id+'\','+it.idx+');event.stopPropagation()" title="Segna come da fare" style="background:none;border:1px solid var(--border2);color:var(--text-muted);width:24px;height:24px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0">&#8634;</button>'
-            : '<button onclick="markReminderDoneFromOverview(\''+c.id+'\','+it.idx+');event.stopPropagation()" title="Segna come fatto" style="background:none;border:1px solid var(--green);color:var(--green);width:24px;height:24px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.74rem;flex-shrink:0">&#10003;</button>';
-          const optsForThis = folderOptions.replace('value="'+escA(rem.folderId||'')+'"', 'value="'+escA(rem.folderId||'')+'" selected');
           return '<div style="background:'+bg+';border:1px solid '+bd+';border-radius:8px;padding:8px 11px" onclick="event.stopPropagation()">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">' +
               '<div style="font-weight:700;color:var(--text);font-size:0.76rem">' + escH(c.nome||'') + '</div>' +
@@ -4523,14 +4611,35 @@ function renderRemFoldersListHtml(){
             '</div>' +
             '<div style="font-size:0.78rem;color:'+(isDone?'var(--text-muted)':'var(--text)')+';line-height:1.45;white-space:pre-wrap;word-break:break-word;'+(isDone?'text-decoration:line-through':'')+';margin-bottom:7px">' + escH(rem.text||'') + '</div>' +
             '<div style="display:flex;align-items:center;gap:6px">' +
-              '<select onchange="moveReminderToFolder(\''+c.id+'\','+it.idx+',this.value)" style="flex:1;font-size:0.68rem;padding:5px 6px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:\'Nunito\',sans-serif">' + optsForThis + '</select>' +
-              doneBtn +
+              _remDoneBtnHtml(c.id, it.idx, isDone) +
+              '<button onclick="removeReminderFromFolder(\''+c.id+'\','+it.idx+');event.stopPropagation()" title="Rimuovi dalla cartella" style="background:none;border:1px solid var(--border2);color:var(--text-muted);width:24px;height:24px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.8rem;flex-shrink:0">&times;</button>' +
             '</div>' +
           '</div>';
-        }).join('') : '<div style="color:var(--text-muted);font-size:0.76rem;padding:6px 2px">Cartella vuota.</div>') + '</div>'
+        }).join('') : '<div style="color:var(--text-muted);font-size:0.76rem;padding:6px 2px">Cartella vuota. Aggiungi un promemoria qui sotto.</div>') + '</div>'
       : '';
 
-    const actionsHtml = f._virtual ? '' :
+    const quickAddHtml = (isOpen && window._remQuickAddFolderId === f.id)
+      ? '<div style="margin-top:8px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px" onclick="event.stopPropagation()">' +
+          '<select id="rem-quickadd-client-'+f.id+'" style="width:100%;box-sizing:border-box;padding:7px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.76rem;margin-bottom:6px">' +
+            '<option value="">Scegli cliente...</option>' +
+            (clienti||[]).slice().sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(c=>'<option value="'+escA(c.id)+'">'+escH(c.nome||'')+'</option>').join('') +
+          '</select>' +
+          '<textarea id="rem-quickadd-text-'+f.id+'" placeholder="Testo del promemoria..." rows="2" style="width:100%;box-sizing:border-box;padding:7px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.76rem;resize:vertical;margin-bottom:6px"></textarea>' +
+          '<div style="display:flex;gap:6px">' +
+            '<button onclick="toggleRemQuickAdd(\''+f.id+'\')" style="flex:1;background:none;border:1px solid var(--border2);color:var(--text-muted);border-radius:6px;padding:6px;font-size:0.72rem;cursor:pointer">Annulla</button>' +
+            '<button onclick="submitRemQuickAdd(\''+f.id+'\')" style="flex:1;background:var(--accent);border:none;color:#fff;border-radius:6px;padding:6px;font-size:0.72rem;font-weight:700;cursor:pointer">Salva</button>' +
+          '</div>' +
+        '</div>'
+      : '';
+
+    const actionsRowHtml = (isOpen && window._remQuickAddFolderId !== f.id)
+      ? '<div style="display:flex;gap:6px;margin-top:8px" onclick="event.stopPropagation()">' +
+          '<button onclick="toggleRemQuickAdd(\''+f.id+'\')" style="flex:1;background:var(--surface);border:1px dashed var(--border2);color:var(--text-muted);border-radius:8px;padding:8px;font-size:0.72rem;font-weight:700;cursor:pointer">+ Scrivi promemoria</button>' +
+          '<button onclick="openRemAddExistingPicker(\''+f.id+'\')" style="flex:1;background:var(--surface);border:1px dashed var(--border2);color:var(--text-muted);border-radius:8px;padding:8px;font-size:0.72rem;font-weight:700;cursor:pointer">+ Aggiungi già esistente</button>' +
+        '</div>'
+      : '';
+
+    const editActionsHtml =
       '<button onclick="renameRemFolderPrompt(\''+f.id+'\');event.stopPropagation()" title="Rinomina cartella" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.85rem;padding:2px 4px;line-height:1">&#9998;</button>' +
       '<button onclick="deleteRemFolderConfirm(\''+f.id+'\');event.stopPropagation()" title="Elimina cartella" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:0.85rem;padding:2px 4px;line-height:1">&#128465;</button>';
 
@@ -4538,24 +4647,143 @@ function renderRemFoldersListHtml(){
       ? '<div style="background:var(--accent);color:#fff;border-radius:14px;min-width:24px;height:22px;padding:0 7px;font-family:\'JetBrains Mono\',monospace;font-size:0.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + pendingCount + '</div>'
       : '';
 
-    const folderIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:'+(f._virtual?'var(--text-muted)':'var(--accent)')+';flex-shrink:0"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>';
-
-    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px">' +
-      '<div style="display:flex;align-items:center;gap:8px;cursor:pointer;-webkit-tap-highlight-color:rgba(202,0,19,0.18);touch-action:manipulation" onclick="toggleRemFolderClient(\''+f.id+'\')">' +
-        folderIcon +
+    return '<div style="background:var(--surface2);border:1px solid var(--accent);border-radius:11px;padding:11px 13px;margin-bottom:8px">' +
+      '<div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleRemFolderClient(\''+f.id+'\')">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent);flex-shrink:0"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>' +
         '<div style="flex:1;min-width:0">' +
           '<div style="font-weight:700;color:var(--text);font-size:0.9rem">' + escH(f.name) + '</div>' +
           '<div style="font-size:0.66rem;color:var(--text-muted);margin-top:1px">' + sec.items.length + ' promemoria</div>' +
         '</div>' +
         badgeHtml +
-        actionsHtml +
+        editActionsHtml +
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted);transition:transform 0.18s;transform:rotate(' + (isOpen?'90':'0') + 'deg);flex-shrink:0"><polyline points="9 18 15 12 9 6"/></svg>' +
       '</div>' +
       itemsHtml +
+      quickAddHtml +
+      actionsRowHtml +
     '</div>';
   }).join('');
 }
+window.renderRemCustomFoldersHtml = renderRemCustomFoldersHtml;
+
+function renderRemFoldersListHtml(){
+  const q = (remClienteSearch||'').trim().toLowerCase();
+  if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
+  return '<div style="font-weight:800;font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin:2px 0 8px">Cartelle clienti</div>' +
+    renderRemClientFoldersHtml(q) +
+    '<div style="font-weight:800;font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin:18px 0 8px">Cartelle personalizzate</div>' +
+    renderRemCustomFoldersHtml(q);
+}
 window.renderRemFoldersListHtml = renderRemFoldersListHtml;
+
+let _remPickerFolderId = null;
+let _remPickerSelected = new Set();
+let _remPickerSearch = '';
+
+function openRemAddExistingPicker(fid){
+  const f = (remFolders||[]).find(x=>x.id===fid);
+  if(!f) return;
+  _remPickerFolderId = fid;
+  _remPickerSelected = new Set();
+  _remPickerSearch = '';
+  const sub = document.getElementById('rem-picker-subtitle');
+  if(sub) sub.textContent = 'Aggiungi a "' + f.name + '"';
+  const inp = document.getElementById('rem-picker-search-input');
+  if(inp) inp.value = '';
+  renderRemPickerList();
+  openOverlay('rem-picker-overlay');
+}
+window.openRemAddExistingPicker = openRemAddExistingPicker;
+
+function closeRemPicker(){
+  closeOverlay('rem-picker-overlay');
+  _remPickerFolderId = null;
+}
+window.closeRemPicker = closeRemPicker;
+
+function onRemPickerSearch(v){
+  _remPickerSearch = v;
+  renderRemPickerList();
+}
+window.onRemPickerSearch = onRemPickerSearch;
+
+function toggleRemPickerItem(key){
+  if(_remPickerSelected.has(key)) _remPickerSelected.delete(key);
+  else _remPickerSelected.add(key);
+  renderRemPickerList();
+}
+window.toggleRemPickerItem = toggleRemPickerItem;
+
+function renderRemPickerList(){
+  const listEl = document.getElementById('rem-picker-list');
+  const confirmBtn = document.getElementById('rem-picker-confirm-btn');
+  if(!listEl || !_remPickerFolderId) return;
+  const q = (_remPickerSearch||'').trim().toLowerCase();
+  const items = [];
+  for(const c of (clienti||[])){
+    const v = visits[c.id];
+    if(!v || !Array.isArray(v.reminders)) continue;
+    v.reminders.forEach((r, idx)=>{
+      if(!r) return;
+      if(r.folderId === _remPickerFolderId) return;
+      items.push({ cliente: c, rem: r, idx });
+    });
+  }
+  items.sort((a,b)=> new Date(b.rem.date||0) - new Date(a.rem.date||0));
+  const filtered = q
+    ? items.filter(it => (it.cliente.nome||'').toLowerCase().includes(q) || (it.rem.text||'').toLowerCase().includes(q))
+    : items;
+
+  if(confirmBtn) confirmBtn.textContent = _remPickerSelected.size ? ('Aggiungi selezionati (' + _remPickerSelected.size + ')') : 'Aggiungi selezionati';
+
+  if(!filtered.length){
+    listEl.innerHTML = '<div style="text-align:center;padding:24px 12px;color:var(--text-muted);font-size:0.82rem">' + (q ? 'Nessun promemoria corrisponde alla ricerca.' : 'Non ci sono altri promemoria da aggiungere.') + '</div>';
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(it=>{
+    const key = it.cliente.id + '|' + it.idx;
+    const checked = _remPickerSelected.has(key);
+    const dt = it.rem.date ? fmtDateTime(it.rem.date) : '';
+    const isDone = !!it.rem.done;
+    return '<div onclick="toggleRemPickerItem(\''+key+'\')" style="display:flex;align-items:flex-start;gap:10px;background:'+(checked?'rgba(202,0,19,0.08)':'var(--surface2)')+';border:1px solid '+(checked?'var(--accent)':'var(--border)')+';border-radius:9px;padding:10px 11px;margin-bottom:7px;cursor:pointer">' +
+      '<div style="width:18px;height:18px;border-radius:5px;border:2px solid '+(checked?'var(--accent)':'var(--border2)')+';background:'+(checked?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;color:#fff;font-size:0.7rem">' + (checked?'&#10003;':'') + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+          '<div style="font-weight:700;color:var(--text);font-size:0.78rem">' + escH(it.cliente.nome||'') + '</div>' +
+          '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.6rem;color:var(--text-muted);white-space:nowrap">' + escH(dt) + (isDone?' &middot; <span style="color:var(--green)">&#10003;</span>':'') + '</div>' +
+        '</div>' +
+        '<div style="font-size:0.76rem;color:'+(isDone?'var(--text-muted)':'var(--text)')+';line-height:1.4;white-space:pre-wrap;word-break:break-word;margin-top:2px">' + escH(it.rem.text||'') + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+window.renderRemPickerList = renderRemPickerList;
+
+function confirmRemPickerAdd(){
+  if(!_remPickerFolderId || !_remPickerSelected.size){ closeRemPicker(); return; }
+  let count = 0;
+  _remPickerSelected.forEach(key=>{
+    const sep = key.lastIndexOf('|');
+    const cid = key.slice(0, sep);
+    const idx = parseInt(key.slice(sep+1), 10);
+    const v = visits[cid];
+    if(v && Array.isArray(v.reminders) && v.reminders[idx]){
+      v.reminders[idx].folderId = _remPickerFolderId;
+      count++;
+    }
+  });
+  saveAll();
+  if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
+  window._remFolderOpenIds.add(_remPickerFolderId);
+  updateBell();
+  closeRemPicker();
+  const list = document.getElementById('rem-folders-list');
+  if(list) list.innerHTML = renderRemFoldersListHtml();
+  if(typeof renderClients === 'function') try{ renderClients(); }catch(_){}
+  showToast(count + ' promemoria aggiunt' + (count===1?'o':'i') + ' alla cartella');
+}
+window.confirmRemPickerAdd = confirmRemPickerAdd;
 function renderRemHistoryList(){
   const items = [];
   for(const c of (clienti||[])){
@@ -4687,6 +4915,7 @@ let _vsMonth = new Date().getMonth(); // 0-based
 let _vsMode  = 'month'; // 'month' | 'all'
 let _vsSort  = 'desc'; // 'desc' | 'asc'
 let _vsDetailClientId = null;
+let _vsExpandAll = false;
 
 function vsPrev(){
   _vsMode = document.getElementById('vs-mode').value;
@@ -4704,6 +4933,12 @@ function vsNext(){
 }
 window.vsPrev = vsPrev;
 window.vsNext = vsNext;
+
+function vsToggleExpandAll(){
+  _vsExpandAll = !_vsExpandAll;
+  renderVisitStats();
+}
+window.vsToggleExpandAll = vsToggleExpandAll;
 
 function vsToggleSort(){
   _vsSort = _vsSort === 'desc' ? 'asc' : 'desc';
@@ -4770,8 +5005,14 @@ function renderVisitStats(){
   const sum = document.getElementById('vs-summary');
   const list = document.getElementById('vs-list');
   const sortBtn = document.getElementById('vs-sort-btn');
+  const expandBtn = document.getElementById('vs-expand-btn');
   if(!list) return;
   if(sortBtn) sortBtn.textContent = _vsSort === 'desc' ? '↓ Più visite' : '↑ Meno visite';
+  if(expandBtn){
+    expandBtn.style.background = _vsExpandAll ? 'var(--accent)' : 'var(--surface2)';
+    expandBtn.style.color = _vsExpandAll ? '#fff' : 'var(--text-muted)';
+    expandBtn.style.borderColor = _vsExpandAll ? 'var(--accent)' : 'var(--border)';
+  }
   // Etichetta periodo
   if(_vsMode === 'all'){
     if(lbl) lbl.textContent = 'Tutto il periodo';
@@ -4817,6 +5058,10 @@ function renderVisitStats(){
     list.innerHTML = '<div style="text-align:center;padding:24px 14px;color:var(--text-muted);font-size:0.82rem">Nessuna visita nel periodo selezionato.</div>';
     return;
   }
+  if(_vsExpandAll){
+    list.innerHTML = visited.map(r => _vsClientDetailBlockHtml(r.cliente, {compact:true})).join('');
+    return;
+  }
   const maxN = Math.max(...visited.map(r=>r.n));
   list.innerHTML = visited.map(r => {
     const target = r.cliente.obiettivoVisite || 0;
@@ -4848,34 +5093,36 @@ function renderVisitStats(){
 }
 window.renderVisitStats = renderVisitStats;
 
-function renderStatsDetail(){
-  const body = document.getElementById('vs-detail-body');
-  if(!body || !_vsDetailClientId) return;
-  const c = (clienti||[]).find(x=>x.id===_vsDetailClientId);
-  if(!c){ body.innerHTML = ''; return; }
+function _vsClientDetailBlockHtml(c, opts){
+  const compact = !!(opts && opts.compact);
   const v = visits[c.id];
   const dates = _getVisitDates(v).slice().sort((a,b)=> new Date(b) - new Date(a));
   const today = new Date();
   const thisMonthCount = dates.filter(iso=>{ const d = new Date(iso); return d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth(); }).length;
   const target = c.obiettivoVisite || 0;
+  const pad = compact ? '14px' : '16px';
 
-  let html = '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px">' +
-    '<div style="font-weight:800;font-size:1.05rem;color:var(--text)">' + escH(c.nome||'') + '</div>' +
-    '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px">' + escH(c.zona||'') + ' &middot; ' + dates.length + ' visite totali</div>';
+  let inner = '<div style="display:flex;align-items:center;gap:8px">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:800;font-size:'+(compact?'0.98rem':'1.05rem')+';color:var(--text)">' + escH(c.nome||'') + '</div>' +
+        '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px">' + escH(c.zona||'') + ' &middot; ' + dates.length + ' visite totali</div>' +
+      '</div>' +
+      (compact ? '<button onclick="vsEditGoal(\''+c.id+'\')" title="Imposta obiettivo mensile" style="background:none;border:1px solid var(--border2);color:var(--text-muted);width:26px;height:26px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.72rem;flex-shrink:0">&#9998;</button>' : '') +
+    '</div>';
   if(target){
     const pct = Math.round((thisMonthCount / target) * 100);
-    html += '<div style="margin-top:14px">' +
+    inner += '<div style="margin-top:14px">' +
       '<div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-bottom:5px"><span>Obiettivo mese corrente</span><span>' + thisMonthCount + ' / ' + target + ' (' + pct + '%)</span></div>' +
       _vsProgressBarHtml(pct, 8) +
     '</div>';
   }
-  html += '<button onclick="vsEditGoal(\''+c.id+'\')" style="margin-top:14px;background:none;border:1px solid var(--border2);color:var(--text-muted);border-radius:8px;padding:7px 11px;font-size:0.72rem;cursor:pointer">' + (target ? 'Modifica obiettivo' : 'Imposta obiettivo mensile') + '</button>' +
-  '</div>';
+  if(!compact){
+    inner += '<button onclick="vsEditGoal(\''+c.id+'\')" style="margin-top:14px;background:none;border:1px solid var(--border2);color:var(--text-muted);border-radius:8px;padding:7px 11px;font-size:0.72rem;cursor:pointer">' + (target ? 'Modifica obiettivo' : 'Imposta obiettivo mensile') + '</button>';
+  }
 
   if(!dates.length){
-    html += '<div style="text-align:center;padding:26px 14px;color:var(--text-muted);font-size:0.82rem">Nessuna visita registrata.</div>';
-    body.innerHTML = html;
-    return;
+    inner += '<div style="text-align:center;padding:'+(compact?'16px 6px':'26px 14px')+';color:var(--text-muted);font-size:0.82rem">Nessuna visita registrata.</div>';
+    return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:'+pad+';margin-bottom:'+(compact?'12px':'0')+'">' + inner + '</div>';
   }
 
   const groups = [];
@@ -4891,9 +5138,9 @@ function renderStatsDetail(){
     curGroup.items.push(iso);
   });
 
-  html += groups.map(g=>{
-    return '<div style="margin-top:18px">' +
-      '<div style="font-weight:700;font-size:0.76rem;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.03em">' + escH(g.label) + ' &middot; ' + g.items.length + '</div>' +
+  const groupsHtml = groups.map(g=>{
+    return '<div style="margin-top:'+(compact?'14px':'18px')+'">' +
+      '<div style="font-weight:700;font-size:0.74rem;color:var(--accent);margin-bottom:7px;text-transform:uppercase;letter-spacing:0.03em">' + escH(g.label) + ' &middot; ' + g.items.length + '</div>' +
       '<div style="display:flex;flex-direction:column;gap:2px">' + g.items.map(iso=>{
         const d = new Date(iso);
         const dayLabel = d.toLocaleDateString('it-IT',{weekday:'short', day:'2-digit', month:'2-digit', year:'numeric'});
@@ -4907,7 +5154,16 @@ function renderStatsDetail(){
     '</div>';
   }).join('');
 
-  body.innerHTML = html;
+  inner += groupsHtml;
+  return '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:'+pad+';margin-bottom:'+(compact?'12px':'0')+'">' + inner + '</div>';
+}
+
+function renderStatsDetail(){
+  const body = document.getElementById('vs-detail-body');
+  if(!body || !_vsDetailClientId) return;
+  const c = (clienti||[]).find(x=>x.id===_vsDetailClientId);
+  if(!c){ body.innerHTML = ''; return; }
+  body.innerHTML = _vsClientDetailBlockHtml(c, {compact:false});
 }
 window.renderStatsDetail = renderStatsDetail;
 
