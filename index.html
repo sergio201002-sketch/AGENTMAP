@@ -278,6 +278,16 @@ header {
 }
 .client-row-logo:hover::after, .client-row-logo.tap-open::after { opacity: 1; transform: translate(-50%, -8px) scale(1); }
 .client-row-logo:hover::before, .client-row-logo.tap-open::before { opacity: 1; transform: translate(-50%, 1px); }
+.client-cena-date-label { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 700; color: var(--accent-hover); margin-left: -2px; flex-shrink: 0; }
+.client-info-section { margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.client-info-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.client-info-section-title { font-size: 0.72rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px; }
+.client-info-note { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 9px 12px; margin-bottom: 7px; }
+.client-info-note-date { font-family: 'JetBrains Mono', monospace; font-size: 0.64rem; color: var(--text-muted); margin-bottom: 3px; }
+.client-info-note-text { font-size: 0.8rem; color: var(--text); line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+.client-info-empty { color: var(--text-muted); font-size: 0.8rem; padding: 4px 0; }
+.client-info-checkrow { display: flex; align-items: center; gap: 9px; cursor: pointer; font-weight: 700; font-size: 0.84rem; color: var(--text); margin-bottom: 9px; }
+.client-info-checkrow input { width: 17px; height: 17px; flex-shrink: 0; }
 @media (min-width: 520px) {
   .client-row-meta { display: block; }
 }
@@ -723,6 +733,9 @@ header {
 .giri-visit-time { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 700; color: var(--accent-hover); flex-shrink: 0; padding-top: 1px; min-width: 38px; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
 .giri-visit-time.no-time { color: var(--text-light); }
 .giri-visit-time-input { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 700; color: var(--accent-hover); border: 1px solid var(--accent); border-radius: 5px; padding: 2px 3px; width: 68px; background: var(--surface); flex-shrink: 0; }
+.giri-visit-az-logo { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border2); background: var(--surface); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+.giri-visit-az-logo img { width: 100%; height: 100%; object-fit: contain; }
+.giri-visit-az-logo span { font-size: 0.5rem; font-weight: 700; color: #7d859c; }
 .giri-visit-body { flex: 1; min-width: 0; }
 .giri-visit-name { font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.3; word-break: break-word; hyphens: auto; }
 .giri-visit-zone { display: inline-block; font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: var(--surface3); border-radius: 4px; padding: 1px 5px; margin-top: 3px; }
@@ -746,6 +759,7 @@ header {
 .giri-client-list.visible { display: block; }
 .giri-client-option { padding: 7px 10px; border-radius: 6px; font-size: 0.82rem; cursor: pointer; transition: background 0.12s; display: flex; align-items: center; gap: 8px; }
 .giri-client-option:hover, .giri-client-option.selected { background: var(--accent-dim); }
+.giri-client-option-check { width: 13px; flex-shrink: 0; color: var(--accent); font-weight: 800; font-size: 0.78rem; }
 .giri-client-option-zone { font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: var(--surface3); border-radius: 4px; padding: 1px 5px; margin-left: auto; flex-shrink: 0; }
 .client-edit-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; margin-bottom: 7px; }
 .client-edit-row-top { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
@@ -1105,6 +1119,14 @@ header {
         <div class="client-edit-label" style="margin-bottom:6px">Cliente *</div>
         <input class="add-client-input" type="text" id="giri-add-search" placeholder="Cerca per nome..." oninput="filterGiroClientList()" autocomplete="off">
         <div class="giri-client-list" id="giri-client-list"></div>
+        <div id="giri-add-selected-summary" style="display:none;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;font-size:0.72rem;color:var(--text-muted)">
+          <span id="giri-add-selected-count"></span>
+          <button type="button" onclick="clearGiroClientSelection()" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:0.72rem;cursor:pointer;padding:0">Svuota selezione</button>
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div class="client-edit-label" style="margin-bottom:6px">Azienda della visita (opzionale)</div>
+        <select class="add-client-select" id="giri-add-azienda"></select>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <div style="flex:1">
@@ -1184,6 +1206,45 @@ header {
         <button class="note-add-btn" onclick="modalAddNote()">+</button>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="catalog-badge-overlay" onclick="closeOverlayBg(event,'catalog-badge-overlay',closeCatalogBadge)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Portare catalogo</div>
+        <div class="modal-subtitle" id="catalog-badge-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeCatalogBadge()">&times;</button>
+    </div>
+    <div class="modal-body" id="catalog-badge-body" style="padding:16px 20px"></div>
+  </div>
+</div>
+
+<div class="overlay" id="cersaie-add-overlay" onclick="closeOverlayBg(event,'cersaie-add-overlay',closeCersaieAdd)">
+  <div class="modal" style="max-width:400px;max-height:90vh">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="cersaie-add-title"></div>
+        <div class="modal-subtitle" id="cersaie-add-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeCersaieAdd()">&times;</button>
+    </div>
+    <div class="modal-body" id="cersaie-add-body" style="padding:16px 20px;max-height:76vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<div class="overlay" id="client-info-overlay" onclick="closeOverlayBg(event,'client-info-overlay',closeClientInfo)">
+  <div class="modal" style="max-width:560px;max-height:90vh">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="client-info-title"></div>
+        <div class="modal-subtitle">Scheda cliente</div>
+      </div>
+      <button class="modal-close" onclick="closeClientInfo()">&times;</button>
+    </div>
+    <div class="modal-body" id="client-info-body" style="padding:16px 20px;max-height:76vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -1779,6 +1840,18 @@ function cloudSave(){
 }
 
 // Snapshot dello stato corrente (heuristica per "ricchezza")
+function _badgesWeight(clientiArr){
+  if(!Array.isArray(clientiArr)) return 0;
+  let n = 0;
+  clientiArr.forEach(c=>{
+    if(!c || !c.badges) return;
+    if(c.badges.catalogo) n += Object.keys(c.badges.catalogo).length;
+    if(c.badges.listino && c.badges.listino.active) n += 1;
+    if(Array.isArray(c.badges.invitiCersaie)) n += c.badges.invitiCersaie.length;
+    if(Array.isArray(c.badges.ceneCersaie)) n += c.badges.ceneCersaie.length;
+  });
+  return n;
+}
 function _stateSize(s){
   if(!s) return 0;
   return (Array.isArray(s.clienti)?s.clienti.length:0) * 100
@@ -1791,7 +1864,8 @@ function _stateSize(s){
        + (Array.isArray(s.savedGiri)?s.savedGiri.length:0) * 5
        + (s.giroContinuo?Object.values(s.giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0):0) * 3
        + (Array.isArray(s.giriHistory)?s.giriHistory.length:0) * 2
-       + (Array.isArray(s.zoneGroups)?s.zoneGroups.length:0);
+       + (Array.isArray(s.zoneGroups)?s.zoneGroups.length:0)
+       + _badgesWeight(s.clienti) * 4;
 }
 
 async function cloudInit(user){
@@ -2323,6 +2397,344 @@ function _azFrameClass(c, azId){
 function _clientIncorsoBadgeHtml(c){
   return c.inCorso ? `<span class="client-incorso-badge" title="Cliente in corso">${AZ_HOURGLASS_SVG}</span>` : '';
 }
+function _bookIconSvg(letter){
+  return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><text x="12.5" y="16" font-size="9" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none">${letter}</text></svg>`;
+}
+const ENVELOPE_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>';
+const WINEGLASS_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8l-1 7a3 3 0 0 1-6 0z"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>';
+const INFO_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.8" r="1" fill="currentColor" stroke="none"/></svg>';
+const CATALOGHI_FISSI = ['Emilceramica', 'Ergon', 'Provenza'];
+function _isCersaieEntryCurrent(entry){
+  if(!entry || !entry.data) return false;
+  const eventDate = new Date(entry.data+'T00:00:00');
+  if(isNaN(eventDate.getTime())) return false;
+  const cutoff = new Date(eventDate);
+  cutoff.setDate(cutoff.getDate()+2); // visibile il giorno dell'evento + il giorno dopo
+  return new Date() < cutoff;
+}
+function _currentCersaieEntry(list){
+  if(!Array.isArray(list) || !list.length) return null;
+  const current = list.filter(_isCersaieEntryCurrent).sort((a,b)=> new Date(b.data)-new Date(a.data));
+  return current[0] || null;
+}
+function _clientDocBadgesHtml(c){
+  const b = c.badges || {};
+  let html = '';
+  if(b.catalogo && Object.keys(b.catalogo).length){
+    const summary = Object.entries(b.catalogo).map(([name,status])=> name+': '+(status==='portato'?'portato':'in corso')).join(', ');
+    html += `<div class="client-row-logo" data-nome="${escA(summary)}" onclick="event.stopPropagation();openCatalogBadge('${c.id}')">${_bookIconSvg('C')}</div>`;
+  }
+  if(b.listino && b.listino.active){
+    html += `<div class="client-row-logo" data-nome="Portare listino" onclick="event.stopPropagation();toggleAziendaTooltip(this)">${_bookIconSvg('L')}</div>`;
+  }
+  return html;
+}
+function _clientCersaieBadgesHtml(c){
+  const b = c.badges || {};
+  let html = '';
+  const invito = _currentCersaieEntry(b.invitiCersaie);
+  if(invito){
+    const dataFmt = fmtDate(invito.data);
+    const persone = (invito.persone||[]).join(', ') || 'nessun nome inserito';
+    html += `<div class="client-row-logo" data-nome="Invito Cersaie: ${escA(persone)}" onclick="event.stopPropagation();toggleAziendaTooltip(this)">${ENVELOPE_SVG}</div><span class="client-cena-date-label">${escH(dataFmt)}</span>`;
+  }
+  const cena = _currentCersaieEntry(b.ceneCersaie);
+  if(cena){
+    const dataFmt = fmtDate(cena.data);
+    const orario = (cena.oraInizio||cena.oraFine) ? (' &middot; '+(cena.oraInizio||'?')+'-'+(cena.oraFine||'?')) : '';
+    const persone = (cena.persone||[]).join(', ') || 'nessun nome inserito';
+    html += `<div class="client-row-logo" data-nome="Cena Cersaie: ${escA(persone)}${escA(orario)}" onclick="event.stopPropagation();toggleAziendaTooltip(this)">${WINEGLASS_SVG}</div><span class="client-cena-date-label">${escH(dataFmt)}</span>`;
+  }
+  return html;
+}
+
+// ── Portare catalogo (checklist fissa + stato in corso/portato) ─────────────
+let _catalogBadgeClientId = null;
+function openCatalogBadge(id){
+  _catalogBadgeClientId = id;
+  const c = clienti.find(x=>x.id===id);
+  const sub = document.getElementById('catalog-badge-sub');
+  if(sub) sub.textContent = c ? c.nome : '';
+  renderCatalogBadgeBody();
+  openOverlay('catalog-badge-overlay');
+}
+window.openCatalogBadge = openCatalogBadge;
+function closeCatalogBadge(){
+  closeOverlay('catalog-badge-overlay');
+  _catalogBadgeClientId = null;
+}
+window.closeCatalogBadge = closeCatalogBadge;
+function renderCatalogBadgeBody(){
+  const body = document.getElementById('catalog-badge-body');
+  if(!body || !_catalogBadgeClientId) return;
+  const c = clienti.find(x=>x.id===_catalogBadgeClientId);
+  if(!c) return;
+  if(!c.badges) c.badges = {};
+  if(!c.badges.catalogo) c.badges.catalogo = {};
+  const cat = c.badges.catalogo;
+  body.innerHTML = CATALOGHI_FISSI.map(name=>{
+    const status = cat[name];
+    const selected = !!status;
+    return `<div style="margin-bottom:14px">
+      <label class="client-info-checkrow" style="margin-bottom:${selected?'8px':'0'}">
+        <input type="checkbox" ${selected?'checked':''} onchange="toggleCatalogBadgeSelect('${escA(name)}', this.checked)">
+        ${escH(name)}
+      </label>
+      ${selected ? `
+        <div style="display:flex;gap:6px">
+          <button onclick="setCatalogBadgeStatus('${escA(name)}','in_corso')" style="flex:1;padding:7px;border-radius:7px;border:1px solid ${status==='in_corso'?'var(--accent)':'var(--border)'};background:${status==='in_corso'?'var(--accent)':'var(--surface2)'};color:${status==='in_corso'?'#fff':'var(--text-muted)'};font-size:0.74rem;font-weight:700;cursor:pointer">&#8987; In corso</button>
+          <button onclick="setCatalogBadgeStatus('${escA(name)}','portato')" style="flex:1;padding:7px;border-radius:7px;border:1px solid ${status==='portato'?'var(--green)':'var(--border)'};background:${status==='portato'?'var(--green)':'var(--surface2)'};color:${status==='portato'?'#fff':'var(--text-muted)'};font-size:0.74rem;font-weight:700;cursor:pointer">&#10003; Portato</button>
+        </div>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+function toggleCatalogBadgeSelect(name, checked){
+  const c = clienti.find(x=>x.id===_catalogBadgeClientId);
+  if(!c) return;
+  if(!c.badges) c.badges = {};
+  if(!c.badges.catalogo) c.badges.catalogo = {};
+  if(checked) c.badges.catalogo[name] = 'in_corso';
+  else delete c.badges.catalogo[name];
+  if(!Object.keys(c.badges.catalogo).length) delete c.badges.catalogo;
+  saveAll();
+  renderCatalogBadgeBody();
+  renderClients();
+}
+window.toggleCatalogBadgeSelect = toggleCatalogBadgeSelect;
+function setCatalogBadgeStatus(name, status){
+  const c = clienti.find(x=>x.id===_catalogBadgeClientId);
+  if(!c || !c.badges || !c.badges.catalogo || !c.badges.catalogo[name]) return;
+  c.badges.catalogo[name] = status;
+  saveAll();
+  renderCatalogBadgeBody();
+  renderClients();
+}
+window.setCatalogBadgeStatus = setCatalogBadgeStatus;
+
+// ── Portare listino (semplice interruttore) ─────────────────────────────────
+function toggleListinoDirect(id){
+  const c = clienti.find(x=>x.id===id);
+  if(!c) return;
+  if(!c.badges) c.badges = {};
+  if(c.badges.listino && c.badges.listino.active){
+    delete c.badges.listino;
+    showToast('Listino rimosso');
+  } else {
+    c.badges.listino = { active: true };
+    showToast('Listino aggiunto');
+  }
+  saveAll();
+  renderClients();
+}
+window.toggleListinoDirect = toggleListinoDirect;
+
+// ── Inviti / cene Cersaie: storico, ogni salvataggio aggiunge una voce nuova ─
+let _cersaieAddClientId = null;
+let _cersaieAddType = null; // 'invitiCersaie' | 'ceneCersaie'
+let _cersaieAddDraft = { persone: [], data: '', oraInizio: '', oraFine: '' };
+function openCersaieAdd(id, type){
+  _cersaieAddClientId = id;
+  _cersaieAddType = type;
+  _cersaieAddDraft = { persone: [], data: '', oraInizio: '', oraFine: '' };
+  const c = clienti.find(x=>x.id===id);
+  const sub = document.getElementById('cersaie-add-sub');
+  if(sub) sub.textContent = c ? c.nome : '';
+  const titleEl = document.getElementById('cersaie-add-title');
+  if(titleEl) titleEl.textContent = type==='invitiCersaie' ? 'Invito Cersaie' : 'Prenotato cena Cersaie';
+  renderCersaieAddBody();
+  openOverlay('cersaie-add-overlay');
+}
+window.openCersaieAdd = openCersaieAdd;
+function closeCersaieAdd(){
+  closeOverlay('cersaie-add-overlay');
+  _cersaieAddClientId = null;
+  _cersaieAddType = null;
+}
+window.closeCersaieAdd = closeCersaieAdd;
+function renderCersaieAddBody(){
+  const body = document.getElementById('cersaie-add-body');
+  if(!body || !_cersaieAddClientId) return;
+  const c = clienti.find(x=>x.id===_cersaieAddClientId);
+  if(!c) return;
+  if(!c.badges) c.badges = {};
+  const showOrario = _cersaieAddType === 'ceneCersaie';
+  const existing = (c.badges[_cersaieAddType] || []).slice().sort((a,b)=> new Date(b.data||0)-new Date(a.data||0));
+  body.innerHTML = `
+    <div class="client-info-section-title" style="margin-bottom:10px">Nuovo</div>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <input type="text" id="cersaie-add-persona-input" placeholder="Nome persona/ospite..." onkeydown="if(event.key==='Enter'){event.preventDefault();addCersaieAddPersona();}" style="flex:1;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Nunito',sans-serif;font-size:0.8rem;outline:none">
+      <button onclick="addCersaieAddPersona()" style="padding:0 12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:0.8rem;cursor:pointer">+</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      ${_cersaieAddDraft.persone.map((p,idx)=>`<span style="display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:5px 6px 5px 12px;font-size:0.76rem;color:var(--text)">${escH(p)}<button onclick="removeCersaieAddPersona(${idx})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.85rem;padding:0 4px;line-height:1">&times;</button></span>`).join('') || '<span style="color:var(--text-muted);font-size:0.76rem">Nessuna persona aggiunta.</span>'}
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:${showOrario?'8px':'14px'}">
+      <div style="flex:1">
+        <div class="client-edit-label" style="margin-bottom:6px">Data</div>
+        <input class="add-client-input" type="date" value="${escA(_cersaieAddDraft.data)}" onchange="_cersaieAddDraft.data=this.value">
+      </div>
+    </div>
+    ${showOrario ? `
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div style="flex:1">
+        <div class="client-edit-label" style="margin-bottom:6px">Dalle ore</div>
+        <input class="add-client-input" type="time" value="${escA(_cersaieAddDraft.oraInizio)}" onchange="_cersaieAddDraft.oraInizio=this.value">
+      </div>
+      <div style="flex:1">
+        <div class="client-edit-label" style="margin-bottom:6px">Alle ore</div>
+        <input class="add-client-input" type="time" value="${escA(_cersaieAddDraft.oraFine)}" onchange="_cersaieAddDraft.oraFine=this.value">
+      </div>
+    </div>` : ''}
+    <button onclick="saveCersaieAddEntry()" style="width:100%;background:var(--accent);border:none;color:#fff;border-radius:9px;padding:10px;font-size:0.82rem;font-weight:700;cursor:pointer;margin-bottom:18px">Salva</button>
+    <div class="client-info-section-title" style="margin-bottom:8px">Gi&agrave; salvati</div>
+    ${existing.length ? existing.map(entry=>{
+        const realIdx = (c.badges[_cersaieAddType]||[]).indexOf(entry);
+        const dataFmt = entry.data ? fmtDate(entry.data) : '(senza data)';
+        const orarioTxt = showOrario && (entry.oraInizio||entry.oraFine) ? (' &middot; '+(entry.oraInizio||'?')+'-'+(entry.oraFine||'?')) : '';
+        return `<div class="client-info-note" style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;min-width:0">
+            <div class="client-info-note-date">${escH(dataFmt)}${orarioTxt}</div>
+            <div class="client-info-note-text">${escH((entry.persone||[]).join(', ')||'&mdash;')}</div>
+          </div>
+          <button onclick="removeCersaieAddEntry(${realIdx})" title="Elimina" style="background:none;border:1px solid var(--red);color:var(--red);width:26px;height:26px;border-radius:50%;cursor:pointer;flex-shrink:0">&times;</button>
+        </div>`;
+      }).join('') : '<div class="client-info-empty">Nessuno salvato finora.</div>'}
+  `;
+}
+function addCersaieAddPersona(){
+  const inp = document.getElementById('cersaie-add-persona-input');
+  const val = ((inp && inp.value) || '').trim();
+  if(!val) return;
+  _cersaieAddDraft.persone.push(val);
+  renderCersaieAddBody();
+  const inp2 = document.getElementById('cersaie-add-persona-input');
+  if(inp2) inp2.focus();
+}
+window.addCersaieAddPersona = addCersaieAddPersona;
+function removeCersaieAddPersona(idx){
+  _cersaieAddDraft.persone.splice(idx,1);
+  renderCersaieAddBody();
+}
+window.removeCersaieAddPersona = removeCersaieAddPersona;
+function saveCersaieAddEntry(){
+  if(!_cersaieAddDraft.persone.length){ showToast('Aggiungi almeno una persona'); return; }
+  if(!_cersaieAddDraft.data){ showToast('Inserisci una data'); return; }
+  const c = clienti.find(x=>x.id===_cersaieAddClientId);
+  if(!c) return;
+  if(!c.badges) c.badges = {};
+  if(!Array.isArray(c.badges[_cersaieAddType])) c.badges[_cersaieAddType] = [];
+  c.badges[_cersaieAddType].push({
+    persone: _cersaieAddDraft.persone.slice(),
+    data: _cersaieAddDraft.data,
+    oraInizio: _cersaieAddDraft.oraInizio,
+    oraFine: _cersaieAddDraft.oraFine,
+  });
+  saveAll();
+  _cersaieAddDraft = { persone: [], data: '', oraInizio: '', oraFine: '' };
+  renderCersaieAddBody();
+  renderClients();
+  showToast('Salvato');
+}
+window.saveCersaieAddEntry = saveCersaieAddEntry;
+function removeCersaieAddEntry(idx){
+  const c = clienti.find(x=>x.id===_cersaieAddClientId);
+  if(!c || !c.badges || !Array.isArray(c.badges[_cersaieAddType])) return;
+  c.badges[_cersaieAddType].splice(idx,1);
+  if(!c.badges[_cersaieAddType].length) delete c.badges[_cersaieAddType];
+  saveAll();
+  renderCersaieAddBody();
+  renderClients();
+}
+window.removeCersaieAddEntry = removeCersaieAddEntry;
+
+// ── Scheda cliente (sola visualizzazione) ───────────────────────────────────
+let _clientInfoId = null;
+function openClientInfo(id){
+  _clientInfoId = id;
+  const c = clienti.find(x=>x.id===id);
+  const titleEl = document.getElementById('client-info-title');
+  if(titleEl) titleEl.textContent = c ? c.nome : '';
+  renderClientInfoSheet();
+  openOverlay('client-info-overlay');
+}
+window.openClientInfo = openClientInfo;
+function closeClientInfo(){
+  closeOverlay('client-info-overlay');
+  _clientInfoId = null;
+}
+window.closeClientInfo = closeClientInfo;
+function renderClientInfoSheet(){
+  const body = document.getElementById('client-info-body');
+  if(!body || !_clientInfoId) return;
+  const c = clienti.find(x=>x.id===_clientInfoId);
+  if(!c) return;
+  if(!c.badges) c.badges = {};
+  const v = getV(c.id);
+  body.innerHTML = _infoNotesSectionHtml(v) + _infoRemindersSectionHtml(v) + _infoCatalogSectionHtml(c) + _infoCersaieSectionHtml(c);
+}
+function _infoNotesSectionHtml(v){
+  const notes = (v.notes||[]).slice().reverse();
+  return `<div class="client-info-section">
+    <div class="client-info-section-title">Note (${notes.length})</div>
+    ${notes.length ? notes.map(n=>`<div class="client-info-note">
+        <div class="client-info-note-date">${escH(fmtDateTime(n.date))}</div>
+        <div class="client-info-note-text">${escH(n.text)}</div>
+      </div>`).join('') : '<div class="client-info-empty">Nessuna nota.</div>'}
+  </div>`;
+}
+function _infoRemindersSectionHtml(v){
+  const rems = (v.reminders||[]).slice().sort((a,b)=> new Date(b.date||0) - new Date(a.date||0));
+  return `<div class="client-info-section">
+    <div class="client-info-section-title">Promemoria (${rems.length})</div>
+    ${rems.length ? rems.map(r=>`<div class="client-info-note" style="${r.done?'opacity:0.6':''}">
+        <div class="client-info-note-date">${escH(fmtDateTime(r.date))}${r.done?' &middot; <span style="color:var(--green)">&#10003; Fatto</span>':''}</div>
+        <div class="client-info-note-text" style="${r.done?'text-decoration:line-through':''}">${escH(r.text)}</div>
+      </div>`).join('') : '<div class="client-info-empty">Nessun promemoria.</div>'}
+  </div>`;
+}
+function _infoCatalogSectionHtml(c){
+  const cat = c.badges.catalogo || {};
+  const listinoOn = !!(c.badges.listino && c.badges.listino.active);
+  const rows = CATALOGHI_FISSI.map(name=>{
+    const status = cat[name];
+    const label = status==='portato' ? '&#10003; Portato' : (status==='in_corso' ? '&#8987; In corso' : '&mdash; Non selezionato');
+    const color = status==='portato' ? 'var(--green)' : (status==='in_corso' ? 'var(--yellow)' : 'var(--text-muted)');
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-weight:700;font-size:0.84rem;color:var(--text)">${escH(name)}</span>
+      <span style="font-size:0.74rem;font-weight:700;color:${color}">${label}</span>
+    </div>`;
+  }).join('');
+  return `<div class="client-info-section">
+    <div class="client-info-section-title">Cataloghi &amp; Listino</div>
+    ${rows}
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0">
+      <span style="font-weight:700;font-size:0.84rem;color:var(--text)">Listino</span>
+      <span style="font-size:0.74rem;font-weight:700;color:${listinoOn?'var(--green)':'var(--text-muted)'}">${listinoOn?'&#10003; S&igrave;':'&mdash; No'}</span>
+    </div>
+  </div>`;
+}
+function _infoCersaieHistoryHtml(label, list, showOrario){
+  const sorted = (list||[]).slice().sort((a,b)=> new Date(b.data||0)-new Date(a.data||0));
+  return `<div style="margin-bottom:14px">
+    <div style="font-weight:700;font-size:0.8rem;color:var(--text);margin-bottom:8px">${escH(label)} (${sorted.length})</div>
+    ${sorted.length ? sorted.map(entry=>{
+        const dataFmt = entry.data ? fmtDate(entry.data) : '(senza data)';
+        const orarioTxt = showOrario && (entry.oraInizio||entry.oraFine) ? (' &middot; '+(entry.oraInizio||'?')+'-'+(entry.oraFine||'?')) : '';
+        return `<div class="client-info-note">
+          <div class="client-info-note-date">${escH(dataFmt)}${orarioTxt}</div>
+          <div class="client-info-note-text">${escH((entry.persone||[]).join(', ')||'&mdash;')}</div>
+        </div>`;
+      }).join('') : '<div class="client-info-empty">Nessuno.</div>'}
+  </div>`;
+}
+function _infoCersaieSectionHtml(c){
+  return `<div class="client-info-section">
+    <div class="client-info-section-title">Inviti Cersaie</div>
+    ${_infoCersaieHistoryHtml('Invito Cersaie', c.badges.invitiCersaie, false)}
+    ${_infoCersaieHistoryHtml('Prenotato cena Cersaie', c.badges.ceneCersaie, true)}
+  </div>`;
+}
 function renderCard(c){
   const v=getV(c.id);
   const days=daysSince(v.visitDate);
@@ -2349,9 +2761,15 @@ function renderCard(c){
           <button class="card-action-btn" onclick="openMove('${c.id}')" title="Sposta zona">&#8646;</button>
           <button class="card-action-btn card-action-clock" onclick="openGiriDayPicker('${c.id}')" title="Aggiungi a un giro della settimana"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><polyline points="8 5 8 8 10 9.5"/></svg></button>
           <button class="card-action-btn${inRoute?' selected':''}" onclick="toggleRoute('${c.id}')" id="rb-${c.id}" title="Aggiungi al giro corrente">${inRoute?'&#10003;':'+'}</button>
+          <button class="card-action-btn" onclick="openCatalogBadge('${c.id}')" title="Portare catalogo">${_bookIconSvg('C')}</button>
+          <button class="card-action-btn" onclick="toggleListinoDirect('${c.id}')" title="Portare listino">${_bookIconSvg('L')}</button>
+          <button class="card-action-btn" onclick="openCersaieAdd('${c.id}','invitiCersaie')" title="Invito Cersaie">${ENVELOPE_SVG}</button>
+          <button class="card-action-btn" onclick="openCersaieAdd('${c.id}','ceneCersaie')" title="Prenotato cena Cersaie">${WINEGLASS_SVG}</button>
+          <button class="card-action-btn" onclick="openClientInfo('${c.id}')" title="Scheda cliente (sola visualizzazione)">${INFO_SVG}</button>
         </div>
       </div>
       ${c.contatti?`<div class="contacts">${escH(c.contatti)}</div>`:'<div class="contacts"></div>'}
+      ${(_clientDocBadgesHtml(c) || _clientCersaieBadgesHtml(c)) ? `<div class="client-row-logos" style="margin-bottom:6px">${_clientDocBadgesHtml(c)}${_clientCersaieBadgesHtml(c)}</div>` : ''}
       ${logosHtml}
       ${remRow}
       <div class="visit-row">
@@ -2397,6 +2815,8 @@ function renderCardCompact(c){
       ${hasPending?`<span class="client-row-rem-dot" onclick="openReminders('${c.id}')" title="Promemoria in sospeso"></span>`:''}
       <span class="client-row-meta">${fmtDate(v.visitDate)}</span>${chip}
       ${logosHtml}
+      ${_clientDocBadgesHtml(c)}
+      ${_clientCersaieBadgesHtml(c)}
       <button class="client-row-toggle${extraOpen?' open':''}" onclick="toggleRowExtra('${c.id}', event)" title="Altre azioni">${extraOpen?'&times;':'+'}</button>
     </div>
     <div class="client-row-extra${extraOpen?' open':''}">
@@ -2413,6 +2833,11 @@ function renderCardCompact(c){
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
           ${cnt>0?`<span class="client-row-notes-badge">${cnt}</span>`:''}
         </button>
+        <button class="client-row-btn" onclick="openCatalogBadge('${c.id}')" title="Portare catalogo">${_bookIconSvg('C')}</button>
+        <button class="client-row-btn" onclick="toggleListinoDirect('${c.id}')" title="Portare listino">${_bookIconSvg('L')}</button>
+        <button class="client-row-btn" onclick="openCersaieAdd('${c.id}','invitiCersaie')" title="Invito Cersaie">${ENVELOPE_SVG}</button>
+        <button class="client-row-btn" onclick="openCersaieAdd('${c.id}','ceneCersaie')" title="Prenotato cena Cersaie">${WINEGLASS_SVG}</button>
+        <button class="client-row-btn" onclick="openClientInfo('${c.id}')" title="Scheda cliente (sola visualizzazione)">${INFO_SVG}</button>
       </div>
     </div>
   </div>`;
@@ -3212,8 +3637,11 @@ function _renderGiroVisitHtml(v, idx, list, mode, dayKey){
   const cv = cli ? getV(cli.id) : null;
   const days = cv ? daysSince(cv.visitDate) : null;
   const daysChip = days!==null ? `<span class="days-chip ${chipKey(days)}">${days}g</span>` : '';
+  const az = v.aziendaId ? aziende.find(a=>a.id===v.aziendaId) : null;
+  const azLogoHtml = az ? `<div class="giri-visit-az-logo" title="${escA(az.nome)}">${az.logo?`<img src="${az.logo}" alt="${escA(az.nome)}">`:`<span>${escH(az.nome.substring(0,2).toUpperCase())}</span>`}</div>` : '';
   return `<div class="giri-visit">
     <div class="giri-visit-time${time?'':' no-time'}" onclick="editGiroTimeStart(this,'${mode}','${dayKey}','${v.id}')" title="Modifica orario">${time||'--:--'}</div>
+    ${azLogoHtml}
     <div class="giri-visit-body">
       <div class="giri-visit-name">${escH(nome)}</div>
       ${zona ? `<span class="giri-visit-zone">${escH(zona)}</span>` : ''}${daysChip}
@@ -3558,7 +3986,7 @@ window.activateSavedGiro = activateSavedGiro;
 
 let _activeGiroDay = null;
 let _activeGiroMode = 'settimana';
-let _selectedGiroClientId = null;
+let _selectedGiroClientIds = new Set();
 let _pickerClientId = null;
 // Filtri persistenti nel modal aggiunta (sopravvivono dopo ogni salvataggio)
 let _giroAddFilterZona = '';    // '' = Tutte
@@ -3606,7 +4034,7 @@ window.setGiroAddFilter = setGiroAddFilter;
 function openGiroAdd(dayKey, preClientId, mode){
   _activeGiroDay = dayKey;
   _activeGiroMode = mode === 'continuo' ? 'continuo' : 'settimana';
-  _selectedGiroClientId = preClientId || null;
+  _selectedGiroClientIds = new Set(preClientId ? [preClientId] : []);
   let label = '';
   if(_activeGiroMode === 'continuo'){
     const m = /^s(\d)_(.+)$/.exec(dayKey);
@@ -3624,6 +4052,7 @@ function openGiroAdd(dayKey, preClientId, mode){
   // I filtri PERSISTONO tra aperture diverse (volontariamente)
   _renderGiroFilters();
   filterGiroClientList();
+  _renderGiroAddAziendaOptions();
   openOverlay('giri-add-overlay');
   if(!preCli) setTimeout(()=>document.getElementById('giri-add-search')?.focus(), 80);
   else setTimeout(()=>document.getElementById('giri-add-time')?.focus(), 80);
@@ -3676,7 +4105,7 @@ function moveGiroDown(mode, dayKey, idx){
 function closeGiroAdd(){
   closeOverlay('giri-add-overlay');
   _activeGiroDay = null;
-  _selectedGiroClientId = null;
+  _selectedGiroClientIds = new Set();
 }
 function filterGiroClientList(){
   const q = (document.getElementById('giri-add-search').value||'').toLowerCase().trim();
@@ -3692,56 +4121,105 @@ function filterGiroClientList(){
     list.classList.add('visible');
     list.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Nessun cliente trovato' +
       ((_giroAddFilterZona||_giroAddFilterAzienda)?' con questi filtri':'') + '</div>';
-    return;
+  } else {
+    list.classList.add('visible');
+    list.innerHTML = filtered.slice(0,60).map(c=>{
+      const checked = _selectedGiroClientIds.has(c.id);
+      return `<div class="giri-client-option${checked?' selected':''}" onclick="selectGiroClient('${c.id}')">
+        <span class="giri-client-option-check">${checked?'&#10003;':''}</span>
+        <span>${escH(c.nome)}</span>
+        <span class="giri-client-option-zone">${escH(c.zona)}</span>
+      </div>`;
+    }).join('');
   }
-  list.classList.add('visible');
-  list.innerHTML = filtered.slice(0,60).map(c=>
-    `<div class="giri-client-option${_selectedGiroClientId===c.id?' selected':''}" onclick="selectGiroClient('${c.id}')">
-      <span>${escH(c.nome)}</span>
-      <span class="giri-client-option-zone">${escH(c.zona)}</span>
-    </div>`).join('');
+  const summary = document.getElementById('giri-add-selected-summary');
+  const countEl = document.getElementById('giri-add-selected-count');
+  if(summary && countEl){
+    if(_selectedGiroClientIds.size){
+      summary.style.display = 'flex';
+      countEl.textContent = _selectedGiroClientIds.size + ' client' + (_selectedGiroClientIds.size===1?'e selezionato':'i selezionati');
+    } else {
+      summary.style.display = 'none';
+    }
+  }
 }
 function selectGiroClient(id){
-  _selectedGiroClientId = id;
-  const c = clienti.find(x=>x.id===id);
-  if(c) document.getElementById('giri-add-search').value = c.nome;
-  document.querySelectorAll('.giri-client-option').forEach(el=>el.classList.remove('selected'));
+  if(_selectedGiroClientIds.has(id)) _selectedGiroClientIds.delete(id);
+  else _selectedGiroClientIds.add(id);
   filterGiroClientList();
+  _renderGiroAddAziendaOptions();
+}
+function clearGiroClientSelection(){
+  _selectedGiroClientIds = new Set();
+  filterGiroClientList();
+  _renderGiroAddAziendaOptions();
+}
+window.clearGiroClientSelection = clearGiroClientSelection;
+function _renderGiroAddAziendaOptions(){
+  const sel = document.getElementById('giri-add-azienda');
+  if(!sel) return;
+  if(_selectedGiroClientIds.size === 0){
+    sel.innerHTML = '<option value="">Seleziona prima un cliente</option>';
+    sel.disabled = true;
+    return;
+  }
+  if(_selectedGiroClientIds.size > 1){
+    sel.innerHTML = '<option value="">Disponibile solo con un cliente alla volta</option>';
+    sel.disabled = true;
+    return;
+  }
+  const cli = clienti.find(c=>c.id===[..._selectedGiroClientIds][0]);
+  const clientAziende = cli ? (cli.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean) : [];
+  if(!clientAziende.length){
+    sel.innerHTML = '<option value="">Nessuna azienda collegata a questo cliente</option>';
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">Nessuna / generale</option>' + clientAziende.map(a=>`<option value="${escA(a.id)}">${escH(a.nome)}</option>`).join('');
 }
 function confirmAddGiro(){
   if(!_activeGiroDay) return;
-  if(!_selectedGiroClientId){
-    showToast('Seleziona un cliente dalla lista');
+  if(!_selectedGiroClientIds.size){
+    showToast('Seleziona almeno un cliente dalla lista');
     return;
   }
-  const cli = clienti.find(c=>c.id===_selectedGiroClientId);
-  if(!cli){ showToast('Cliente non trovato'); return; }
   const time = (document.getElementById('giri-add-time').value||'').trim();
   const note = (document.getElementById('giri-add-note').value||'').trim();
+  // L'azienda per-visita ha senso solo quando è selezionato un singolo cliente
+  const aziendaId = _selectedGiroClientIds.size===1 ? ((document.getElementById('giri-add-azienda').value||'').trim() || undefined) : undefined;
   const store = _giroStore(_activeGiroMode);
   const dayLabel = document.getElementById('giri-add-day-label').textContent || '';
   if(!store[_activeGiroDay]) store[_activeGiroDay] = [];
-  // Anti-duplicati nello stesso giorno
-  const dup = store[_activeGiroDay].find(v=>v.clientId===cli.id);
-  if(dup){
-    if(!confirm(cli.nome+' è già in '+dayLabel+'. Aggiungere comunque una seconda visita?')) return;
+  const addedNames = [];
+  for(const cid of _selectedGiroClientIds){
+    const cli = clienti.find(c=>c.id===cid);
+    if(!cli) continue;
+    const dup = store[_activeGiroDay].find(v=>v.clientId===cli.id);
+    if(dup){
+      if(!confirm(cli.nome+' è già in '+dayLabel+'. Aggiungere comunque una seconda visita?')) continue;
+    }
+    store[_activeGiroDay].push({
+      id: 'g'+Date.now()+Math.random().toString(36).slice(2,6),
+      clientId: cli.id,
+      clientName: cli.nome,
+      time, note,
+      aziendaId,
+    });
+    addedNames.push(cli.nome);
   }
-  store[_activeGiroDay].push({
-    id: 'g'+Date.now()+Math.random().toString(36).slice(2,6),
-    clientId: cli.id,
-    clientName: cli.nome,
-    time, note,
-  });
+  if(!addedNames.length) return;
   saveAll();
   // NON chiudere il modal: l'utente vuole continuare ad aggiungere clienti
   // con gli stessi filtri attivi. Pulisci solo la selezione e i campi.
-  _selectedGiroClientId = null;
+  _selectedGiroClientIds = new Set();
   const srch = document.getElementById('giri-add-search'); if(srch) srch.value = '';
   const tm = document.getElementById('giri-add-time'); if(tm) tm.value = '';
   const nt = document.getElementById('giri-add-note'); if(nt) nt.value = '';
   filterGiroClientList();
+  _renderGiroAddAziendaOptions();
   renderGiri();
-  showToast(cli.nome+' aggiunto a '+dayLabel);
+  showToast(addedNames.length===1 ? (addedNames[0]+' aggiunto a '+dayLabel) : (addedNames.length+' clienti aggiunti a '+dayLabel));
   // Riporta il focus al campo ricerca per la prossima aggiunta
   setTimeout(()=>document.getElementById('giri-add-search')?.focus(), 50);
 }
