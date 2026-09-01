@@ -1675,6 +1675,7 @@ header {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const DEFAULT_ZONES = ['CHIETI','PESCARA','SULMONA','TERAMO','AQUILA','MOLISE','VASTO'];
+const OBIETTIVI_PRESET_DEFAULT = ['Presentare catalogo', 'Raccogliere ordine', 'Recupero pagamento', 'Visita di cortesia', 'Risolvere un problema', 'Presentare nuovo prodotto'];
 // Lista vuota: i clienti reali arrivano da Firebase (cloud) o da localStorage.
 // Lasciandola vuota si evita che, caricando la nuova versione del file,
 // appaiano clienti di esempio che si sovrappongono ai tuoi dati reali.
@@ -1699,6 +1700,7 @@ let giriCurrentWeekKey = null;
 let giroContinuo = {};
 let giriViewMode = 'settimana'; // 'settimana' | 'continuo'
 let savedGiri = []; // [{id, name, data:{...snapshot di giroContinuo...}, savedAt}]
+let obiettiviPreset = OBIETTIVI_PRESET_DEFAULT.slice(); // obiettivi predefiniti per le visite, personalizzabili da Impostazioni
 const GIRO_CONTINUO_SETTIMANE = [1,2,3,4];
 const GIRO_CONTINUO_GIORNI = [
   {key:'lun', name:'Lunedì'}, {key:'mar', name:'Martedì'}, {key:'mer', name:'Mercoledì'},
@@ -1798,6 +1800,7 @@ function loadAll(){
     zoneGroups=Array.isArray(s.zoneGroups)?s.zoneGroups:[];
     remFolders=Array.isArray(s.remFolders)?s.remFolders:[];
     savedGiri=Array.isArray(s.savedGiri)?s.savedGiri:[];
+    obiettiviPreset=Array.isArray(s.obiettiviPreset)?s.obiettiviPreset:OBIETTIVI_PRESET_DEFAULT.slice();
     if(kmlSync) KML_CLIENTS = kmlSync;
     if(s.giri && typeof s.giri==='object'){
       giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[], ...s.giri};
@@ -1833,9 +1836,10 @@ function reset(){
   giroContinuo = _giroContinuoDefaults();
   remFolders=[];
   savedGiri=[];
+  obiettiviPreset=OBIETTIVI_PRESET_DEFAULT.slice();
 }
 function buildState(){
-  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders,savedGiri};
+  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders,savedGiri,obiettiviPreset};
 }
 function saveAll(){
   try {
@@ -1992,6 +1996,7 @@ function _stateSize(s){
        + (s.giroContinuo?Object.values(s.giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0):0) * 3
        + (Array.isArray(s.giriHistory)?s.giriHistory.length:0) * 2
        + (Array.isArray(s.zoneGroups)?s.zoneGroups.length:0)
+       + (Array.isArray(s.obiettiviPreset)?s.obiettiviPreset.length:0)
        + _badgesWeight(s.clienti) * 4;
 }
 
@@ -2102,6 +2107,7 @@ function applyCloudState(s){
     if(Array.isArray(s.zoneGroups)) zoneGroups = s.zoneGroups;
     if(Array.isArray(s.remFolders)) remFolders = s.remFolders;
     if(Array.isArray(s.savedGiri)) savedGiri = s.savedGiri;
+    if(Array.isArray(s.obiettiviPreset)) obiettiviPreset = s.obiettiviPreset;
     if(s.giroContinuo && typeof s.giroContinuo==='object'){
       const localCount = Object.values(giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
       const cloudCount = Object.values(s.giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
@@ -2531,7 +2537,6 @@ const ENVELOPE_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none
 const WINEGLASS_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8l-1 7a3 3 0 0 1-6 0z"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>';
 const INFO_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.8" r="1" fill="currentColor" stroke="none"/></svg>';
 const CATALOGHI_FISSI = ['Emilceramica', 'Ergon', 'Provenza'];
-const OBIETTIVI_PRESET = ['Presentare catalogo', 'Raccogliere ordine', 'Recupero pagamento', 'Visita di cortesia', 'Risolvere un problema', 'Presentare nuovo prodotto'];
 function _isCersaieEntryCurrent(entry){
   if(!entry || !entry.data) return false;
   const eventDate = new Date(entry.data+'T00:00:00');
@@ -3231,7 +3236,7 @@ function setSettingsTab(t){
 }
 function renderSettingsTabs(){
   document.getElementById('settings-tabs').innerHTML =
-    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['targhet','Targhet mappa'],['salvataggi','Salvataggi'],['esporta','Esporta clienti'],['sospendi','Sospendi clienti'],['incorso','Clienti in corso'],['escludiexport','Escludi da esportazione']].map(([k,l])=>
+    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['obiettivi','Obiettivi visite'],['targhet','Targhet mappa'],['salvataggi','Salvataggi'],['esporta','Esporta clienti'],['sospendi','Sospendi clienti'],['incorso','Clienti in corso'],['escludiexport','Escludi da esportazione']].map(([k,l])=>
       `<button class="settings-tab${settingsTab===k?' active':''}" onclick="setSettingsTab('${k}')">${l}</button>`
     ).join('');
 }
@@ -3241,6 +3246,7 @@ function renderSettings(){
   else if(settingsTab === 'merge') body.innerHTML = renderMergeZonesTab();
   else if(settingsTab === 'clienti') body.innerHTML = renderClientiTab();
   else if(settingsTab === 'aziende') body.innerHTML = renderAziendeTab();
+  else if(settingsTab === 'obiettivi') body.innerHTML = renderObiettiviTab();
   else if(settingsTab === 'targhet') body.innerHTML = renderTarghetTab();
   else if(settingsTab === 'salvataggi') body.innerHTML = renderSalvataggiTab();
   else if(settingsTab === 'esporta') body.innerHTML = renderEsportaTab();
@@ -4559,9 +4565,9 @@ function toggleGiroAddAzienda(id){
 }
 window.toggleGiroAddAzienda = toggleGiroAddAzienda;
 function _populateObiettivoSelect(selectEl, currentValue){
-  const isCustom = currentValue && !OBIETTIVI_PRESET.includes(currentValue);
+  const isCustom = currentValue && !obiettiviPreset.includes(currentValue);
   selectEl.innerHTML = '<option value="">Nessuno</option>' +
-    OBIETTIVI_PRESET.map(o=>`<option value="${escA(o)}"${currentValue===o?' selected':''}>${escH(o)}</option>`).join('') +
+    obiettiviPreset.map(o=>`<option value="${escA(o)}"${currentValue===o?' selected':''}>${escH(o)}</option>`).join('') +
     `<option value="__custom__"${isCustom?' selected':''}>Altro (scrivi)...</option>`;
 }
 function onGiriAddObiettivoChange(){
@@ -4724,7 +4730,7 @@ function editGiroObiettivoStart(el, mode, dayKey, id){
   const wrap = document.createElement('div');
   wrap.className = 'giri-visit-obiettivo-edit';
   wrap.onclick = function(e){ e.stopPropagation(); };
-  const isCustom = !!(v.obiettivo && !OBIETTIVI_PRESET.includes(v.obiettivo));
+  const isCustom = !!(v.obiettivo && !obiettiviPreset.includes(v.obiettivo));
   const select = document.createElement('select');
   select.className = 'giri-visit-obiettivo-select';
   _populateObiettivoSelect(select, v.obiettivo);
@@ -5100,6 +5106,49 @@ function addZone(){
   if(zoneOrder.includes(name)){showToast('Zona gia esistente');return;}
   zoneOrder.push(name); saveAll(); inp.value=''; renderSettings(); showToast('"'+name+'" aggiunta');
 }
+function renderObiettiviTab(){
+  const rows = obiettiviPreset.map((o,idx)=>`<div class="zone-manage-item">
+      <input class="zone-manage-name" type="text" value="${escA(o)}" onchange="renameObiettivoPreset(${idx},this.value)" onblur="renameObiettivoPreset(${idx},this.value)">
+      <button class="zone-manage-del" onclick="deleteObiettivoPreset(${idx})" title="Elimina">&#128465;</button>
+    </div>`).join('');
+  return `<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.05em">OBIETTIVI PREDEFINITI PER LE VISITE</div>
+    <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.55;margin-bottom:12px">
+      Questi obiettivi appaiono come scelte rapide quando assegni un obiettivo a una visita su Giri. Puoi comunque scriverne uno diverso al momento con "Altro (scrivi)...".
+    </div>
+    <div class="zone-manage-list" style="margin-bottom:12px">${rows || '<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:10px 0">Nessun obiettivo predefinito.</div>'}</div>
+    <div class="zone-add-row">
+      <input class="zone-add-input" type="text" id="obiettivo-add-input" placeholder="Nuovo obiettivo..." onkeydown="if(event.key==='Enter') addObiettivoPreset()">
+      <button class="zone-add-btn" onclick="addObiettivoPreset()">+ Aggiungi</button>
+    </div>`;
+}
+function addObiettivoPreset(){
+  const inp = document.getElementById('obiettivo-add-input');
+  const name = inp.value.trim(); if(!name) return;
+  if(obiettiviPreset.includes(name)){ showToast('Obiettivo già esistente'); return; }
+  obiettiviPreset.push(name);
+  saveAll(); inp.value=''; renderSettings(); showToast('"'+name+'" aggiunto');
+}
+window.addObiettivoPreset = addObiettivoPreset;
+function renameObiettivoPreset(idx, name){
+  name = (name||'').trim();
+  if(!name || name===obiettiviPreset[idx]){ renderSettings(); return; }
+  if(obiettiviPreset.includes(name)){ showToast('Obiettivo già esistente'); renderSettings(); return; }
+  const old = obiettiviPreset[idx];
+  obiettiviPreset[idx] = name;
+  [giri, giroContinuo].forEach(store=>{
+    Object.values(store).forEach(arr=>{
+      if(Array.isArray(arr)) arr.forEach(v=>{ if(v.obiettivo===old) v.obiettivo=name; });
+    });
+  });
+  saveAll(); renderSettings(); showToast('Obiettivo rinominato');
+}
+window.renameObiettivoPreset = renameObiettivoPreset;
+function deleteObiettivoPreset(idx){
+  const name = obiettiviPreset[idx];
+  obiettiviPreset.splice(idx,1);
+  saveAll(); renderSettings(); showToast('"'+name+'" eliminato');
+}
+window.deleteObiettivoPreset = deleteObiettivoPreset;
 function moveClientTo(id,zona){
   const c=clienti.find(x=>x.id===id); if(!c) return;
   c.zona=zona; saveAll(); showToast(c.nome+' \u2192 '+zona);
