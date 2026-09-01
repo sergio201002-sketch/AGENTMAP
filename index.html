@@ -734,9 +734,14 @@ header {
 .giri-visit-time { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 700; color: var(--accent-hover); flex-shrink: 0; padding-top: 1px; min-width: 38px; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
 .giri-visit-time.no-time { color: var(--text-light); }
 .giri-visit-time-input { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 700; color: var(--accent-hover); border: 1px solid var(--accent); border-radius: 5px; padding: 2px 3px; width: 68px; background: var(--surface); flex-shrink: 0; }
-.giri-visit-az-logo { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border2); background: var(--surface); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+.giri-visit-az-logo { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border2); background: var(--surface); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; cursor: pointer; }
 .giri-visit-az-logo img { width: 100%; height: 100%; object-fit: contain; }
 .giri-visit-az-logo span { font-size: 0.5rem; font-weight: 700; color: #7d859c; }
+.giri-visit-az-logo.empty { color: var(--text-light); font-size: 0.75rem; font-weight: 700; border-style: dashed; }
+.giri-visit-az-select { font-family: 'Nunito', sans-serif; font-size: 0.62rem; padding: 3px 2px; border-radius: 5px; border: 1px solid var(--accent); background: var(--surface); color: var(--text); width: 68px; flex-shrink: 0; }
+.giri-visit-obiettivo { font-size: 0.68rem; color: var(--text-muted); margin-top: 4px; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; display: inline-block; }
+.giri-visit-obiettivo-edit { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
+.giri-visit-obiettivo-select, .giri-visit-obiettivo-input { font-family: 'Nunito', sans-serif; font-size: 0.7rem; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--accent); background: var(--surface); color: var(--text); box-sizing: border-box; width: 100%; }
 .giri-visit-body { flex: 1; min-width: 0; }
 .giri-visit-name { font-size: 0.88rem; font-weight: 600; color: var(--text); line-height: 1.3; word-break: break-word; hyphens: auto; }
 .giri-visit-zone { display: inline-block; font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: var(--surface3); border-radius: 4px; padding: 1px 5px; margin-top: 3px; }
@@ -1169,6 +1174,11 @@ header {
         <div class="client-edit-label" style="margin-bottom:6px">Azienda della visita (opzionale)</div>
         <select class="add-client-select" id="giri-add-azienda"></select>
       </div>
+      <div style="margin-bottom:14px">
+        <div class="client-edit-label" style="margin-bottom:6px">Obiettivo della visita (opzionale)</div>
+        <select class="add-client-select" id="giri-add-obiettivo" onchange="onGiriAddObiettivoChange()"></select>
+        <input type="text" id="giri-add-obiettivo-custom" placeholder="Scrivi l'obiettivo..." style="display:none;margin-top:8px;width:100%;box-sizing:border-box;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Nunito',sans-serif;font-size:0.85rem;outline:none">
+      </div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <div style="flex:1">
           <div class="client-edit-label" style="margin-bottom:6px">Orario</div>
@@ -1531,6 +1541,11 @@ header {
 <!-- VISIT STATS -->
 <div class="view" id="view-stats">
   <div class="main giri-main">
+    <div class="giri-mode-tabs" id="stats-tabs" style="margin-bottom:16px">
+      <button class="giri-mode-tab active" id="stats-tab-visite-btn" onclick="setStatsTab('visite')">Visite</button>
+      <button class="giri-mode-tab" id="stats-tab-catalogo-btn" onclick="setStatsTab('catalogo')">Cataloghi</button>
+      <button class="giri-mode-tab" id="stats-tab-cersaie-btn" onclick="setStatsTab('cersaie')">Cersaie</button>
+    </div>
     <div id="stats-list-page">
       <div style="font-size:1.25rem;font-weight:800;color:var(--text)">Statistiche visite</div>
       <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px" id="vs-subtitle">Quante volte sei passato per ogni cliente</div>
@@ -1553,6 +1568,54 @@ header {
     <div id="stats-detail-page" style="display:none">
       <button onclick="closeStatsDetail()" style="background:none;border:none;color:var(--accent);font-weight:700;font-size:0.85rem;cursor:pointer;padding:8px 0;margin-bottom:6px;display:flex;align-items:center;gap:6px">&larr; Torna alle statistiche</button>
       <div id="vs-detail-body"></div>
+    </div>
+    <div id="stats-catalogo-page" style="display:none">
+      <div style="font-size:1.25rem;font-weight:800;color:var(--text)">Cataloghi &amp; Listino</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px">Chi ha ricevuto cosa, e chi manca ancora</div>
+      <input type="text" id="stats-cat-search" placeholder="Cerca cliente..." oninput="onStatsCatalogFilterChange()" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Nunito',sans-serif;font-size:0.82rem;margin:14px 0 10px;outline:none">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <select id="stats-cat-type" onchange="onStatsCatalogFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
+          <option value="">Tutti i cataloghi</option>
+        </select>
+        <select id="stats-cat-status" onchange="onStatsCatalogFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
+          <option value="">Qualsiasi stato</option>
+          <option value="mancante">Manca</option>
+          <option value="in_corso">In corso</option>
+          <option value="portato">Portato</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <select id="stats-cat-listino" onchange="onStatsCatalogFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
+          <option value="">Listino: tutti</option>
+          <option value="si">Solo con listino</option>
+          <option value="no">Solo senza listino</option>
+        </select>
+        <select id="stats-cat-sort" onchange="onStatsCatalogFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
+          <option value="nome">Ordina: nome A-Z</option>
+          <option value="zona">Ordina: zona</option>
+        </select>
+      </div>
+      <div id="stats-cat-summary" style="font-size:0.72rem;color:var(--text-muted);margin-bottom:12px"></div>
+      <div id="stats-cat-list"></div>
+    </div>
+    <div id="stats-cersaie-page" style="display:none">
+      <div style="font-size:1.25rem;font-weight:800;color:var(--text)">Cersaie</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px">Inviti e cene, per tutti i clienti</div>
+      <input type="text" id="stats-cer-search" placeholder="Cerca cliente..." oninput="onStatsCersaieFilterChange()" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Nunito',sans-serif;font-size:0.82rem;margin:14px 0 10px;outline:none">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <select id="stats-cer-filter" onchange="onStatsCersaieFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
+          <option value="">Tutti</option>
+          <option value="invito">Solo con invito</option>
+          <option value="cena">Solo con cena</option>
+          <option value="nessuno">Senza nulla</option>
+        </select>
+        <select id="stats-cer-sort" onchange="onStatsCersaieFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
+          <option value="data">Ordina: data pi&ugrave; recente</option>
+          <option value="nome">Ordina: nome A-Z</option>
+        </select>
+      </div>
+      <div id="stats-cer-summary" style="font-size:0.72rem;color:var(--text-muted);margin-bottom:12px"></div>
+      <div id="stats-cer-list"></div>
     </div>
   </div>
 </div>
@@ -2273,7 +2336,7 @@ function switchView(v){
   if(v==='calendar') renderCalendar();
   else if(v==='mappa') { if(typeof renderMap==='function') renderMap(); }
   else if(v==='giri') renderGiri();
-  else if(v==='stats') { closeStatsDetail(); renderVisitStats(); }
+  else if(v==='stats') { setStatsTab('visite'); }
   else if(v==='promemoria') renderRemindersOverview();
   else renderClients();
 }
@@ -2445,6 +2508,7 @@ const ENVELOPE_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none
 const WINEGLASS_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8l-1 7a3 3 0 0 1-6 0z"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>';
 const INFO_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.8" r="1" fill="currentColor" stroke="none"/></svg>';
 const CATALOGHI_FISSI = ['Emilceramica', 'Ergon', 'Provenza'];
+const OBIETTIVI_PRESET = ['Presentare catalogo', 'Raccogliere ordine', 'Recupero pagamento', 'Visita di cortesia', 'Risolvere un problema', 'Presentare nuovo prodotto'];
 function _isCersaieEntryCurrent(entry){
   if(!entry || !entry.data) return false;
   const eventDate = new Date(entry.data+'T00:00:00');
@@ -3365,39 +3429,107 @@ function deselectAllInCorso(){
   showToast('Nessun cliente più segnato come in corso');
 }
 window.deselectAllInCorso = deselectAllInCorso;
-function _loadScriptOnce(src){
-  return new Promise((resolve, reject)=>{
-    if(document.querySelector('script[data-src="'+src+'"]')){ resolve(); return; }
-    const s = document.createElement('script');
-    s.src = src; s.dataset.src = src;
-    s.onload = ()=>resolve();
-    s.onerror = ()=>reject(new Error('load failed: '+src));
-    document.head.appendChild(s);
-  });
+// ── Excel "bello" — tabella HTML con stili reali, salvata come .xls ─────────
+// (SheetJS community non supporta la scrittura di stili/colori: qui costruiamo
+// un file HTML con le estensioni di Excel per fogli con colori, intestazioni
+// bloccate e bordi veri, che Excel/Google Sheets/LibreOffice aprono come tabella normale)
+function _excelHtmlDoc(sheetName, freezeRows, bodyHtml){
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="UTF-8">
+<!--[if gte mso 9]><xml>
+<x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+<x:Name>${escH(sheetName)}</x:Name>
+<x:WorksheetOptions>
+<x:FreezePanes/><x:FrozenNoSplit/>
+<x:SplitHorizontal>${freezeRows}</x:SplitHorizontal><x:TopRowBottomPane>${freezeRows}</x:TopRowBottomPane>
+<x:ActivePane>2</x:ActivePane>
+</x:WorksheetOptions>
+</x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook>
+</xml><![endif]-->
+<style>
+  body { font-family: Calibri, Arial, sans-serif; }
+  table { border-collapse: collapse; }
+  .exl-title td { background:#ca0013; color:#ffffff; font-size:16px; font-weight:bold; padding:10px 10px; border:none; mso-number-format:"\\@"; }
+  .exl-sub td { background:#171e19; color:#ffffff; font-size:10px; padding:5px 10px; border:none; mso-number-format:"\\@"; }
+  .exl-head td { background:#f4f1e9; color:#171e19; font-weight:bold; font-size:11px; padding:7px 9px; border:1px solid #b7c6c2; mso-number-format:"\\@"; }
+  .exl-zone td { background:#171e19; color:#ffffff; font-weight:bold; font-size:11px; padding:5px 9px; border:1px solid #171e19; mso-number-format:"\\@"; }
+  .exl-row td { font-size:11px; padding:5px 9px; border:1px solid #ddd; vertical-align:top; mso-number-format:"\\@"; }
+  .exl-row-alt td { background:#f7f5ee; }
+  .exl-name { font-weight:bold; color:#ca0013; }
+  .exl-muted { color:#8a8f8c; }
+  .exl-ok { color:#1f9d5f; font-weight:bold; }
+  .exl-pending { color:#c99a1b; font-weight:bold; }
+</style>
+</head>
+<body>
+${bodyHtml}
+</body>
+</html>`;
 }
+function _downloadExcelHtml(filename, sheetName, freezeRows, bodyHtml){
+  const html = _excelHtmlDoc(sheetName, freezeRows, bodyHtml);
+  const blob = new Blob(['﻿', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function _exlColsHtml(widths){ return '<colgroup>' + widths.map(w=>`<col style="mso-width-source:userset;width:${w}px">`).join('') + '</colgroup>'; }
+function _exlEsc(v){ return escH(String(v==null?'':v)); }
+
 async function exportClientiExcel(){
   try {
-    if(typeof XLSX === 'undefined'){
-      showToast('Preparazione file Excel...');
-      await _loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-    }
     const filteredClienti = _exportFilteredClienti();
-    const rows = [['Zona','Cliente','Titolari/Referenti','Aziende collegate']];
+    const filterAzList = exportFilterAziende.map(id=>aziende.find(a=>a.id===id)).filter(Boolean);
+    const colspan = 8;
+    const oggi = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+
+    let rowsHtml = `<tr class="exl-head">
+      <td>Zona</td><td>Cliente</td><td>Titolari/Referenti</td><td>Aziende collegate</td>
+      <td>Cataloghi</td><td>Listino</td><td>Ultimo invito Cersaie</td><td>Ultima cena Cersaie</td>
+    </tr>`;
+    let n = 0;
     zoneOrder.forEach(zona=>{
-      filteredClienti.filter(c=>c.zona===zona).sort((a,b)=>a.nome.localeCompare(b.nome)).forEach(c=>{
+      const list = filteredClienti.filter(c=>c.zona===zona).sort((a,b)=>a.nome.localeCompare(b.nome));
+      if(!list.length) return;
+      rowsHtml += `<tr class="exl-zone"><td colspan="${colspan}">${_exlEsc(zona)} &middot; ${list.length} client${list.length===1?'e':'i'}</td></tr>`;
+      list.forEach(c=>{
         const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean).map(a=>a.nome).join(', ');
-        rows.push([zona, c.nome, c.contatti||'', clientAziende]);
+        const cat = (c.badges && c.badges.catalogo) || {};
+        const catTxt = CATALOGHI_FISSI.filter(x=>cat[x]).map(x=>x+(cat[x]==='portato'?' (portato)':' (in corso)')).join(', ');
+        const listinoOn = !!(c.badges && c.badges.listino && c.badges.listino.active);
+        const invitiSorted = ((c.badges&&c.badges.invitiCersaie)||[]).slice().sort((a,b)=>new Date(b.data||0)-new Date(a.data||0));
+        const ceneSorted = ((c.badges&&c.badges.ceneCersaie)||[]).slice().sort((a,b)=>new Date(b.data||0)-new Date(a.data||0));
+        const ultimoInvito = invitiSorted[0] ? fmtDate(invitiSorted[0].data) : '';
+        const ultimaCena = ceneSorted[0] ? fmtDate(ceneSorted[0].data) : '';
+        const alt = (n++ % 2) ? ' exl-row-alt' : '';
+        rowsHtml += `<tr class="exl-row${alt}">
+          <td>${_exlEsc(zona)}</td>
+          <td class="exl-name">${_exlEsc(c.nome)}</td>
+          <td>${_exlEsc(c.contatti||'')}</td>
+          <td>${_exlEsc(clientAziende)}</td>
+          <td>${catTxt?_exlEsc(catTxt):'<span class="exl-muted">&mdash;</span>'}</td>
+          <td>${listinoOn?'<span class="exl-ok">S&igrave;</span>':'<span class="exl-muted">No</span>'}</td>
+          <td>${ultimoInvito?_exlEsc(ultimoInvito):'<span class="exl-muted">&mdash;</span>'}</td>
+          <td>${ultimaCena?_exlEsc(ultimaCena):'<span class="exl-muted">&mdash;</span>'}</td>
+        </tr>`;
       });
     });
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = [{wch:14},{wch:28},{wch:22},{wch:34}];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Clienti');
-    const filterAzList = exportFilterAziende.map(id=>aziende.find(a=>a.id===id)).filter(Boolean);
-    let fileName = 'clienti.xlsx';
-    if(filterAzList.length===1) fileName = `clienti_${filterAzList[0].nome.replace(/[^a-z0-9]+/gi,'_')}.xlsx`;
-    else if(filterAzList.length>1) fileName = 'clienti_filtrati.xlsx';
-    XLSX.writeFile(wb, fileName);
+
+    const filterLabel = filterAzList.length ? (' &middot; Filtro: ' + filterAzList.map(a=>_exlEsc(a.nome)).join(', ')) : '';
+    const bodyHtml = `<table>
+      ${_exlColsHtml([90,190,150,220,220,70,140,140])}
+      <tr class="exl-title"><td colspan="${colspan}">AgentMap &mdash; Elenco Clienti</td></tr>
+      <tr class="exl-sub"><td colspan="${colspan}">Generato il ${oggi} &middot; ${filteredClienti.length} client${filteredClienti.length===1?'e':'i'}${filterLabel}</td></tr>
+      ${rowsHtml}
+    </table>`;
+
+    let fileName = 'clienti.xls';
+    if(filterAzList.length===1) fileName = `clienti_${filterAzList[0].nome.replace(/[^a-z0-9]+/gi,'_')}.xls`;
+    else if(filterAzList.length>1) fileName = 'clienti_filtrati.xls';
+    _downloadExcelHtml(fileName, 'Clienti', 3, bodyHtml);
     showToast('File Excel scaricato');
   } catch(e){
     console.error('Export Excel fallito', e);
@@ -3694,7 +3826,8 @@ function _renderGiroVisitHtml(v, idx, list, mode, dayKey){
   const days = cv ? daysSince(cv.visitDate) : null;
   const daysChip = days!==null ? `<span class="days-chip ${chipKey(days)}">${days}g</span>` : '';
   const az = v.aziendaId ? aziende.find(a=>a.id===v.aziendaId) : null;
-  const azLogoHtml = az ? `<div class="giri-visit-az-logo" title="${escA(az.nome)}">${az.logo?`<img src="${az.logo}" alt="${escA(az.nome)}">`:`<span>${escH(az.nome.substring(0,2).toUpperCase())}</span>`}</div>` : '';
+  const azLogoHtml = `<div class="giri-visit-az-logo${az?'':' empty'}" onclick="editGiroAziendaStart(this,'${mode}','${dayKey}','${v.id}')" title="${az?escA(az.nome):'Assegna azienda'}">${az ? (az.logo?`<img src="${az.logo}" alt="${escA(az.nome)}">`:`<span>${escH(az.nome.substring(0,2).toUpperCase())}</span>`) : '+'}</div>`;
+  const obiettivoHtml = `<div class="giri-visit-obiettivo" onclick="editGiroObiettivoStart(this,'${mode}','${dayKey}','${v.id}')" title="Modifica obiettivo">${v.obiettivo ? escH(v.obiettivo) : '+ Obiettivo'}</div>`;
   return `<div class="giri-visit">
     <div class="giri-visit-time${time?'':' no-time'}" onclick="editGiroTimeStart(this,'${mode}','${dayKey}','${v.id}')" title="Modifica orario">${time||'--:--'}</div>
     ${azLogoHtml}
@@ -3702,6 +3835,7 @@ function _renderGiroVisitHtml(v, idx, list, mode, dayKey){
       <div class="giri-visit-name">${escH(nome)}</div>
       ${zona ? `<span class="giri-visit-zone">${escH(zona)}</span>` : ''}${daysChip}
       ${v.note ? `<div class="giri-visit-note">${escH(v.note)}</div>` : ''}
+      ${obiettivoHtml}
     </div>
     <div class="giri-visit-actions">
       <button class="giri-visit-move" onclick="moveGiroUp('${mode}','${dayKey}',${idx})" title="Sposta su"${canUp?'':' disabled'}>&#9650;</button>
@@ -3808,41 +3942,69 @@ function renderGiroContinuoGrid(){
 // ── ESPORTA GIRI (PDF / Excel) ───────────────────────────────────────────────
 async function exportGiriExcel(){
   try {
-    if(typeof XLSX === 'undefined'){
-      showToast('Preparazione file Excel...');
-      await _loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
-    }
     const mode = giriViewMode;
-    let rows, cols;
+    const oggi = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+    const colspan = mode==='continuo' ? 8 : 7;
+    let rowsHtml, widths, total = 0;
+
     if(mode === 'continuo'){
-      rows = [['Settimana','Giorno','Orario','Cliente','Zona','Nota']];
+      rowsHtml = `<tr class="exl-head"><td>Settimana</td><td>Giorno</td><td>Orario</td><td>Cliente</td><td>Zona</td><td>Azienda</td><td>Obiettivo</td><td>Nota</td></tr>`;
+      let n = 0;
       GIRO_CONTINUO_SETTIMANE.forEach(s=>{
         GIRO_CONTINUO_GIORNI.forEach(g=>{
           const key = _giroContinuoKey(s, g.key);
           (giroContinuo[key]||[]).forEach(v=>{
             const cli = clienti.find(c=>c.id===v.clientId);
             if(cli && cli.escludiExport) return;
-            rows.push(['Settimana '+s, g.name, v.time||'', cli?cli.nome:(v.clientName||'Cliente sconosciuto'), cli?cli.zona:'', v.note||'']);
+            const az = v.aziendaId ? aziende.find(a=>a.id===v.aziendaId) : null;
+            const alt = (n++ % 2) ? ' exl-row-alt' : '';
+            rowsHtml += `<tr class="exl-row${alt}">
+              <td>Settimana ${s}</td><td>${_exlEsc(g.name)}</td>
+              <td>${_exlEsc(v.time||'')}</td>
+              <td class="exl-name">${_exlEsc(cli?cli.nome:(v.clientName||'Cliente sconosciuto'))}</td>
+              <td>${_exlEsc(cli?cli.zona:'')}</td>
+              <td>${az?_exlEsc(az.nome):'<span class="exl-muted">&mdash;</span>'}</td>
+              <td>${v.obiettivo?_exlEsc(v.obiettivo):'<span class="exl-muted">&mdash;</span>'}</td>
+              <td>${_exlEsc(v.note||'')}</td>
+            </tr>`;
+            total++;
           });
         });
       });
-      cols = [{wch:14},{wch:12},{wch:8},{wch:28},{wch:14},{wch:30}];
+      widths = [90,90,60,190,90,150,160,220];
     } else {
-      rows = [['Giorno','Orario','Cliente','Zona','Nota']];
+      rowsHtml = `<tr class="exl-head"><td>Giorno</td><td>Orario</td><td>Cliente</td><td>Zona</td><td>Azienda</td><td>Obiettivo</td><td>Nota</td></tr>`;
+      let n = 0;
       GIORNI.forEach(g=>{
         (giri[g.key]||[]).forEach(v=>{
           const cli = clienti.find(c=>c.id===v.clientId);
           if(cli && cli.escludiExport) return;
-          rows.push([g.name, v.time||'', cli?cli.nome:(v.clientName||'Cliente sconosciuto'), cli?cli.zona:'', v.note||'']);
+          const az = v.aziendaId ? aziende.find(a=>a.id===v.aziendaId) : null;
+          const alt = (n++ % 2) ? ' exl-row-alt' : '';
+          rowsHtml += `<tr class="exl-row${alt}">
+            <td>${_exlEsc(g.name)}</td>
+            <td>${_exlEsc(v.time||'')}</td>
+            <td class="exl-name">${_exlEsc(cli?cli.nome:(v.clientName||'Cliente sconosciuto'))}</td>
+            <td>${_exlEsc(cli?cli.zona:'')}</td>
+            <td>${az?_exlEsc(az.nome):'<span class="exl-muted">&mdash;</span>'}</td>
+            <td>${v.obiettivo?_exlEsc(v.obiettivo):'<span class="exl-muted">&mdash;</span>'}</td>
+            <td>${_exlEsc(v.note||'')}</td>
+          </tr>`;
+          total++;
         });
       });
-      cols = [{wch:12},{wch:8},{wch:28},{wch:14},{wch:30}];
+      widths = [90,60,190,90,150,160,220];
     }
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols'] = cols;
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, mode==='continuo' ? 'Giro continuo' : 'Giro settimana');
-    XLSX.writeFile(wb, mode==='continuo' ? 'giro_continuo.xlsx' : 'giro_della_settimana.xlsx');
+
+    const sheetTitle = mode==='continuo' ? 'Giro continuo' : 'Giro della settimana';
+    const bodyHtml = `<table>
+      ${_exlColsHtml(widths)}
+      <tr class="exl-title"><td colspan="${colspan}">AgentMap &mdash; ${_exlEsc(sheetTitle)}</td></tr>
+      <tr class="exl-sub"><td colspan="${colspan}">Generato il ${oggi} &middot; ${total} visit${total===1?'a':'e'}</td></tr>
+      ${rowsHtml}
+    </table>`;
+
+    _downloadExcelHtml(mode==='continuo' ? 'giro_continuo.xls' : 'giro_della_settimana.xls', sheetTitle, 3, bodyHtml);
     showToast('File Excel scaricato');
   } catch(e){
     console.error('Export Giri Excel fallito', e);
@@ -4115,6 +4277,10 @@ function openGiroAdd(dayKey, preClientId, mode){
   document.getElementById('giri-add-search').value = preCli ? preCli.nome : '';
   document.getElementById('giri-add-time').value = '';
   document.getElementById('giri-add-note').value = '';
+  const obSel = document.getElementById('giri-add-obiettivo');
+  if(obSel){ _populateObiettivoSelect(obSel); obSel.value = ''; }
+  const obCustom = document.getElementById('giri-add-obiettivo-custom');
+  if(obCustom){ obCustom.style.display = 'none'; obCustom.value = ''; }
   // I filtri PERSISTONO tra aperture diverse (volontariamente)
   _renderGiroFilters();
   filterGiroClientList();
@@ -4354,6 +4520,25 @@ function _renderGiroAddAziendaOptions(){
   sel.disabled = false;
   sel.innerHTML = '<option value="">Nessuna / generale</option>' + clientAziende.map(a=>`<option value="${escA(a.id)}">${escH(a.nome)}</option>`).join('');
 }
+function _populateObiettivoSelect(selectEl, currentValue){
+  const isCustom = currentValue && !OBIETTIVI_PRESET.includes(currentValue);
+  selectEl.innerHTML = '<option value="">Nessuno</option>' +
+    OBIETTIVI_PRESET.map(o=>`<option value="${escA(o)}"${currentValue===o?' selected':''}>${escH(o)}</option>`).join('') +
+    `<option value="__custom__"${isCustom?' selected':''}>Altro (scrivi)...</option>`;
+}
+function onGiriAddObiettivoChange(){
+  const sel = document.getElementById('giri-add-obiettivo');
+  const custom = document.getElementById('giri-add-obiettivo-custom');
+  if(!sel || !custom) return;
+  if(sel.value === '__custom__'){
+    custom.style.display = '';
+    custom.focus();
+  } else {
+    custom.style.display = 'none';
+    custom.value = '';
+  }
+}
+window.onGiriAddObiettivoChange = onGiriAddObiettivoChange;
 function confirmAddGiro(){
   if(!_activeGiroDay) return;
   if(!_selectedGiroClientIds.size){
@@ -4362,8 +4547,14 @@ function confirmAddGiro(){
   }
   const time = (document.getElementById('giri-add-time').value||'').trim();
   const note = (document.getElementById('giri-add-note').value||'').trim();
-  // L'azienda per-visita ha senso solo quando è selezionato un singolo cliente
+  // L'azienda e l'obiettivo per-visita hanno senso solo quando è selezionato un singolo cliente
   const aziendaId = _selectedGiroClientIds.size===1 ? ((document.getElementById('giri-add-azienda').value||'').trim() || undefined) : undefined;
+  let obiettivo;
+  if(_selectedGiroClientIds.size===1){
+    const obSelVal = document.getElementById('giri-add-obiettivo').value;
+    const obCustomVal = (document.getElementById('giri-add-obiettivo-custom').value||'').trim();
+    obiettivo = obSelVal === '__custom__' ? (obCustomVal || undefined) : (obSelVal || undefined);
+  }
   const store = _giroStore(_activeGiroMode);
   const dayLabel = document.getElementById('giri-add-day-label').textContent || '';
   if(!store[_activeGiroDay]) store[_activeGiroDay] = [];
@@ -4381,6 +4572,7 @@ function confirmAddGiro(){
       clientName: cli.nome,
       time, note,
       aziendaId,
+      obiettivo,
     });
     addedNames.push(cli.nome);
   }
@@ -4392,6 +4584,8 @@ function confirmAddGiro(){
   const srch = document.getElementById('giri-add-search'); if(srch) srch.value = '';
   const tm = document.getElementById('giri-add-time'); if(tm) tm.value = '';
   const nt = document.getElementById('giri-add-note'); if(nt) nt.value = '';
+  const obSel = document.getElementById('giri-add-obiettivo'); if(obSel) obSel.value = '';
+  const obCustom = document.getElementById('giri-add-obiettivo-custom'); if(obCustom){ obCustom.style.display='none'; obCustom.value=''; }
   filterGiroClientList();
   _renderGiroAddAziendaOptions();
   renderGiri();
@@ -4431,6 +4625,79 @@ function editGiroTimeCommit(input, mode, dayKey, id){
   renderGiri();
 }
 window.editGiroTimeCommit = editGiroTimeCommit;
+function editGiroAziendaStart(el, mode, dayKey, id){
+  const arr = _giroStore(mode)[dayKey];
+  const v = arr && arr.find(x=>x.id===id);
+  if(!v) return;
+  const cli = clienti.find(c=>c.id===v.clientId);
+  const clientAziende = cli ? (cli.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean) : [];
+  if(!clientAziende.length){
+    showToast('Questo cliente non ha aziende collegate');
+    return;
+  }
+  const select = document.createElement('select');
+  select.className = 'giri-visit-az-select';
+  select.innerHTML = '<option value="">Nessuna</option>' + clientAziende.map(a=>`<option value="${escA(a.id)}"${v.aziendaId===a.id?' selected':''}>${escH(a.nome)}</option>`).join('');
+  select.onclick = function(e){ e.stopPropagation(); };
+  select.onchange = function(){ editGiroAziendaCommit(select, mode, dayKey, id); };
+  el.replaceWith(select);
+  select.focus();
+}
+window.editGiroAziendaStart = editGiroAziendaStart;
+function editGiroAziendaCommit(select, mode, dayKey, id){
+  const arr = _giroStore(mode)[dayKey];
+  const v = arr && arr.find(x=>x.id===id);
+  if(v){
+    v.aziendaId = select.value || undefined;
+    saveAll();
+  }
+  renderGiri();
+}
+window.editGiroAziendaCommit = editGiroAziendaCommit;
+function editGiroObiettivoStart(el, mode, dayKey, id){
+  const arr = _giroStore(mode)[dayKey];
+  const v = arr && arr.find(x=>x.id===id);
+  if(!v) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'giri-visit-obiettivo-edit';
+  wrap.onclick = function(e){ e.stopPropagation(); };
+  const isCustom = !!(v.obiettivo && !OBIETTIVI_PRESET.includes(v.obiettivo));
+  const select = document.createElement('select');
+  select.className = 'giri-visit-obiettivo-select';
+  _populateObiettivoSelect(select, v.obiettivo);
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'giri-visit-obiettivo-input';
+  input.placeholder = "Scrivi l'obiettivo...";
+  input.value = isCustom ? v.obiettivo : '';
+  input.style.display = isCustom ? '' : 'none';
+  select.onchange = function(){
+    if(select.value === '__custom__'){
+      input.style.display = '';
+      input.focus();
+    } else {
+      input.style.display = 'none';
+      editGiroObiettivoCommit(mode, dayKey, id, select.value);
+    }
+  };
+  input.onkeydown = function(e){ if(e.key==='Enter'){ e.preventDefault(); input.blur(); } };
+  input.onblur = function(){ editGiroObiettivoCommit(mode, dayKey, id, input.value.trim()); };
+  wrap.appendChild(select);
+  wrap.appendChild(input);
+  el.replaceWith(wrap);
+  select.focus();
+}
+window.editGiroObiettivoStart = editGiroObiettivoStart;
+function editGiroObiettivoCommit(mode, dayKey, id, value){
+  const arr = _giroStore(mode)[dayKey];
+  const v = arr && arr.find(x=>x.id===id);
+  if(v){
+    v.obiettivo = value || undefined;
+    saveAll();
+  }
+  renderGiri();
+}
+window.editGiroObiettivoCommit = editGiroObiettivoCommit;
 function removeGiro(mode, dayKey, id){
   const store = _giroStore(mode);
   if(!store[dayKey]) return;
@@ -6242,6 +6509,150 @@ function closeStatsDetail(){
   if(listPage) listPage.style.display = '';
 }
 window.closeStatsDetail = closeStatsDetail;
+
+// ── Sezioni Cataloghi & Cersaie dentro Statistiche ──────────────────────────
+let statsTab = 'visite';
+function setStatsTab(tab){
+  statsTab = tab;
+  const bv=document.getElementById('stats-tab-visite-btn'), bc=document.getElementById('stats-tab-catalogo-btn'), bs=document.getElementById('stats-tab-cersaie-btn');
+  if(bv) bv.classList.toggle('active', tab==='visite');
+  if(bc) bc.classList.toggle('active', tab==='catalogo');
+  if(bs) bs.classList.toggle('active', tab==='cersaie');
+  const lp=document.getElementById('stats-list-page'), dp=document.getElementById('stats-detail-page'), cp=document.getElementById('stats-catalogo-page'), sp=document.getElementById('stats-cersaie-page');
+  if(lp) lp.style.display = tab==='visite' ? '' : 'none';
+  if(dp) dp.style.display = 'none';
+  if(cp) cp.style.display = tab==='catalogo' ? '' : 'none';
+  if(sp) sp.style.display = tab==='cersaie' ? '' : 'none';
+  if(tab==='visite'){ _vsDetailClientId = null; renderVisitStats(); }
+  else if(tab==='catalogo') renderStatsCatalogPage();
+  else if(tab==='cersaie') renderStatsCersaiePage();
+}
+window.setStatsTab = setStatsTab;
+
+function renderStatsCatalogPage(){
+  const typeSel = document.getElementById('stats-cat-type');
+  if(typeSel && !typeSel.dataset.populated){
+    typeSel.innerHTML = '<option value="">Tutti i cataloghi</option>' + CATALOGHI_FISSI.map(n=>`<option value="${escA(n)}">${escH(n)}</option>`).join('');
+    typeSel.dataset.populated = '1';
+  }
+  renderStatsCatalogList();
+}
+function onStatsCatalogFilterChange(){ renderStatsCatalogList(); }
+window.onStatsCatalogFilterChange = onStatsCatalogFilterChange;
+function renderStatsCatalogList(){
+  const list = document.getElementById('stats-cat-list');
+  const summary = document.getElementById('stats-cat-summary');
+  if(!list) return;
+  const q = (document.getElementById('stats-cat-search').value||'').toLowerCase().trim();
+  const typeFilter = document.getElementById('stats-cat-type').value;
+  const statusFilter = document.getElementById('stats-cat-status').value;
+  const listinoFilter = document.getElementById('stats-cat-listino').value;
+  const sortBy = document.getElementById('stats-cat-sort').value;
+
+  let rows = clienti.filter(c=>!q || c.nome.toLowerCase().includes(q));
+
+  if(typeFilter || statusFilter){
+    rows = rows.filter(c=>{
+      const cat = (c.badges && c.badges.catalogo) || {};
+      if(typeFilter){
+        const st = cat[typeFilter] || 'mancante';
+        return !statusFilter || st === statusFilter;
+      }
+      if(statusFilter === 'mancante') return CATALOGHI_FISSI.some(n=> !cat[n]);
+      return CATALOGHI_FISSI.some(n=> cat[n] === statusFilter);
+    });
+  }
+  if(listinoFilter){
+    rows = rows.filter(c=>{
+      const has = !!(c.badges && c.badges.listino && c.badges.listino.active);
+      return listinoFilter==='si' ? has : !has;
+    });
+  }
+
+  rows = rows.slice().sort((a,b)=> sortBy==='zona' ? ((a.zona||'').localeCompare(b.zona||'')||a.nome.localeCompare(b.nome)) : a.nome.localeCompare(b.nome));
+
+  if(summary) summary.textContent = rows.length + ' client' + (rows.length===1?'e':'i') + ' trovat' + (rows.length===1?'o':'i');
+
+  if(!rows.length){
+    list.innerHTML = '<div style="text-align:center;padding:24px 14px;color:var(--text-muted);font-size:0.82rem">Nessun cliente corrisponde ai filtri.</div>';
+    return;
+  }
+
+  list.innerHTML = rows.map(c=>{
+    const cat = (c.badges && c.badges.catalogo) || {};
+    const listinoOn = !!(c.badges && c.badges.listino && c.badges.listino.active);
+    const catBadges = CATALOGHI_FISSI.map(name=>{
+      const st = cat[name];
+      const color = st==='portato' ? 'var(--green)' : (st==='in_corso' ? 'var(--yellow)' : 'var(--text-light)');
+      const bg = st==='portato' ? 'rgba(31,157,95,0.12)' : (st==='in_corso' ? 'rgba(219,164,40,0.12)' : 'var(--surface2)');
+      return `<span style="font-size:0.66rem;font-weight:700;color:${color};background:${bg};border-radius:6px;padding:3px 7px" title="${escA(name)}: ${st==='portato'?'portato':(st==='in_corso'?'in corso':'non assegnato')}">${escH(name)}</span>`;
+    }).join('');
+    const listinoBadge = `<span style="font-size:0.66rem;font-weight:700;color:${listinoOn?'var(--green)':'var(--text-light)'};background:${listinoOn?'rgba(31,157,95,0.12)':'var(--surface2)'};border-radius:6px;padding:3px 7px">Listino${listinoOn?' &#10003;':''}</span>`;
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer" onclick="openClientInfo('${c.id}')">
+      <div style="font-weight:700;color:var(--text);font-size:0.9rem">${escH(c.nome)}</div>
+      <div style="font-size:0.66rem;color:var(--text-muted);margin:2px 0 8px">${escH(c.zona||'')}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${catBadges}${listinoBadge}</div>
+    </div>`;
+  }).join('');
+}
+window.renderStatsCatalogList = renderStatsCatalogList;
+
+function renderStatsCersaiePage(){
+  renderStatsCersaieList();
+}
+function onStatsCersaieFilterChange(){ renderStatsCersaieList(); }
+window.onStatsCersaieFilterChange = onStatsCersaieFilterChange;
+function renderStatsCersaieList(){
+  const list = document.getElementById('stats-cer-list');
+  const summary = document.getElementById('stats-cer-summary');
+  if(!list) return;
+  const q = (document.getElementById('stats-cer-search').value||'').toLowerCase().trim();
+  const filterBy = document.getElementById('stats-cer-filter').value;
+  const sortBy = document.getElementById('stats-cer-sort').value;
+
+  let rows = clienti.filter(c=>!q || c.nome.toLowerCase().includes(q)).map(c=>{
+    const b = c.badges || {};
+    const invitiSorted = (b.invitiCersaie||[]).slice().sort((x,y)=> new Date(y.data||0)-new Date(x.data||0));
+    const ceneSorted = (b.ceneCersaie||[]).slice().sort((x,y)=> new Date(y.data||0)-new Date(x.data||0));
+    return { cliente: c, ultimoInvito: invitiSorted[0]||null, ultimaCena: ceneSorted[0]||null, countInviti: invitiSorted.length, countCene: ceneSorted.length };
+  });
+
+  if(filterBy==='invito') rows = rows.filter(r=>r.countInviti>0);
+  else if(filterBy==='cena') rows = rows.filter(r=>r.countCene>0);
+  else if(filterBy==='nessuno') rows = rows.filter(r=>r.countInviti===0 && r.countCene===0);
+
+  if(sortBy==='data'){
+    rows.sort((a,b)=>{
+      const da = Math.max(a.ultimoInvito?new Date(a.ultimoInvito.data).getTime():0, a.ultimaCena?new Date(a.ultimaCena.data).getTime():0);
+      const db = Math.max(b.ultimoInvito?new Date(b.ultimoInvito.data).getTime():0, b.ultimaCena?new Date(b.ultimaCena.data).getTime():0);
+      return db-da;
+    });
+  } else {
+    rows.sort((a,b)=> a.cliente.nome.localeCompare(b.cliente.nome));
+  }
+
+  if(summary) summary.textContent = rows.length + ' client' + (rows.length===1?'e':'i') + ' trovat' + (rows.length===1?'o':'i');
+
+  if(!rows.length){
+    list.innerHTML = '<div style="text-align:center;padding:24px 14px;color:var(--text-muted);font-size:0.82rem">Nessun cliente corrisponde ai filtri.</div>';
+    return;
+  }
+
+  list.innerHTML = rows.map(r=>{
+    const c = r.cliente;
+    const invitoTxt = r.ultimoInvito ? ('Ultimo invito: '+fmtDate(r.ultimoInvito.data)+(r.countInviti>1?' (+'+(r.countInviti-1)+')':'')) : 'Nessun invito';
+    const cenaTxt = r.ultimaCena ? ('Ultima cena: '+fmtDate(r.ultimaCena.data)+(r.countCene>1?' (+'+(r.countCene-1)+')':'')) : 'Nessuna cena';
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer" onclick="openClientInfo('${c.id}')">
+      <div style="font-weight:700;color:var(--text);font-size:0.9rem">${escH(c.nome)}</div>
+      <div style="font-size:0.66rem;color:var(--text-muted);margin:2px 0 8px">${escH(c.zona||'')}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span style="font-size:0.66rem;font-weight:700;color:${r.ultimoInvito?'var(--accent)':'var(--text-light)'};background:${r.ultimoInvito?'var(--accent-dim)':'var(--surface3)'};border-radius:6px;padding:3px 8px">${escH(invitoTxt)}</span>
+        <span style="font-size:0.66rem;font-weight:700;color:${r.ultimaCena?'#8b2fd1':'var(--text-light)'};background:${r.ultimaCena?'rgba(139,47,209,0.12)':'var(--surface3)'};border-radius:6px;padding:3px 8px">${escH(cenaTxt)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+window.renderStatsCersaieList = renderStatsCersaieList;
 
 function _getVisitDates(v){
   if(!v) return [];
