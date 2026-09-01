@@ -303,6 +303,15 @@ header {
   .azienda-filter-chip-name { display: none; max-width: 0; overflow: hidden; }
   .azienda-filter-chip.active .azienda-filter-chip-name { display: inline; max-width: 200px; margin-left: 6px; }
 }
+.giri-view-filter-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.giri-view-filter-btn { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 9px; padding: 7px 12px; font-family: 'Nunito', sans-serif; font-size: 0.78rem; font-weight: 700; color: var(--text); cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: rgba(0,0,0,0.1); touch-action: manipulation; }
+.giri-view-filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+.giri-view-filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.giri-view-filter-badge { background: var(--accent); color: #fff; border-radius: 20px; font-size: 0.62rem; font-weight: 800; padding: 1px 6px; min-width: 14px; text-align: center; line-height: 1.4; }
+.giri-view-filter-clear { background: none; border: none; color: var(--text-muted); font-size: 0.76rem; font-weight: 700; cursor: pointer; padding: 4px 6px; }
+.giri-view-filter-clear:hover { color: var(--accent); }
+.giri-view-filter-panel { display: flex; flex-wrap: wrap; gap: 7px; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 8px; }
+.giri-assign-action-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; background: var(--accent-dim); border: 1.5px solid var(--accent); border-radius: 10px; padding: 10px 14px; margin-top: 8px; font-family: 'Nunito', sans-serif; font-size: 0.78rem; color: var(--text); }
 .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.68rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
 .legend-pip { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 .zone-section { margin-bottom: 40px; }
@@ -731,6 +740,10 @@ header {
 .giri-visits { flex: 1; display: flex; flex-direction: column; gap: 7px; margin-bottom: 8px; }
 .giri-visit { background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 8px 10px; display: flex; align-items: flex-start; gap: 8px; transition: all 0.15s; }
 .giri-visit:hover { border-color: var(--border2); }
+.giri-visit.assign-mode { cursor: pointer; }
+.giri-visit-assign-check { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--border2); background: var(--surface); flex-shrink: 0; margin-top: 1px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800; color: white; }
+.giri-visit-assign-check.selected { background: var(--accent); border-color: var(--accent); }
+.giri-visit:has(.giri-visit-assign-check.selected) { border-color: var(--accent); background: var(--accent-dim); }
 .giri-visit-time { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; font-weight: 700; color: var(--accent-hover); flex-shrink: 0; padding-top: 1px; min-width: 38px; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
 .giri-visit-time.no-time { color: var(--text-light); }
 .giri-visit-time-input { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 700; color: var(--accent-hover); border: 1px solid var(--accent); border-radius: 5px; padding: 2px 3px; width: 68px; background: var(--surface); flex-shrink: 0; }
@@ -1112,6 +1125,19 @@ header {
         </div>
       </div>
       <p class="giri-sub" id="giri-sub-text">Pianifica clienti e orari per ogni giorno. Ogni lunedi la settimana si archivia automaticamente.</p>
+      <div class="giri-view-filter-toolbar">
+        <button class="giri-view-filter-btn" id="giri-view-filter-azienda-btn" onclick="toggleGiriAssignPanel('azienda')" title="Assegna una o più aziende a più visite in un colpo solo">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+          Aziende<span class="giri-view-filter-badge" id="giri-view-filter-azienda-badge" style="display:none">0</span>
+        </button>
+        <button class="giri-view-filter-btn" id="giri-view-filter-obiettivo-btn" onclick="toggleGiriAssignPanel('obiettivo')" title="Assegna uno o più obiettivi a più visite in un colpo solo">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+          Obiettivi<span class="giri-view-filter-badge" id="giri-view-filter-obiettivo-badge" style="display:none">0</span>
+        </button>
+      </div>
+      <div class="giri-view-filter-panel" id="giri-view-filter-azienda-panel" style="display:none"></div>
+      <div class="giri-view-filter-panel" id="giri-view-filter-obiettivo-panel" style="display:none"></div>
+      <div class="giri-assign-action-bar" id="giri-assign-action-bar" style="display:none"></div>
     </div>
     <div class="giri-grid" id="giri-grid"></div>
     <div id="giro-continuo-container" style="display:none"></div>
@@ -1178,9 +1204,12 @@ header {
         <div class="giri-client-list visible" id="giri-add-azienda" style="max-height:140px"></div>
       </div>
       <div style="margin-bottom:14px">
-        <div class="client-edit-label" style="margin-bottom:6px">Obiettivo della visita (opzionale)</div>
-        <select class="add-client-select" id="giri-add-obiettivo" onchange="onGiriAddObiettivoChange()"></select>
-        <input type="text" id="giri-add-obiettivo-custom" placeholder="Scrivi l'obiettivo..." style="display:none;margin-top:8px;width:100%;box-sizing:border-box;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Nunito',sans-serif;font-size:0.85rem;outline:none">
+        <div class="client-edit-label" style="margin-bottom:6px">Obiettivi della visita (opzionale, selezione multipla)</div>
+        <div class="giri-client-list visible" id="giri-add-obiettivo" style="max-height:140px"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input type="text" id="giri-add-obiettivo-custom" placeholder="Scrivi un obiettivo personalizzato..." style="flex:1;box-sizing:border-box;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Nunito',sans-serif;font-size:0.85rem;outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();addGiroAddObiettivoCustom();}">
+          <button type="button" onclick="addGiroAddObiettivoCustom()" style="flex-shrink:0;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 14px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;color:var(--text);cursor:pointer">+</button>
+        </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <div style="flex:1">
@@ -1216,6 +1245,30 @@ header {
     <div class="modal-footer" style="display:flex;gap:8px">
       <button onclick="closeGiroAziendaPicker()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Chiudi</button>
       <button onclick="saveGiroAziendaPicker()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- SELEZIONE OBIETTIVI PER VISITA (multi) -->
+<div class="overlay" id="giro-obiettivo-picker-overlay" onclick="closeOverlayBg(event,'giro-obiettivo-picker-overlay',closeGiroObiettivoPicker)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Obiettivi della visita</div>
+        <div class="modal-subtitle">Puoi selezionarne pi&ugrave; di uno</div>
+      </div>
+      <button class="modal-close" onclick="closeGiroObiettivoPicker()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="giri-client-list visible" id="giro-obiettivo-picker-list" style="max-height:220px"></div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <input type="text" id="giro-obiettivo-picker-custom" placeholder="Scrivi un obiettivo personalizzato..." style="flex:1;box-sizing:border-box;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Nunito',sans-serif;font-size:0.85rem;outline:none" onkeydown="if(event.key==='Enter'){event.preventDefault();addGiroObiettivoPickerCustom();}">
+        <button type="button" onclick="addGiroObiettivoPickerCustom()" style="flex-shrink:0;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:9px 14px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;color:var(--text);cursor:pointer">+</button>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px">
+      <button onclick="closeGiroObiettivoPicker()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Chiudi</button>
+      <button onclick="saveGiroObiettivoPicker()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Salva</button>
     </div>
   </div>
 </div>
@@ -3848,6 +3901,130 @@ function _visitAziendaIds(v){
   if(Array.isArray(v.aziendaIds)) return v.aziendaIds;
   return v.aziendaId ? [v.aziendaId] : [];
 }
+function _visitObiettivi(v){
+  if(Array.isArray(v.obiettivi)) return v.obiettivi;
+  return v.obiettivo ? [v.obiettivo] : [];
+}
+// ── Assegnazione rapida (sopra i giri): scegli aziende/obiettivi, poi tocca le
+// visite a cui applicarli, per assegnarli a più visite in un colpo solo ──────
+let _giriAssignMode = null; // 'azienda' | 'obiettivo' | null
+let _giriAssignValues = new Set(); // id azienda oppure testo obiettivo, secondo _giriAssignMode
+let _giriAssignVisits = new Set(); // chiavi "mode|dayKey|id" delle visite selezionate come destinatarie
+function _giriAssignVisitKey(mode, dayKey, id){ return mode+'|'+dayKey+'|'+id; }
+function toggleGiriAssignPanel(kind){
+  if(_giriAssignMode === kind){
+    // richiudi e annulla tutto se riclicco sul pulsante già aperto
+    _giriAssignMode = null;
+    _giriAssignValues = new Set();
+    _giriAssignVisits = new Set();
+  } else {
+    _giriAssignMode = kind;
+    _giriAssignValues = new Set();
+    _giriAssignVisits = new Set();
+  }
+  _renderGiriAssignUI();
+  renderGiri();
+}
+window.toggleGiriAssignPanel = toggleGiriAssignPanel;
+function toggleGiriAssignValue(value){
+  if(_giriAssignValues.has(value)) _giriAssignValues.delete(value);
+  else _giriAssignValues.add(value);
+  _renderGiriAssignUI();
+  renderGiri();
+}
+window.toggleGiriAssignValue = toggleGiriAssignValue;
+function toggleGiriAssignVisit(mode, dayKey, id){
+  const key = _giriAssignVisitKey(mode, dayKey, id);
+  if(_giriAssignVisits.has(key)) _giriAssignVisits.delete(key);
+  else _giriAssignVisits.add(key);
+  _renderGiriAssignUI();
+  renderGiri();
+}
+window.toggleGiriAssignVisit = toggleGiriAssignVisit;
+function cancelGiriAssign(){
+  _giriAssignMode = null;
+  _giriAssignValues = new Set();
+  _giriAssignVisits = new Set();
+  _renderGiriAssignUI();
+  renderGiri();
+}
+window.cancelGiriAssign = cancelGiriAssign;
+function applyGiriAssign(){
+  if(!_giriAssignValues.size || !_giriAssignVisits.size) return;
+  const mode = _giriAssignMode;
+  const values = Array.from(_giriAssignValues);
+  let count = 0;
+  _giriAssignVisits.forEach(key=>{
+    const [visitMode, dayKey, id] = key.split('|');
+    const arr = _giroStore(visitMode)[dayKey];
+    const v = arr && arr.find(x=>x.id===id);
+    if(!v) return;
+    if(mode === 'azienda'){
+      v.aziendaIds = Array.from(new Set([..._visitAziendaIds(v), ...values]));
+      delete v.aziendaId;
+    } else if(mode === 'obiettivo'){
+      v.obiettivi = Array.from(new Set([..._visitObiettivi(v), ...values]));
+      delete v.obiettivo;
+    }
+    count++;
+  });
+  saveAll();
+  const label = mode === 'azienda' ? 'Aziende assegnate' : 'Obiettivi assegnati';
+  cancelGiriAssign();
+  showToast(label+' a '+count+' visit'+(count===1?'a':'e'));
+}
+window.applyGiriAssign = applyGiriAssign;
+function _renderGiriAssignUI(){
+  const azBtn = document.getElementById('giri-view-filter-azienda-btn');
+  const obBtn = document.getElementById('giri-view-filter-obiettivo-btn');
+  if(!azBtn || !obBtn) return;
+  const azBadge = document.getElementById('giri-view-filter-azienda-badge');
+  const obBadge = document.getElementById('giri-view-filter-obiettivo-badge');
+  const azPanel = document.getElementById('giri-view-filter-azienda-panel');
+  const obPanel = document.getElementById('giri-view-filter-obiettivo-panel');
+  const actionBar = document.getElementById('giri-assign-action-bar');
+  azBtn.classList.toggle('active', _giriAssignMode==='azienda');
+  obBtn.classList.toggle('active', _giriAssignMode==='obiettivo');
+  const azCount = _giriAssignMode==='azienda' ? _giriAssignValues.size : 0;
+  const obCount = _giriAssignMode==='obiettivo' ? _giriAssignValues.size : 0;
+  if(azBadge){ azBadge.style.display = azCount ? '' : 'none'; azBadge.textContent = azCount; }
+  if(obBadge){ obBadge.style.display = obCount ? '' : 'none'; obBadge.textContent = obCount; }
+  if(azPanel){
+    azPanel.style.display = _giriAssignMode==='azienda' ? 'flex' : 'none';
+    if(_giriAssignMode==='azienda'){
+      azPanel.innerHTML = aziende.length
+        ? aziende.map(a=>`<div class="azienda-filter-chip${_giriAssignValues.has(a.id)?' active':''}" onclick="toggleGiriAssignValue('${a.id}')">${a.logo?`<img src="${escA(a.logo)}" alt="">`:'\u{1F3E2}'}${escH(a.nome)}</div>`).join('')
+        : '<div style="font-size:0.78rem;color:var(--text-muted);padding:4px 0">Nessuna azienda configurata.</div>';
+    }
+  }
+  if(obPanel){
+    obPanel.style.display = _giriAssignMode==='obiettivo' ? 'flex' : 'none';
+    if(_giriAssignMode==='obiettivo'){
+      const usedExtra = new Set();
+      [giri, giroContinuo].forEach(store=>{
+        Object.values(store).forEach(arr=>{ if(Array.isArray(arr)) arr.forEach(v=>_visitObiettivi(v).forEach(o=>{ if(!obiettiviPreset.includes(o)) usedExtra.add(o); })); });
+      });
+      const all = obiettiviPreset.concat(Array.from(usedExtra));
+      obPanel.innerHTML = all.length
+        ? all.map(o=>`<div class="azienda-filter-chip${_giriAssignValues.has(o)?' active':''}" onclick="toggleGiriAssignValue('${escA(o)}')">${escH(o)}</div>`).join('')
+        : '<div style="font-size:0.78rem;color:var(--text-muted);padding:4px 0">Nessun obiettivo disponibile.</div>';
+    }
+  }
+  if(actionBar){
+    if(_giriAssignValues.size){
+      actionBar.style.display = 'flex';
+      const kindLabel = _giriAssignMode === 'azienda' ? 'aziende' : 'obiettivi';
+      actionBar.innerHTML = `<span>Tocca il &#10003; sulle visite a cui assegnare ${_giriAssignValues.size} ${kindLabel} &middot; <strong>${_giriAssignVisits.size}</strong> selezionat${_giriAssignVisits.size===1?'a':'e'}</span>
+        <div style="display:flex;gap:8px">
+          <button type="button" onclick="cancelGiriAssign()" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-family:'Nunito',sans-serif;font-size:0.76rem;font-weight:700;color:var(--text-muted);cursor:pointer">Annulla</button>
+          <button type="button" onclick="applyGiriAssign()"${_giriAssignVisits.size?'':' disabled'} style="background:var(--accent);border:none;border-radius:8px;padding:6px 14px;font-family:'Nunito',sans-serif;font-size:0.76rem;font-weight:700;color:white;cursor:pointer${_giriAssignVisits.size?'':';opacity:0.5;cursor:default'}">Assegna</button>
+        </div>`;
+    } else {
+      actionBar.style.display = 'none';
+      actionBar.innerHTML = '';
+    }
+  }
+}
 function _renderGiroVisitHtml(v, idx, list, mode, dayKey){
   const cli = clienti.find(c=>c.id===v.clientId);
   const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
@@ -3862,8 +4039,14 @@ function _renderGiroVisitHtml(v, idx, list, mode, dayKey){
   const azLogoHtml = azList.length
     ? `<div class="giri-visit-az-group" onclick="editGiroAziendaStart(this,'${mode}','${dayKey}','${v.id}')" title="${escA(azList.map(a=>a.nome).join(', '))}">${azList.slice(0,3).map(a=>`<div class="giri-visit-az-logo">${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<span>${escH(a.nome.substring(0,2).toUpperCase())}</span>`}</div>`).join('')}${azList.length>3?`<div class="giri-visit-az-logo more">+${azList.length-3}</div>`:''}</div>`
     : `<div class="giri-visit-az-logo empty" onclick="editGiroAziendaStart(this,'${mode}','${dayKey}','${v.id}')" title="Assegna azienda">+</div>`;
-  const obiettivoHtml = `<div class="giri-visit-obiettivo" onclick="editGiroObiettivoStart(this,'${mode}','${dayKey}','${v.id}')" title="Modifica obiettivo">${v.obiettivo ? escH(v.obiettivo) : '+ Obiettivo'}</div>`;
-  return `<div class="giri-visit">
+  const obiettiviList = _visitObiettivi(v);
+  const obiettivoHtml = `<div class="giri-visit-obiettivo" onclick="editGiroObiettivoStart(this,'${mode}','${dayKey}','${v.id}')" title="Modifica obiettivi">${obiettiviList.length ? escH(obiettiviList.join(', ')) : '+ Obiettivo'}</div>`;
+  const assignSelectHtml = _giriAssignValues.size ? (function(){
+    const selected = _giriAssignVisits.has(_giriAssignVisitKey(mode, dayKey, v.id));
+    return `<div class="giri-visit-assign-check${selected?' selected':''}" onclick="toggleGiriAssignVisit('${mode}','${dayKey}','${v.id}')" title="Seleziona per assegnazione rapida">${selected?'&#10003;':''}</div>`;
+  })() : '';
+  return `<div class="giri-visit${_giriAssignValues.size?' assign-mode':''}">
+    ${assignSelectHtml}
     <div class="giri-visit-time${time?'':' no-time'}" onclick="editGiroTimeStart(this,'${mode}','${dayKey}','${v.id}')" title="Modifica orario">${time||'--:--'}</div>
     ${azLogoHtml}
     <div class="giri-visit-body">
@@ -3911,6 +4094,7 @@ function renderGiri(){
     try { saveAll(); } catch(_){}
     showToast('Settimana archiviata. Inizio nuova settimana.');
   }
+  _renderGiriAssignUI();
   const gridWeek = document.getElementById('giri-grid');
   const contContainer = document.getElementById('giro-continuo-container');
   if(giriViewMode === 'continuo'){
@@ -3992,6 +4176,7 @@ async function exportGiriExcel(){
             const cli = clienti.find(c=>c.id===v.clientId);
             if(cli && cli.escludiExport) return;
             const azNomi = _visitAziendaIds(v).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean).map(a=>a.nome).join(', ');
+            const obNomi = _visitObiettivi(v).join(', ');
             const alt = (n++ % 2) ? ' exl-row-alt' : '';
             rowsHtml += `<tr class="exl-row${alt}">
               <td>Settimana ${s}</td><td>${_exlEsc(g.name)}</td>
@@ -3999,7 +4184,7 @@ async function exportGiriExcel(){
               <td class="exl-name">${_exlEsc(cli?cli.nome:(v.clientName||'Cliente sconosciuto'))}</td>
               <td>${_exlEsc(cli?cli.zona:'')}</td>
               <td>${azNomi?_exlEsc(azNomi):'<span class="exl-muted">&mdash;</span>'}</td>
-              <td>${v.obiettivo?_exlEsc(v.obiettivo):'<span class="exl-muted">&mdash;</span>'}</td>
+              <td>${obNomi?_exlEsc(obNomi):'<span class="exl-muted">&mdash;</span>'}</td>
               <td>${_exlEsc(v.note||'')}</td>
             </tr>`;
             total++;
@@ -4015,6 +4200,7 @@ async function exportGiriExcel(){
           const cli = clienti.find(c=>c.id===v.clientId);
           if(cli && cli.escludiExport) return;
           const azNomi = _visitAziendaIds(v).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean).map(a=>a.nome).join(', ');
+          const obNomi = _visitObiettivi(v).join(', ');
           const alt = (n++ % 2) ? ' exl-row-alt' : '';
           rowsHtml += `<tr class="exl-row${alt}">
             <td>${_exlEsc(g.name)}</td>
@@ -4022,7 +4208,7 @@ async function exportGiriExcel(){
             <td class="exl-name">${_exlEsc(cli?cli.nome:(v.clientName||'Cliente sconosciuto'))}</td>
             <td>${_exlEsc(cli?cli.zona:'')}</td>
             <td>${azNomi?_exlEsc(azNomi):'<span class="exl-muted">&mdash;</span>'}</td>
-            <td>${v.obiettivo?_exlEsc(v.obiettivo):'<span class="exl-muted">&mdash;</span>'}</td>
+            <td>${obNomi?_exlEsc(obNomi):'<span class="exl-muted">&mdash;</span>'}</td>
             <td>${_exlEsc(v.note||'')}</td>
           </tr>`;
           total++;
@@ -4251,6 +4437,7 @@ let _activeGiroDay = null;
 let _activeGiroMode = 'settimana';
 let _selectedGiroClientIds = new Set();
 let _selectedGiroAziendaIds = new Set();
+let _selectedGiroObiettivi = new Set();
 let _pickerClientId = null;
 // Filtri persistenti nel modal aggiunta (sopravvivono dopo ogni salvataggio)
 let _giroAddFilterZona = '';    // '' = Tutte
@@ -4300,6 +4487,7 @@ function openGiroAdd(dayKey, preClientId, mode){
   _activeGiroMode = mode === 'continuo' ? 'continuo' : 'settimana';
   _selectedGiroClientIds = new Set(preClientId ? [preClientId] : []);
   _selectedGiroAziendaIds = new Set();
+  _selectedGiroObiettivi = new Set();
   let label = '';
   if(_activeGiroMode === 'continuo'){
     const m = /^s(\d)_(.+)$/.exec(dayKey);
@@ -4314,14 +4502,13 @@ function openGiroAdd(dayKey, preClientId, mode){
   document.getElementById('giri-add-search').value = preCli ? preCli.nome : '';
   document.getElementById('giri-add-time').value = '';
   document.getElementById('giri-add-note').value = '';
-  const obSel = document.getElementById('giri-add-obiettivo');
-  if(obSel){ _populateObiettivoSelect(obSel); obSel.value = ''; }
   const obCustom = document.getElementById('giri-add-obiettivo-custom');
-  if(obCustom){ obCustom.style.display = 'none'; obCustom.value = ''; }
+  if(obCustom) obCustom.value = '';
   // I filtri PERSISTONO tra aperture diverse (volontariamente)
   _renderGiroFilters();
   filterGiroClientList();
   _renderGiroAddAziendaOptions();
+  _renderGiroAddObiettivoOptions();
   openOverlay('giri-add-overlay');
   if(!preCli) setTimeout(()=>document.getElementById('giri-add-search')?.focus(), 80);
   else setTimeout(()=>document.getElementById('giri-add-time')?.focus(), 80);
@@ -4527,12 +4714,15 @@ function selectGiroClient(id){
   else _selectedGiroClientIds.add(id);
   filterGiroClientList();
   _renderGiroAddAziendaOptions();
+  _renderGiroAddObiettivoOptions();
 }
 function clearGiroClientSelection(){
   _selectedGiroClientIds = new Set();
   _selectedGiroAziendaIds = new Set();
+  _selectedGiroObiettivi = new Set();
   filterGiroClientList();
   _renderGiroAddAziendaOptions();
+  _renderGiroAddObiettivoOptions();
 }
 window.clearGiroClientSelection = clearGiroClientSelection;
 function _renderGiroAddAziendaOptions(){
@@ -4564,25 +4754,43 @@ function toggleGiroAddAzienda(id){
   _renderGiroAddAziendaOptions();
 }
 window.toggleGiroAddAzienda = toggleGiroAddAzienda;
-function _populateObiettivoSelect(selectEl, currentValue){
-  const isCustom = currentValue && !obiettiviPreset.includes(currentValue);
-  selectEl.innerHTML = '<option value="">Nessuno</option>' +
-    obiettiviPreset.map(o=>`<option value="${escA(o)}"${currentValue===o?' selected':''}>${escH(o)}</option>`).join('') +
-    `<option value="__custom__"${isCustom?' selected':''}>Altro (scrivi)...</option>`;
-}
-function onGiriAddObiettivoChange(){
-  const sel = document.getElementById('giri-add-obiettivo');
-  const custom = document.getElementById('giri-add-obiettivo-custom');
-  if(!sel || !custom) return;
-  if(sel.value === '__custom__'){
-    custom.style.display = '';
-    custom.focus();
-  } else {
-    custom.style.display = 'none';
-    custom.value = '';
+function _renderGiroAddObiettivoOptions(){
+  const wrap = document.getElementById('giri-add-obiettivo');
+  if(!wrap) return;
+  if(_selectedGiroClientIds.size === 0){
+    wrap.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Seleziona prima un cliente</div>';
+    return;
   }
+  if(_selectedGiroClientIds.size > 1){
+    wrap.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Disponibile solo con un cliente alla volta</div>';
+    return;
+  }
+  const extra = Array.from(_selectedGiroObiettivi).filter(o=>!obiettiviPreset.includes(o));
+  const all = obiettiviPreset.concat(extra);
+  wrap.innerHTML = all.map(o=>{
+    const checked = _selectedGiroObiettivi.has(o);
+    return `<div class="giri-client-option${checked?' selected':''}" onclick="toggleGiroAddObiettivo('${escA(o)}')">
+      <span class="giri-client-option-check">${checked?'&#10003;':''}</span>
+      <span>${escH(o)}</span>
+    </div>`;
+  }).join('');
 }
-window.onGiriAddObiettivoChange = onGiriAddObiettivoChange;
+function toggleGiroAddObiettivo(o){
+  if(_selectedGiroObiettivi.has(o)) _selectedGiroObiettivi.delete(o);
+  else _selectedGiroObiettivi.add(o);
+  _renderGiroAddObiettivoOptions();
+}
+window.toggleGiroAddObiettivo = toggleGiroAddObiettivo;
+function addGiroAddObiettivoCustom(){
+  const inp = document.getElementById('giri-add-obiettivo-custom');
+  if(!inp) return;
+  const val = inp.value.trim();
+  if(!val) return;
+  _selectedGiroObiettivi.add(val);
+  inp.value = '';
+  _renderGiroAddObiettivoOptions();
+}
+window.addGiroAddObiettivoCustom = addGiroAddObiettivoCustom;
 function confirmAddGiro(){
   if(!_activeGiroDay) return;
   if(!_selectedGiroClientIds.size){
@@ -4591,14 +4799,9 @@ function confirmAddGiro(){
   }
   const time = (document.getElementById('giri-add-time').value||'').trim();
   const note = (document.getElementById('giri-add-note').value||'').trim();
-  // L'azienda e l'obiettivo per-visita hanno senso solo quando è selezionato un singolo cliente
+  // L'azienda e gli obiettivi per-visita hanno senso solo quando è selezionato un singolo cliente
   const aziendaIds = _selectedGiroClientIds.size===1 ? Array.from(_selectedGiroAziendaIds) : [];
-  let obiettivo;
-  if(_selectedGiroClientIds.size===1){
-    const obSelVal = document.getElementById('giri-add-obiettivo').value;
-    const obCustomVal = (document.getElementById('giri-add-obiettivo-custom').value||'').trim();
-    obiettivo = obSelVal === '__custom__' ? (obCustomVal || undefined) : (obSelVal || undefined);
-  }
+  const obiettivi = _selectedGiroClientIds.size===1 ? Array.from(_selectedGiroObiettivi) : [];
   const store = _giroStore(_activeGiroMode);
   const dayLabel = document.getElementById('giri-add-day-label').textContent || '';
   if(!store[_activeGiroDay]) store[_activeGiroDay] = [];
@@ -4616,7 +4819,7 @@ function confirmAddGiro(){
       clientName: cli.nome,
       time, note,
       aziendaIds: aziendaIds.length ? aziendaIds : undefined,
-      obiettivo,
+      obiettivi: obiettivi.length ? obiettivi : undefined,
     });
     addedNames.push(cli.nome);
   }
@@ -4626,13 +4829,14 @@ function confirmAddGiro(){
   // con gli stessi filtri attivi. Pulisci solo la selezione e i campi.
   _selectedGiroClientIds = new Set();
   _selectedGiroAziendaIds = new Set();
+  _selectedGiroObiettivi = new Set();
   const srch = document.getElementById('giri-add-search'); if(srch) srch.value = '';
   const tm = document.getElementById('giri-add-time'); if(tm) tm.value = '';
   const nt = document.getElementById('giri-add-note'); if(nt) nt.value = '';
-  const obSel = document.getElementById('giri-add-obiettivo'); if(obSel) obSel.value = '';
-  const obCustom = document.getElementById('giri-add-obiettivo-custom'); if(obCustom){ obCustom.style.display='none'; obCustom.value=''; }
+  const obCustom = document.getElementById('giri-add-obiettivo-custom'); if(obCustom) obCustom.value = '';
   filterGiroClientList();
   _renderGiroAddAziendaOptions();
+  _renderGiroAddObiettivoOptions();
   renderGiri();
   showToast(addedNames.length===1 ? (addedNames[0]+' aggiunto a '+dayLabel) : (addedNames.length+' clienti aggiunti a '+dayLabel));
   // Riporta il focus al campo ricerca per la prossima aggiunta
@@ -4723,50 +4927,68 @@ function closeGiroAziendaPicker(){
   closeOverlay('giro-azienda-picker-overlay');
 }
 window.closeGiroAziendaPicker = closeGiroAziendaPicker;
+let _giroObiettivoEditCtx = null;
+let _giroObiettivoEditSelected = new Set();
 function editGiroObiettivoStart(el, mode, dayKey, id){
   const arr = _giroStore(mode)[dayKey];
   const v = arr && arr.find(x=>x.id===id);
   if(!v) return;
-  const wrap = document.createElement('div');
-  wrap.className = 'giri-visit-obiettivo-edit';
-  wrap.onclick = function(e){ e.stopPropagation(); };
-  const isCustom = !!(v.obiettivo && !obiettiviPreset.includes(v.obiettivo));
-  const select = document.createElement('select');
-  select.className = 'giri-visit-obiettivo-select';
-  _populateObiettivoSelect(select, v.obiettivo);
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'giri-visit-obiettivo-input';
-  input.placeholder = "Scrivi l'obiettivo...";
-  input.value = isCustom ? v.obiettivo : '';
-  input.style.display = isCustom ? '' : 'none';
-  select.onchange = function(){
-    if(select.value === '__custom__'){
-      input.style.display = '';
-      input.focus();
-    } else {
-      input.style.display = 'none';
-      editGiroObiettivoCommit(mode, dayKey, id, select.value);
-    }
-  };
-  input.onkeydown = function(e){ if(e.key==='Enter'){ e.preventDefault(); input.blur(); } };
-  input.onblur = function(){ editGiroObiettivoCommit(mode, dayKey, id, input.value.trim()); };
-  wrap.appendChild(select);
-  wrap.appendChild(input);
-  el.replaceWith(wrap);
-  select.focus();
+  _giroObiettivoEditCtx = { mode, dayKey, id };
+  _giroObiettivoEditSelected = new Set(_visitObiettivi(v));
+  _renderGiroObiettivoPickerList();
+  const customInp = document.getElementById('giro-obiettivo-picker-custom'); if(customInp) customInp.value = '';
+  openOverlay('giro-obiettivo-picker-overlay');
 }
 window.editGiroObiettivoStart = editGiroObiettivoStart;
-function editGiroObiettivoCommit(mode, dayKey, id, value){
+function _renderGiroObiettivoPickerList(){
+  const wrap = document.getElementById('giro-obiettivo-picker-list');
+  if(!wrap) return;
+  const extra = Array.from(_giroObiettivoEditSelected).filter(o=>!obiettiviPreset.includes(o));
+  const all = obiettiviPreset.concat(extra);
+  wrap.innerHTML = all.map(o=>{
+    const checked = _giroObiettivoEditSelected.has(o);
+    return `<div class="giri-client-option${checked?' selected':''}" onclick="toggleGiroObiettivoPicker('${escA(o)}')">
+      <span class="giri-client-option-check">${checked?'&#10003;':''}</span>
+      <span>${escH(o)}</span>
+    </div>`;
+  }).join('');
+}
+function toggleGiroObiettivoPicker(o){
+  if(_giroObiettivoEditSelected.has(o)) _giroObiettivoEditSelected.delete(o);
+  else _giroObiettivoEditSelected.add(o);
+  _renderGiroObiettivoPickerList();
+}
+window.toggleGiroObiettivoPicker = toggleGiroObiettivoPicker;
+function addGiroObiettivoPickerCustom(){
+  const inp = document.getElementById('giro-obiettivo-picker-custom');
+  if(!inp) return;
+  const val = inp.value.trim();
+  if(!val) return;
+  _giroObiettivoEditSelected.add(val);
+  inp.value = '';
+  _renderGiroObiettivoPickerList();
+}
+window.addGiroObiettivoPickerCustom = addGiroObiettivoPickerCustom;
+function saveGiroObiettivoPicker(){
+  if(!_giroObiettivoEditCtx) return;
+  const { mode, dayKey, id } = _giroObiettivoEditCtx;
   const arr = _giroStore(mode)[dayKey];
   const v = arr && arr.find(x=>x.id===id);
   if(v){
-    v.obiettivo = value || undefined;
+    const list = Array.from(_giroObiettivoEditSelected);
+    v.obiettivi = list.length ? list : undefined;
+    delete v.obiettivo;
     saveAll();
   }
+  closeGiroObiettivoPicker();
   renderGiri();
 }
-window.editGiroObiettivoCommit = editGiroObiettivoCommit;
+window.saveGiroObiettivoPicker = saveGiroObiettivoPicker;
+function closeGiroObiettivoPicker(){
+  _giroObiettivoEditCtx = null;
+  closeOverlay('giro-obiettivo-picker-overlay');
+}
+window.closeGiroObiettivoPicker = closeGiroObiettivoPicker;
 function removeGiro(mode, dayKey, id){
   const store = _giroStore(mode);
   if(!store[dayKey]) return;
@@ -5137,7 +5359,14 @@ function renameObiettivoPreset(idx, name){
   obiettiviPreset[idx] = name;
   [giri, giroContinuo].forEach(store=>{
     Object.values(store).forEach(arr=>{
-      if(Array.isArray(arr)) arr.forEach(v=>{ if(v.obiettivo===old) v.obiettivo=name; });
+      if(!Array.isArray(arr)) return;
+      arr.forEach(v=>{
+        if(v.obiettivo===old) v.obiettivo=name;
+        if(Array.isArray(v.obiettivi)){
+          const i = v.obiettivi.indexOf(old);
+          if(i!==-1) v.obiettivi[i] = name;
+        }
+      });
     });
   });
   saveAll(); renderSettings(); showToast('Obiettivo rinominato');
