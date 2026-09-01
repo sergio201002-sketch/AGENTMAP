@@ -738,6 +738,9 @@ header {
 .giri-visit-az-logo img { width: 100%; height: 100%; object-fit: contain; }
 .giri-visit-az-logo span { font-size: 0.5rem; font-weight: 700; color: #7d859c; }
 .giri-visit-az-logo.empty { color: var(--text-light); font-size: 0.75rem; font-weight: 700; border-style: dashed; }
+.giri-visit-az-group { display: flex; align-items: center; gap: 2px; flex-shrink: 0; cursor: pointer; }
+.giri-visit-az-group .giri-visit-az-logo { width: 20px; height: 20px; cursor: pointer; }
+.giri-visit-az-group .giri-visit-az-logo.more { font-size: 0.5rem; font-weight: 800; color: var(--text-muted); background: var(--surface2); }
 .giri-visit-az-select { font-family: 'Nunito', sans-serif; font-size: 0.62rem; padding: 3px 2px; border-radius: 5px; border: 1px solid var(--accent); background: var(--surface); color: var(--text); width: 68px; flex-shrink: 0; }
 .giri-visit-obiettivo { font-size: 0.68rem; color: var(--text-muted); margin-top: 4px; cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; display: inline-block; }
 .giri-visit-obiettivo-edit { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; }
@@ -1171,8 +1174,8 @@ header {
         </div>
       </div>
       <div style="margin-bottom:14px">
-        <div class="client-edit-label" style="margin-bottom:6px">Azienda della visita (opzionale)</div>
-        <select class="add-client-select" id="giri-add-azienda"></select>
+        <div class="client-edit-label" style="margin-bottom:6px">Aziende della visita (opzionale, selezione multipla)</div>
+        <div class="giri-client-list visible" id="giri-add-azienda" style="max-height:140px"></div>
       </div>
       <div style="margin-bottom:14px">
         <div class="client-edit-label" style="margin-bottom:6px">Obiettivo della visita (opzionale)</div>
@@ -1193,6 +1196,26 @@ header {
     <div class="modal-footer" style="display:flex;gap:8px">
       <button onclick="closeGiroAdd()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Chiudi</button>
       <button onclick="confirmAddGiro()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Salva e continua</button>
+    </div>
+  </div>
+</div>
+
+<!-- SELEZIONE AZIENDE PER VISITA (multi) -->
+<div class="overlay" id="giro-azienda-picker-overlay" onclick="closeOverlayBg(event,'giro-azienda-picker-overlay',closeGiroAziendaPicker)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Aziende della visita</div>
+        <div class="modal-subtitle">Puoi selezionarne pi&ugrave; di una</div>
+      </div>
+      <button class="modal-close" onclick="closeGiroAziendaPicker()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="giri-client-list visible" id="giro-azienda-picker-list" style="max-height:260px"></div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px">
+      <button onclick="closeGiroAziendaPicker()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Chiudi</button>
+      <button onclick="saveGiroAziendaPicker()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Salva</button>
     </div>
   </div>
 </div>
@@ -3815,6 +3838,10 @@ function todayDayKey(){
   const idx = new Date().getDay();
   return idx === 0 ? 'dom' : GIORNI[idx-1].key;
 }
+function _visitAziendaIds(v){
+  if(Array.isArray(v.aziendaIds)) return v.aziendaIds;
+  return v.aziendaId ? [v.aziendaId] : [];
+}
 function _renderGiroVisitHtml(v, idx, list, mode, dayKey){
   const cli = clienti.find(c=>c.id===v.clientId);
   const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
@@ -3825,8 +3852,10 @@ function _renderGiroVisitHtml(v, idx, list, mode, dayKey){
   const cv = cli ? getV(cli.id) : null;
   const days = cv ? daysSince(cv.visitDate) : null;
   const daysChip = days!==null ? `<span class="days-chip ${chipKey(days)}">${days}g</span>` : '';
-  const az = v.aziendaId ? aziende.find(a=>a.id===v.aziendaId) : null;
-  const azLogoHtml = `<div class="giri-visit-az-logo${az?'':' empty'}" onclick="editGiroAziendaStart(this,'${mode}','${dayKey}','${v.id}')" title="${az?escA(az.nome):'Assegna azienda'}">${az ? (az.logo?`<img src="${az.logo}" alt="${escA(az.nome)}">`:`<span>${escH(az.nome.substring(0,2).toUpperCase())}</span>`) : '+'}</div>`;
+  const azList = _visitAziendaIds(v).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean);
+  const azLogoHtml = azList.length
+    ? `<div class="giri-visit-az-group" onclick="editGiroAziendaStart(this,'${mode}','${dayKey}','${v.id}')" title="${escA(azList.map(a=>a.nome).join(', '))}">${azList.slice(0,3).map(a=>`<div class="giri-visit-az-logo">${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<span>${escH(a.nome.substring(0,2).toUpperCase())}</span>`}</div>`).join('')}${azList.length>3?`<div class="giri-visit-az-logo more">+${azList.length-3}</div>`:''}</div>`
+    : `<div class="giri-visit-az-logo empty" onclick="editGiroAziendaStart(this,'${mode}','${dayKey}','${v.id}')" title="Assegna azienda">+</div>`;
   const obiettivoHtml = `<div class="giri-visit-obiettivo" onclick="editGiroObiettivoStart(this,'${mode}','${dayKey}','${v.id}')" title="Modifica obiettivo">${v.obiettivo ? escH(v.obiettivo) : '+ Obiettivo'}</div>`;
   return `<div class="giri-visit">
     <div class="giri-visit-time${time?'':' no-time'}" onclick="editGiroTimeStart(this,'${mode}','${dayKey}','${v.id}')" title="Modifica orario">${time||'--:--'}</div>
@@ -3956,14 +3985,14 @@ async function exportGiriExcel(){
           (giroContinuo[key]||[]).forEach(v=>{
             const cli = clienti.find(c=>c.id===v.clientId);
             if(cli && cli.escludiExport) return;
-            const az = v.aziendaId ? aziende.find(a=>a.id===v.aziendaId) : null;
+            const azNomi = _visitAziendaIds(v).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean).map(a=>a.nome).join(', ');
             const alt = (n++ % 2) ? ' exl-row-alt' : '';
             rowsHtml += `<tr class="exl-row${alt}">
               <td>Settimana ${s}</td><td>${_exlEsc(g.name)}</td>
               <td>${_exlEsc(v.time||'')}</td>
               <td class="exl-name">${_exlEsc(cli?cli.nome:(v.clientName||'Cliente sconosciuto'))}</td>
               <td>${_exlEsc(cli?cli.zona:'')}</td>
-              <td>${az?_exlEsc(az.nome):'<span class="exl-muted">&mdash;</span>'}</td>
+              <td>${azNomi?_exlEsc(azNomi):'<span class="exl-muted">&mdash;</span>'}</td>
               <td>${v.obiettivo?_exlEsc(v.obiettivo):'<span class="exl-muted">&mdash;</span>'}</td>
               <td>${_exlEsc(v.note||'')}</td>
             </tr>`;
@@ -3979,14 +4008,14 @@ async function exportGiriExcel(){
         (giri[g.key]||[]).forEach(v=>{
           const cli = clienti.find(c=>c.id===v.clientId);
           if(cli && cli.escludiExport) return;
-          const az = v.aziendaId ? aziende.find(a=>a.id===v.aziendaId) : null;
+          const azNomi = _visitAziendaIds(v).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean).map(a=>a.nome).join(', ');
           const alt = (n++ % 2) ? ' exl-row-alt' : '';
           rowsHtml += `<tr class="exl-row${alt}">
             <td>${_exlEsc(g.name)}</td>
             <td>${_exlEsc(v.time||'')}</td>
             <td class="exl-name">${_exlEsc(cli?cli.nome:(v.clientName||'Cliente sconosciuto'))}</td>
             <td>${_exlEsc(cli?cli.zona:'')}</td>
-            <td>${az?_exlEsc(az.nome):'<span class="exl-muted">&mdash;</span>'}</td>
+            <td>${azNomi?_exlEsc(azNomi):'<span class="exl-muted">&mdash;</span>'}</td>
             <td>${v.obiettivo?_exlEsc(v.obiettivo):'<span class="exl-muted">&mdash;</span>'}</td>
             <td>${_exlEsc(v.note||'')}</td>
           </tr>`;
@@ -4215,6 +4244,7 @@ window.activateSavedGiro = activateSavedGiro;
 let _activeGiroDay = null;
 let _activeGiroMode = 'settimana';
 let _selectedGiroClientIds = new Set();
+let _selectedGiroAziendaIds = new Set();
 let _pickerClientId = null;
 // Filtri persistenti nel modal aggiunta (sopravvivono dopo ogni salvataggio)
 let _giroAddFilterZona = '';    // '' = Tutte
@@ -4263,6 +4293,7 @@ function openGiroAdd(dayKey, preClientId, mode){
   _activeGiroDay = dayKey;
   _activeGiroMode = mode === 'continuo' ? 'continuo' : 'settimana';
   _selectedGiroClientIds = new Set(preClientId ? [preClientId] : []);
+  _selectedGiroAziendaIds = new Set();
   let label = '';
   if(_activeGiroMode === 'continuo'){
     const m = /^s(\d)_(.+)$/.exec(dayKey);
@@ -4493,33 +4524,40 @@ function selectGiroClient(id){
 }
 function clearGiroClientSelection(){
   _selectedGiroClientIds = new Set();
+  _selectedGiroAziendaIds = new Set();
   filterGiroClientList();
   _renderGiroAddAziendaOptions();
 }
 window.clearGiroClientSelection = clearGiroClientSelection;
 function _renderGiroAddAziendaOptions(){
-  const sel = document.getElementById('giri-add-azienda');
-  if(!sel) return;
+  const wrap = document.getElementById('giri-add-azienda');
+  if(!wrap) return;
   if(_selectedGiroClientIds.size === 0){
-    sel.innerHTML = '<option value="">Seleziona prima un cliente</option>';
-    sel.disabled = true;
+    wrap.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Seleziona prima un cliente</div>';
     return;
   }
   if(_selectedGiroClientIds.size > 1){
-    sel.innerHTML = '<option value="">Disponibile solo con un cliente alla volta</option>';
-    sel.disabled = true;
+    wrap.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Disponibile solo con un cliente alla volta</div>';
     return;
   }
-  const cli = clienti.find(c=>c.id===[..._selectedGiroClientIds][0]);
-  const clientAziende = cli ? (cli.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean) : [];
-  if(!clientAziende.length){
-    sel.innerHTML = '<option value="">Nessuna azienda collegata a questo cliente</option>';
-    sel.disabled = true;
+  if(!aziende.length){
+    wrap.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Nessuna azienda configurata</div>';
     return;
   }
-  sel.disabled = false;
-  sel.innerHTML = '<option value="">Nessuna / generale</option>' + clientAziende.map(a=>`<option value="${escA(a.id)}">${escH(a.nome)}</option>`).join('');
+  wrap.innerHTML = aziende.map(a=>{
+    const checked = _selectedGiroAziendaIds.has(a.id);
+    return `<div class="giri-client-option${checked?' selected':''}" onclick="toggleGiroAddAzienda('${a.id}')">
+      <span class="giri-client-option-check">${checked?'&#10003;':''}</span>
+      <span>${escH(a.nome)}</span>
+    </div>`;
+  }).join('');
 }
+function toggleGiroAddAzienda(id){
+  if(_selectedGiroAziendaIds.has(id)) _selectedGiroAziendaIds.delete(id);
+  else _selectedGiroAziendaIds.add(id);
+  _renderGiroAddAziendaOptions();
+}
+window.toggleGiroAddAzienda = toggleGiroAddAzienda;
 function _populateObiettivoSelect(selectEl, currentValue){
   const isCustom = currentValue && !OBIETTIVI_PRESET.includes(currentValue);
   selectEl.innerHTML = '<option value="">Nessuno</option>' +
@@ -4548,7 +4586,7 @@ function confirmAddGiro(){
   const time = (document.getElementById('giri-add-time').value||'').trim();
   const note = (document.getElementById('giri-add-note').value||'').trim();
   // L'azienda e l'obiettivo per-visita hanno senso solo quando è selezionato un singolo cliente
-  const aziendaId = _selectedGiroClientIds.size===1 ? ((document.getElementById('giri-add-azienda').value||'').trim() || undefined) : undefined;
+  const aziendaIds = _selectedGiroClientIds.size===1 ? Array.from(_selectedGiroAziendaIds) : [];
   let obiettivo;
   if(_selectedGiroClientIds.size===1){
     const obSelVal = document.getElementById('giri-add-obiettivo').value;
@@ -4571,7 +4609,7 @@ function confirmAddGiro(){
       clientId: cli.id,
       clientName: cli.nome,
       time, note,
-      aziendaId,
+      aziendaIds: aziendaIds.length ? aziendaIds : undefined,
       obiettivo,
     });
     addedNames.push(cli.nome);
@@ -4581,6 +4619,7 @@ function confirmAddGiro(){
   // NON chiudere il modal: l'utente vuole continuare ad aggiungere clienti
   // con gli stessi filtri attivi. Pulisci solo la selezione e i campi.
   _selectedGiroClientIds = new Set();
+  _selectedGiroAziendaIds = new Set();
   const srch = document.getElementById('giri-add-search'); if(srch) srch.value = '';
   const tm = document.getElementById('giri-add-time'); if(tm) tm.value = '';
   const nt = document.getElementById('giri-add-note'); if(nt) nt.value = '';
@@ -4625,35 +4664,59 @@ function editGiroTimeCommit(input, mode, dayKey, id){
   renderGiri();
 }
 window.editGiroTimeCommit = editGiroTimeCommit;
+let _giroAziendaEditCtx = null;
+let _giroAziendaEditSelected = new Set();
 function editGiroAziendaStart(el, mode, dayKey, id){
   const arr = _giroStore(mode)[dayKey];
   const v = arr && arr.find(x=>x.id===id);
   if(!v) return;
-  const cli = clienti.find(c=>c.id===v.clientId);
-  const clientAziende = cli ? (cli.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean) : [];
-  if(!clientAziende.length){
-    showToast('Questo cliente non ha aziende collegate');
+  if(!aziende.length){
+    showToast('Nessuna azienda configurata');
     return;
   }
-  const select = document.createElement('select');
-  select.className = 'giri-visit-az-select';
-  select.innerHTML = '<option value="">Nessuna</option>' + clientAziende.map(a=>`<option value="${escA(a.id)}"${v.aziendaId===a.id?' selected':''}>${escH(a.nome)}</option>`).join('');
-  select.onclick = function(e){ e.stopPropagation(); };
-  select.onchange = function(){ editGiroAziendaCommit(select, mode, dayKey, id); };
-  el.replaceWith(select);
-  select.focus();
+  _giroAziendaEditCtx = { mode, dayKey, id };
+  _giroAziendaEditSelected = new Set(_visitAziendaIds(v));
+  _renderGiroAziendaPickerList();
+  openOverlay('giro-azienda-picker-overlay');
 }
 window.editGiroAziendaStart = editGiroAziendaStart;
-function editGiroAziendaCommit(select, mode, dayKey, id){
+function _renderGiroAziendaPickerList(){
+  const wrap = document.getElementById('giro-azienda-picker-list');
+  if(!wrap) return;
+  wrap.innerHTML = aziende.map(a=>{
+    const checked = _giroAziendaEditSelected.has(a.id);
+    return `<div class="giri-client-option${checked?' selected':''}" onclick="toggleGiroAziendaPicker('${a.id}')">
+      <span class="giri-client-option-check">${checked?'&#10003;':''}</span>
+      <span>${escH(a.nome)}</span>
+    </div>`;
+  }).join('');
+}
+function toggleGiroAziendaPicker(aid){
+  if(_giroAziendaEditSelected.has(aid)) _giroAziendaEditSelected.delete(aid);
+  else _giroAziendaEditSelected.add(aid);
+  _renderGiroAziendaPickerList();
+}
+window.toggleGiroAziendaPicker = toggleGiroAziendaPicker;
+function saveGiroAziendaPicker(){
+  if(!_giroAziendaEditCtx) return;
+  const { mode, dayKey, id } = _giroAziendaEditCtx;
   const arr = _giroStore(mode)[dayKey];
   const v = arr && arr.find(x=>x.id===id);
   if(v){
-    v.aziendaId = select.value || undefined;
+    const ids = Array.from(_giroAziendaEditSelected);
+    v.aziendaIds = ids.length ? ids : undefined;
+    delete v.aziendaId;
     saveAll();
   }
+  closeGiroAziendaPicker();
   renderGiri();
 }
-window.editGiroAziendaCommit = editGiroAziendaCommit;
+window.saveGiroAziendaPicker = saveGiroAziendaPicker;
+function closeGiroAziendaPicker(){
+  _giroAziendaEditCtx = null;
+  closeOverlay('giro-azienda-picker-overlay');
+}
+window.closeGiroAziendaPicker = closeGiroAziendaPicker;
 function editGiroObiettivoStart(el, mode, dayKey, id){
   const arr = _giroStore(mode)[dayKey];
   const v = arr && arr.find(x=>x.id===id);
