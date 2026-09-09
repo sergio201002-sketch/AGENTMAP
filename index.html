@@ -1821,6 +1821,7 @@ let savedGiri = []; // [{id, name, data:{...snapshot di giroContinuo...}, savedA
 let obiettiviPreset = OBIETTIVI_PRESET_DEFAULT.slice(); // obiettivi predefiniti per le visite, personalizzabili da Impostazioni
 let catalogPreset = CATALOGHI_PRESET_DEFAULT.slice(); // cataloghi predefiniti, personalizzabili da Impostazioni
 let listinoPreset = []; // listini predefiniti, personalizzabili da Impostazioni
+let catalogStatsHiddenAziende = []; // id aziende nascoste dalla sezione Statistiche > Cataloghi
 const GIRO_CONTINUO_SETTIMANE = [1,2,3,4];
 const GIRO_CONTINUO_GIORNI = [
   {key:'lun', name:'Lunedì'}, {key:'mar', name:'Martedì'}, {key:'mer', name:'Mercoledì'},
@@ -1923,6 +1924,7 @@ function loadAll(){
     obiettiviPreset=Array.isArray(s.obiettiviPreset)?s.obiettiviPreset:OBIETTIVI_PRESET_DEFAULT.slice();
     catalogPreset=Array.isArray(s.catalogPreset)?s.catalogPreset:CATALOGHI_PRESET_DEFAULT.slice();
     listinoPreset=Array.isArray(s.listinoPreset)?s.listinoPreset:[];
+    catalogStatsHiddenAziende=Array.isArray(s.catalogStatsHiddenAziende)?s.catalogStatsHiddenAziende:[];
     if(kmlSync) KML_CLIENTS = kmlSync;
     if(s.giri && typeof s.giri==='object'){
       giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[], ...s.giri};
@@ -1961,9 +1963,10 @@ function reset(){
   obiettiviPreset=OBIETTIVI_PRESET_DEFAULT.slice();
   catalogPreset=CATALOGHI_PRESET_DEFAULT.slice();
   listinoPreset=[];
+  catalogStatsHiddenAziende=[];
 }
 function buildState(){
-  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders,savedGiri,obiettiviPreset,catalogPreset,listinoPreset};
+  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders,savedGiri,obiettiviPreset,catalogPreset,listinoPreset,catalogStatsHiddenAziende};
 }
 function saveAll(){
   try {
@@ -2236,6 +2239,7 @@ function applyCloudState(s){
     if(Array.isArray(s.obiettiviPreset)) obiettiviPreset = s.obiettiviPreset;
     if(Array.isArray(s.catalogPreset)) catalogPreset = s.catalogPreset;
     if(Array.isArray(s.listinoPreset)) listinoPreset = s.listinoPreset;
+    if(Array.isArray(s.catalogStatsHiddenAziende)) catalogStatsHiddenAziende = s.catalogStatsHiddenAziende;
     if(s.giroContinuo && typeof s.giroContinuo==='object'){
       const localCount = Object.values(giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
       const cloudCount = Object.values(s.giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
@@ -2453,6 +2457,10 @@ function getDistribDoc(c, aziendaId, docId){
   if(!c.badges.distribuzione[aziendaId][docId]) c.badges.distribuzione[aziendaId][docId]={};
   return c.badges.distribuzione[aziendaId][docId];
 }
+function _refreshStatsCatalogIfVisible(){
+  const page = document.getElementById('stats-catalogo-page');
+  if(page && page.style.display !== 'none' && typeof renderStatsCatalogList==='function') renderStatsCatalogList();
+}
 function toggleDocDato(clientId, aziendaId, docId, postazioneId){
   const c = clienti.find(x=>x.id===clientId); if(!c) return;
   const map = getDistribDoc(c, aziendaId, docId);
@@ -2461,6 +2469,7 @@ function toggleDocDato(clientId, aziendaId, docId, postazioneId){
   saveAll();
   if(typeof renderPostazioniOverlayBody==='function') renderPostazioniOverlayBody();
   renderClients();
+  _refreshStatsCatalogIfVisible();
 }
 function countDistribTotals(c, onlyAziendaId){
   const postazioni = getPostazioni(c);
@@ -2489,6 +2498,7 @@ window.openPostazioniOverlay = openPostazioniOverlay;
 function closePostazioniOverlay(){
   closeOverlay('postazioni-overlay');
   activePostazioniClientId = null;
+  _refreshStatsCatalogIfVisible();
 }
 window.closePostazioniOverlay = closePostazioniOverlay;
 function renderPostazioniOverlayBody(){
@@ -2533,29 +2543,41 @@ function renderPostazioniOverlayBody(){
   body.innerHTML = html;
 }
 function renderPostazioniEditorHtml(c){
-  const real = Array.isArray(c.postazioni) ? c.postazioni : [];
-  const count = real.length || 1;
-  const rows = real.length ? real.map(p=>`<div class="zone-manage-item">
-      <input class="zone-manage-name" type="text" value="${escA(p.nome)}" placeholder="Nome postazione" onchange="renamePostazione('${c.id}','${p.id}',this.value)">
-    </div>`).join('') : '';
+  const postazioni = getPostazioni(c);
+  const count = postazioni.length;
+  const rows = postazioni.map(p=>{
+    const isVirtual = p.id==='pz-default';
+    return `<div class="zone-manage-item">
+      <input class="zone-manage-name" type="text" value="${isVirtual?'':escA(p.nome)}" placeholder="Nome postazione" onchange="renamePostazione('${c.id}','${p.id}',this.value)">
+    </div>`;
+  }).join('');
   return `<div style="margin-bottom:8px">
     <div style="font-size:0.64rem;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);margin:0 0 10px">Postazioni di lavoro</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:${rows?'10px':'0'}">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <span style="font-size:0.8rem;color:var(--text-muted)">N&deg; dipendenti/postazioni:</span>
       <select class="move-client-select" onchange="setPostazioniCount('${c.id}',this.value)">
         ${Array.from({length:9},(_,i)=>i+1).map(n=>`<option value="${n}"${n===count?' selected':''}>${n}</option>`).join('')}
       </select>
     </div>
-    ${rows ? `<div class="zone-manage-list">${rows}</div>` : ''}
+    <div class="zone-manage-list">${rows}</div>
   </div>`;
+}
+function _migratePostazioneId(c, oldId, newId){
+  const dist = c.badges && c.badges.distribuzione;
+  if(!dist) return;
+  Object.keys(dist).forEach(aid=>{
+    Object.keys(dist[aid]).forEach(did=>{
+      const map = dist[aid][did];
+      if(map[oldId]){ map[newId] = map[oldId]; delete map[oldId]; }
+    });
+  });
 }
 function setPostazioniCount(clientId, n){
   n = Math.max(1, parseInt(n,10)||1);
   const c = clienti.find(x=>x.id===clientId); if(!c) return;
   let cur = Array.isArray(c.postazioni) ? c.postazioni.slice() : [];
-  if(n<=1){ c.postazioni = []; saveAll(); renderPostazioniOverlayBody(); renderClients(); return; }
   if(cur.length > n){
-    showConfirm('Ridurre a '+n+' postazioni? Le consegne registrate per le postazioni rimosse resteranno salvate ma non saranno piu\' visibili.', ()=>{
+    showConfirm('Ridurre a '+n+' postazion'+(n===1?'e':'i')+'? Le consegne registrate per le postazioni rimosse resteranno salvate ma non saranno piu\' visibili.', ()=>{
       c.postazioni = cur.slice(0,n); saveAll(); renderPostazioniOverlayBody(); renderClients();
     });
     return;
@@ -2565,9 +2587,20 @@ function setPostazioniCount(clientId, n){
   saveAll(); renderPostazioniOverlayBody(); renderClients();
 }
 function renamePostazione(clientId, postazioneId, nome){
-  const c = clienti.find(x=>x.id===clientId); if(!c || !Array.isArray(c.postazioni)) return;
+  const c = clienti.find(x=>x.id===clientId); if(!c) return;
+  nome = (nome||'').trim();
+  if(!Array.isArray(c.postazioni) || !c.postazioni.length){
+    if(!nome) return;
+    const newId = 'pz'+Date.now();
+    _migratePostazioneId(c, 'pz-default', newId);
+    c.postazioni = [{id:newId, nome}];
+    saveAll(); showToast('Salvato');
+    renderPostazioniOverlayBody(); renderClients();
+    return;
+  }
   const p = c.postazioni.find(x=>x.id===postazioneId); if(!p) return;
-  p.nome = (nome||'').trim() || p.nome;
+  if(!nome) return;
+  p.nome = nome;
   saveAll(); showToast('Salvato');
 }
 function printPostazioniScheda(clientId){
@@ -2648,6 +2681,13 @@ function exportDistribuzioneCSV(){
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
 }
+function toggleCatalogStatsAziendaHidden(aziendaId){
+  const idx = catalogStatsHiddenAziende.indexOf(aziendaId);
+  if(idx>=0) catalogStatsHiddenAziende.splice(idx,1);
+  else catalogStatsHiddenAziende.push(aziendaId);
+  saveAll();
+  renderSettings();
+}
 function renderDistribuzioneTab(){
   const perAzienda = aziende.map(a=>{
     let given=0, total=0;
@@ -2677,6 +2717,14 @@ function renderDistribuzioneTab(){
     </div>`;
   };
   let html = `<div style="margin-bottom:14px"><button class="zone-add-btn" onclick="exportDistribuzioneCSV()">Esporta CSV</button></div>`;
+  html += '<div style="font-size:0.64rem;color:var(--text-muted);margin-bottom:8px;font-family:\'JetBrains Mono\',monospace;letter-spacing:0.05em">AZIENDE VISIBILI IN STATISTICHE &gt; CATALOGHI</div>';
+  html += aziende.length ? `<div class="zone-manage-list" style="margin-bottom:20px">${aziende.map(a=>{
+    const hidden = catalogStatsHiddenAziende.includes(a.id);
+    return `<div class="zone-manage-item">
+      <span style="flex:1;font-weight:700;font-size:0.86rem;color:var(--text)">${escH(a.nome)}</span>
+      <button class="zone-add-btn" style="background:${hidden?'var(--surface2)':'var(--accent)'};color:${hidden?'var(--text-muted)':'#fff'}" onclick="toggleCatalogStatsAziendaHidden('${a.id}')">${hidden?'Nascosta — mostra':'Visibile — nascondi'}</button>
+    </div>`;
+  }).join('')}</div>` : '<div style="color:var(--text-muted);font-size:0.82rem;padding:6px 0;margin-bottom:20px">Nessuna azienda ancora.</div>';
   html += '<div style="font-size:0.64rem;color:var(--text-muted);margin-bottom:8px;font-family:\'JetBrains Mono\',monospace;letter-spacing:0.05em">PER AZIENDA</div>';
   html += perAzienda.length ? `<div class="zone-manage-list" style="margin-bottom:20px">${perAzienda.map(x=>barRow(x.a.nome,x.given,x.total)).join('')}</div>` : '<div style="color:var(--text-muted);font-size:0.82rem;padding:6px 0;margin-bottom:20px">Nessun dato ancora.</div>';
   html += '<div style="font-size:0.64rem;color:var(--text-muted);margin-bottom:8px;font-family:\'JetBrains Mono\',monospace;letter-spacing:0.05em">PER ZONA</div>';
@@ -7354,16 +7402,21 @@ function setStatsTab(tab){
 }
 window.setStatsTab = setStatsTab;
 
-function _docStatusForClient(c, aziendaId, docId){
+function _docCountForClient(c, aziendaId, docId){
   const postazioni = getPostazioni(c);
   const map = (c.badges && c.badges.distribuzione && c.badges.distribuzione[aziendaId] && c.badges.distribuzione[aziendaId][docId]) || {};
   const given = postazioni.filter(p=>map[p.id] && map[p.id].dato).length;
+  return {given, total: postazioni.length};
+}
+function _docStatusForClient(c, aziendaId, docId){
+  const {given, total} = _docCountForClient(c, aziendaId, docId);
   if(given===0) return 'mancante';
-  if(given===postazioni.length) return 'portato';
+  if(given===total) return 'portato';
   return 'in_corso';
 }
 function _clientAziendaDocs(c, tipo){
   return (c.aziende||[]).flatMap(aid=>{
+    if(catalogStatsHiddenAziende.includes(aid)) return [];
     const a = aziende.find(x=>x.id===aid);
     if(!a) return [];
     return getAziendaDocumenti(a).filter(d=>d.tipo===tipo).map(d=>({a, d}));
@@ -7373,7 +7426,7 @@ function renderStatsCatalogPage(){
   const typeSel = document.getElementById('stats-cat-type');
   if(typeSel){
     const prev = typeSel.value;
-    typeSel.innerHTML = '<option value="">Tutti i cataloghi</option>' + aziende.flatMap(a=>getAziendaDocumenti(a).filter(d=>d.tipo==='catalogo').map(d=>({a,d})))
+    typeSel.innerHTML = '<option value="">Tutti i cataloghi</option>' + aziende.filter(a=>!catalogStatsHiddenAziende.includes(a.id)).flatMap(a=>getAziendaDocumenti(a).filter(d=>d.tipo==='catalogo').map(d=>({a,d})))
       .map(({a,d})=>`<option value="${escA(a.id)}::${escA(d.id)}">${escH(a.nome)} &mdash; ${escH(d.nome)}</option>`).join('');
     typeSel.value = prev;
   }
@@ -7428,14 +7481,15 @@ function renderStatsCatalogList(){
     const listDocs = _clientAziendaDocs(c, 'listino');
     const catBadges = catDocs.map(({a,d})=>{
       const st = _docStatusForClient(c, a.id, d.id);
+      const {given, total} = _docCountForClient(c, a.id, d.id);
       const color = st==='portato' ? 'var(--green)' : (st==='in_corso' ? 'var(--yellow)' : 'var(--text-light)');
       const bg = st==='portato' ? 'rgba(31,157,95,0.12)' : (st==='in_corso' ? 'rgba(219,164,40,0.12)' : 'var(--surface2)');
       const label = st==='portato' ? 'consegnato' : (st==='in_corso' ? 'parziale' : 'non consegnato');
-      return `<span style="font-size:0.66rem;font-weight:700;color:${color};background:${bg};border-radius:6px;padding:3px 7px" title="${escA(a.nome)} &mdash; ${escA(d.nome)}: ${label}">${escH(d.nome)}</span>`;
+      return `<span style="font-size:0.66rem;font-weight:700;color:${color};background:${bg};border-radius:6px;padding:3px 7px" title="${escA(a.nome)} &mdash; ${escA(d.nome)}: ${label}">${escH(d.nome)} (${given}/${total})</span>`;
     }).join('');
     const listinoOn = listDocs.some(({a,d})=> _docStatusForClient(c, a.id, d.id) !== 'mancante');
     const listinoBadge = listDocs.length ? `<span style="font-size:0.66rem;font-weight:700;color:${listinoOn?'var(--green)':'var(--text-light)'};background:${listinoOn?'rgba(31,157,95,0.12)':'var(--surface2)'};border-radius:6px;padding:3px 7px">Listino${listinoOn?' &#10003;':''}</span>` : '';
-    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer" onclick="openClientInfo('${c.id}')">
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer" onclick="openPostazioniOverlay('${c.id}')" title="Apri e modifica le consegne">
       <div style="font-weight:700;color:var(--text);font-size:0.9rem">${escH(c.nome)}</div>
       <div style="font-size:0.66rem;color:var(--text-muted);margin:2px 0 8px">${escH(c.zona||'')}</div>
       <div style="display:flex;flex-wrap:wrap;gap:5px">${catBadges || listBadgesEmptyHint(catDocs)}${listinoBadge}</div>
