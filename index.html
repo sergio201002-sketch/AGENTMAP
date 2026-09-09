@@ -1717,8 +1717,8 @@ header {
         <select id="stats-cat-status" onchange="onStatsCatalogFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
           <option value="">Qualsiasi stato</option>
           <option value="mancante">Manca</option>
-          <option value="in_corso">In corso</option>
-          <option value="portato">Portato</option>
+          <option value="in_corso">Parziale</option>
+          <option value="portato">Consegnato</option>
         </select>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
@@ -7354,11 +7354,28 @@ function setStatsTab(tab){
 }
 window.setStatsTab = setStatsTab;
 
+function _docStatusForClient(c, aziendaId, docId){
+  const postazioni = getPostazioni(c);
+  const map = (c.badges && c.badges.distribuzione && c.badges.distribuzione[aziendaId] && c.badges.distribuzione[aziendaId][docId]) || {};
+  const given = postazioni.filter(p=>map[p.id] && map[p.id].dato).length;
+  if(given===0) return 'mancante';
+  if(given===postazioni.length) return 'portato';
+  return 'in_corso';
+}
+function _clientAziendaDocs(c, tipo){
+  return (c.aziende||[]).flatMap(aid=>{
+    const a = aziende.find(x=>x.id===aid);
+    if(!a) return [];
+    return getAziendaDocumenti(a).filter(d=>d.tipo===tipo).map(d=>({a, d}));
+  });
+}
 function renderStatsCatalogPage(){
   const typeSel = document.getElementById('stats-cat-type');
-  if(typeSel && !typeSel.dataset.populated){
-    typeSel.innerHTML = '<option value="">Tutti i cataloghi</option>' + catalogPreset.map(n=>`<option value="${escA(n)}">${escH(n)}</option>`).join('');
-    typeSel.dataset.populated = '1';
+  if(typeSel){
+    const prev = typeSel.value;
+    typeSel.innerHTML = '<option value="">Tutti i cataloghi</option>' + aziende.flatMap(a=>getAziendaDocumenti(a).filter(d=>d.tipo==='catalogo').map(d=>({a,d})))
+      .map(({a,d})=>`<option value="${escA(a.id)}::${escA(d.id)}">${escH(a.nome)} &mdash; ${escH(d.nome)}</option>`).join('');
+    typeSel.value = prev;
   }
   renderStatsCatalogList();
 }
@@ -7378,18 +7395,21 @@ function renderStatsCatalogList(){
 
   if(typeFilter || statusFilter){
     rows = rows.filter(c=>{
-      const cat = (c.badges && c.badges.catalogo) || {};
       if(typeFilter){
-        const st = cat[typeFilter] || 'mancante';
+        const [aid, did] = typeFilter.split('::');
+        if(!(c.aziende||[]).includes(aid)) return false;
+        const st = _docStatusForClient(c, aid, did);
         return !statusFilter || st === statusFilter;
       }
-      if(statusFilter === 'mancante') return catalogPreset.some(n=> !cat[n]);
-      return catalogPreset.some(n=> cat[n] === statusFilter);
+      const catDocs = _clientAziendaDocs(c, 'catalogo');
+      if(!catDocs.length) return statusFilter === 'mancante';
+      return catDocs.some(({a,d})=> _docStatusForClient(c, a.id, d.id) === statusFilter);
     });
   }
   if(listinoFilter){
     rows = rows.filter(c=>{
-      const has = !!(c.badges && c.badges.listino && Object.values(c.badges.listino).some(st=>st==='portato'));
+      const listDocs = _clientAziendaDocs(c, 'listino');
+      const has = listDocs.some(({a,d})=> _docStatusForClient(c, a.id, d.id) !== 'mancante');
       return listinoFilter==='si' ? has : !has;
     });
   }
@@ -7404,21 +7424,26 @@ function renderStatsCatalogList(){
   }
 
   list.innerHTML = rows.map(c=>{
-    const cat = (c.badges && c.badges.catalogo) || {};
-    const listinoOn = !!(c.badges && c.badges.listino && Object.values(c.badges.listino).some(st=>st==='portato'));
-    const catBadges = catalogPreset.map(name=>{
-      const st = cat[name];
+    const catDocs = _clientAziendaDocs(c, 'catalogo');
+    const listDocs = _clientAziendaDocs(c, 'listino');
+    const catBadges = catDocs.map(({a,d})=>{
+      const st = _docStatusForClient(c, a.id, d.id);
       const color = st==='portato' ? 'var(--green)' : (st==='in_corso' ? 'var(--yellow)' : 'var(--text-light)');
       const bg = st==='portato' ? 'rgba(31,157,95,0.12)' : (st==='in_corso' ? 'rgba(219,164,40,0.12)' : 'var(--surface2)');
-      return `<span style="font-size:0.66rem;font-weight:700;color:${color};background:${bg};border-radius:6px;padding:3px 7px" title="${escA(name)}: ${st==='portato'?'portato':(st==='in_corso'?'in corso':'non assegnato')}">${escH(name)}</span>`;
+      const label = st==='portato' ? 'consegnato' : (st==='in_corso' ? 'parziale' : 'non consegnato');
+      return `<span style="font-size:0.66rem;font-weight:700;color:${color};background:${bg};border-radius:6px;padding:3px 7px" title="${escA(a.nome)} &mdash; ${escA(d.nome)}: ${label}">${escH(d.nome)}</span>`;
     }).join('');
-    const listinoBadge = `<span style="font-size:0.66rem;font-weight:700;color:${listinoOn?'var(--green)':'var(--text-light)'};background:${listinoOn?'rgba(31,157,95,0.12)':'var(--surface2)'};border-radius:6px;padding:3px 7px">Listino${listinoOn?' &#10003;':''}</span>`;
+    const listinoOn = listDocs.some(({a,d})=> _docStatusForClient(c, a.id, d.id) !== 'mancante');
+    const listinoBadge = listDocs.length ? `<span style="font-size:0.66rem;font-weight:700;color:${listinoOn?'var(--green)':'var(--text-light)'};background:${listinoOn?'rgba(31,157,95,0.12)':'var(--surface2)'};border-radius:6px;padding:3px 7px">Listino${listinoOn?' &#10003;':''}</span>` : '';
     return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer" onclick="openClientInfo('${c.id}')">
       <div style="font-weight:700;color:var(--text);font-size:0.9rem">${escH(c.nome)}</div>
       <div style="font-size:0.66rem;color:var(--text-muted);margin:2px 0 8px">${escH(c.zona||'')}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px">${catBadges}${listinoBadge}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${catBadges || listBadgesEmptyHint(catDocs)}${listinoBadge}</div>
     </div>`;
   }).join('');
+}
+function listBadgesEmptyHint(catDocs){
+  return catDocs.length ? '' : '<span style="font-size:0.66rem;color:var(--text-light)">Nessun catalogo assegnato</span>';
 }
 window.renderStatsCatalogList = renderStatsCatalogList;
 
