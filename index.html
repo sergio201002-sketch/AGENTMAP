@@ -1711,21 +1711,19 @@ header {
       <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px">Chi ha ricevuto cosa, e chi manca ancora</div>
       <input type="text" id="stats-cat-search" placeholder="Cerca cliente..." oninput="onStatsCatalogFilterChange()" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'Nunito',sans-serif;font-size:0.82rem;margin:14px 0 10px;outline:none">
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <select id="stats-cat-type" onchange="onStatsCatalogFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
-          <option value="">Tutti i cataloghi</option>
+        <select id="stats-cat-azienda" onchange="onStatsCatalogAziendaChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
+          <option value="">Tutte le aziende</option>
         </select>
+        <select id="stats-cat-type" onchange="onStatsCatalogFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
+          <option value="">Tutti i documenti</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
         <select id="stats-cat-status" onchange="onStatsCatalogFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
           <option value="">Qualsiasi stato</option>
           <option value="mancante">Manca</option>
           <option value="in_corso">Parziale</option>
           <option value="portato">Consegnato</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-        <select id="stats-cat-listino" onchange="onStatsCatalogFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
-          <option value="">Listino: tutti</option>
-          <option value="si">Solo con listino</option>
-          <option value="no">Solo senza listino</option>
         </select>
         <select id="stats-cat-sort" onchange="onStatsCatalogFilterChange()" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-family:'Nunito',sans-serif;font-size:0.78rem">
           <option value="nome">Ordina: nome A-Z</option>
@@ -7414,24 +7412,47 @@ function _docStatusForClient(c, aziendaId, docId){
   if(given===total) return 'portato';
   return 'in_corso';
 }
-function _clientAziendaDocs(c, tipo){
+function _clientAllDocs(c, onlyAziendaId){
   return (c.aziende||[]).flatMap(aid=>{
     if(catalogStatsHiddenAziende.includes(aid)) return [];
+    if(onlyAziendaId && aid!==onlyAziendaId) return [];
     const a = aziende.find(x=>x.id===aid);
     if(!a) return [];
-    return getAziendaDocumenti(a).filter(d=>d.tipo===tipo).map(d=>({a, d}));
+    return getAziendaDocumenti(a).map(d=>({a, d}));
   });
 }
-function renderStatsCatalogPage(){
+function _populateStatsCatTypeSelect(aziendaFilter){
   const typeSel = document.getElementById('stats-cat-type');
-  if(typeSel){
-    const prev = typeSel.value;
-    typeSel.innerHTML = '<option value="">Tutti i cataloghi</option>' + aziende.filter(a=>!catalogStatsHiddenAziende.includes(a.id)).flatMap(a=>getAziendaDocumenti(a).filter(d=>d.tipo==='catalogo').map(d=>({a,d})))
-      .map(({a,d})=>`<option value="${escA(a.id)}::${escA(d.id)}">${escH(a.nome)} &mdash; ${escH(d.nome)}</option>`).join('');
-    typeSel.value = prev;
+  if(!typeSel) return;
+  const prev = typeSel.value;
+  const list = aziende.filter(a=> !catalogStatsHiddenAziende.includes(a.id) && (!aziendaFilter || a.id===aziendaFilter));
+  const opts = list.flatMap(a=>getAziendaDocumenti(a).map(d=>({a,d})));
+  typeSel.innerHTML = '<option value="">Tutti i documenti</option>' + opts.map(({a,d})=>{
+    const tipoLabel = d.tipo==='listino' ? 'Listino' : 'Catalogo';
+    const label = aziendaFilter ? `${escH(d.nome)} (${tipoLabel})` : `${escH(a.nome)} &mdash; ${escH(d.nome)} (${tipoLabel})`;
+    return `<option value="${escA(a.id)}::${escA(d.id)}">${label}</option>`;
+  }).join('');
+  const stillValid = Array.from(typeSel.options).some(o=>o.value===prev);
+  typeSel.value = stillValid ? prev : '';
+}
+function renderStatsCatalogPage(){
+  const azSel = document.getElementById('stats-cat-azienda');
+  if(azSel){
+    const prev = azSel.value;
+    azSel.innerHTML = '<option value="">Tutte le aziende</option>' + aziende.filter(a=>!catalogStatsHiddenAziende.includes(a.id))
+      .map(a=>`<option value="${escA(a.id)}">${escH(a.nome)}</option>`).join('');
+    const stillValid = Array.from(azSel.options).some(o=>o.value===prev);
+    azSel.value = stillValid ? prev : '';
   }
+  _populateStatsCatTypeSelect(azSel ? azSel.value : '');
   renderStatsCatalogList();
 }
+function onStatsCatalogAziendaChange(){
+  const aziendaFilter = document.getElementById('stats-cat-azienda').value;
+  _populateStatsCatTypeSelect(aziendaFilter);
+  renderStatsCatalogList();
+}
+window.onStatsCatalogAziendaChange = onStatsCatalogAziendaChange;
 function onStatsCatalogFilterChange(){ renderStatsCatalogList(); }
 window.onStatsCatalogFilterChange = onStatsCatalogFilterChange;
 function renderStatsCatalogList(){
@@ -7439,13 +7460,16 @@ function renderStatsCatalogList(){
   const summary = document.getElementById('stats-cat-summary');
   if(!list) return;
   const q = (document.getElementById('stats-cat-search').value||'').toLowerCase().trim();
+  const aziendaFilter = document.getElementById('stats-cat-azienda').value;
   const typeFilter = document.getElementById('stats-cat-type').value;
   const statusFilter = document.getElementById('stats-cat-status').value;
-  const listinoFilter = document.getElementById('stats-cat-listino').value;
   const sortBy = document.getElementById('stats-cat-sort').value;
 
   let rows = clienti.filter(c=>!q || c.nome.toLowerCase().includes(q));
 
+  if(aziendaFilter){
+    rows = rows.filter(c=> (c.aziende||[]).includes(aziendaFilter));
+  }
   if(typeFilter || statusFilter){
     rows = rows.filter(c=>{
       if(typeFilter){
@@ -7454,16 +7478,9 @@ function renderStatsCatalogList(){
         const st = _docStatusForClient(c, aid, did);
         return !statusFilter || st === statusFilter;
       }
-      const catDocs = _clientAziendaDocs(c, 'catalogo');
-      if(!catDocs.length) return statusFilter === 'mancante';
-      return catDocs.some(({a,d})=> _docStatusForClient(c, a.id, d.id) === statusFilter);
-    });
-  }
-  if(listinoFilter){
-    rows = rows.filter(c=>{
-      const listDocs = _clientAziendaDocs(c, 'listino');
-      const has = listDocs.some(({a,d})=> _docStatusForClient(c, a.id, d.id) !== 'mancante');
-      return listinoFilter==='si' ? has : !has;
+      const docs = _clientAllDocs(c, aziendaFilter || null);
+      if(!docs.length) return statusFilter === 'mancante';
+      return docs.some(({a,d})=> _docStatusForClient(c, a.id, d.id) === statusFilter);
     });
   }
 
@@ -7477,27 +7494,23 @@ function renderStatsCatalogList(){
   }
 
   list.innerHTML = rows.map(c=>{
-    const catDocs = _clientAziendaDocs(c, 'catalogo');
-    const listDocs = _clientAziendaDocs(c, 'listino');
-    const catBadges = catDocs.map(({a,d})=>{
+    const docs = _clientAllDocs(c, aziendaFilter || null);
+    const badges = docs.map(({a,d})=>{
       const st = _docStatusForClient(c, a.id, d.id);
       const {given, total} = _docCountForClient(c, a.id, d.id);
       const color = st==='portato' ? 'var(--green)' : (st==='in_corso' ? 'var(--yellow)' : 'var(--text-light)');
       const bg = st==='portato' ? 'rgba(31,157,95,0.12)' : (st==='in_corso' ? 'rgba(219,164,40,0.12)' : 'var(--surface2)');
       const label = st==='portato' ? 'consegnato' : (st==='in_corso' ? 'parziale' : 'non consegnato');
-      return `<span style="font-size:0.66rem;font-weight:700;color:${color};background:${bg};border-radius:6px;padding:3px 7px" title="${escA(a.nome)} &mdash; ${escA(d.nome)}: ${label}">${escH(d.nome)} (${given}/${total})</span>`;
+      const tipoTag = d.tipo==='listino' ? 'Listino' : 'Catalogo';
+      const nomeVisibile = aziendaFilter ? `${d.nome} (${tipoTag})` : `${a.nome} &mdash; ${d.nome} (${tipoTag})`;
+      return `<span style="font-size:0.66rem;font-weight:700;color:${color};background:${bg};border-radius:6px;padding:3px 7px" title="${escA(a.nome)} &mdash; ${escA(d.nome)}: ${label}">${nomeVisibile} (${given}/${total})</span>`;
     }).join('');
-    const listinoOn = listDocs.some(({a,d})=> _docStatusForClient(c, a.id, d.id) !== 'mancante');
-    const listinoBadge = listDocs.length ? `<span style="font-size:0.66rem;font-weight:700;color:${listinoOn?'var(--green)':'var(--text-light)'};background:${listinoOn?'rgba(31,157,95,0.12)':'var(--surface2)'};border-radius:6px;padding:3px 7px">Listino${listinoOn?' &#10003;':''}</span>` : '';
     return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:11px 13px;margin-bottom:8px;cursor:pointer" onclick="openPostazioniOverlay('${c.id}')" title="Apri e modifica le consegne">
       <div style="font-weight:700;color:var(--text);font-size:0.9rem">${escH(c.nome)}</div>
       <div style="font-size:0.66rem;color:var(--text-muted);margin:2px 0 8px">${escH(c.zona||'')}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px">${catBadges || listBadgesEmptyHint(catDocs)}${listinoBadge}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${badges || '<span style="font-size:0.66rem;color:var(--text-light)">Nessun documento</span>'}</div>
     </div>`;
   }).join('');
-}
-function listBadgesEmptyHint(catDocs){
-  return catDocs.length ? '' : '<span style="font-size:0.66rem;color:var(--text-light)">Nessun catalogo assegnato</span>';
 }
 window.renderStatsCatalogList = renderStatsCatalogList;
 
