@@ -399,6 +399,14 @@ header {
 .chip-arancio { background: rgba(224,135,60,0.15); color: #e0873c; }
 .chip-rosso { background: rgba(202,0,19,0.15); color: #e0526a; }
 .chip-nero { background: rgba(125,133,156,0.15); color: var(--text-light); }
+.postazioni-count-badge { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 700; padding: 2px 7px; border-radius: 20px; color: var(--accent); background: var(--accent-dim); }
+.postazioni-count-badge.complete { color: var(--green); background: rgba(47,182,115,0.15); }
+.postazione-toggle { display: flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 7px 13px 7px 9px; cursor: pointer; font-family: 'Nunito', sans-serif; transition: all 0.15s; }
+.postazione-toggle:hover { border-color: var(--accent); }
+.postazione-toggle.given { background: var(--accent-dim); border-color: var(--accent); }
+.postazione-toggle-check { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: var(--green); flex-shrink: 0; }
+.postazione-toggle.given .postazione-toggle-check { border-color: var(--green); background: rgba(47,182,115,0.15); }
+.postazione-toggle-nome { font-size: 0.82rem; font-weight: 600; color: var(--text); }
 .position-row { display: flex; align-items: center; gap: 5px; }
 .position-input {
   flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
@@ -1363,6 +1371,19 @@ header {
   </div>
 </div>
 
+<div class="overlay" id="postazioni-overlay" onclick="closeOverlayBg(event,'postazioni-overlay',closePostazioniOverlay)">
+  <div class="modal" style="max-width:560px;max-height:90vh">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="postazioni-overlay-title">Postazioni</div>
+        <div class="modal-subtitle" id="postazioni-overlay-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closePostazioniOverlay()">&times;</button>
+    </div>
+    <div class="modal-body" id="postazioni-overlay-body" style="padding:16px 20px;max-height:76vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <div class="overlay" id="catalog-badge-overlay" onclick="closeOverlayBg(event,'catalog-badge-overlay',closeCatalogBadge)">
   <div class="modal" style="max-width:380px">
     <div class="modal-header">
@@ -1373,6 +1394,19 @@ header {
       <button class="modal-close" onclick="closeCatalogBadge()">&times;</button>
     </div>
     <div class="modal-body" id="catalog-badge-body" style="padding:16px 20px"></div>
+  </div>
+</div>
+
+<div class="overlay" id="listino-badge-overlay" onclick="closeOverlayBg(event,'listino-badge-overlay',closeListinoBadge)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Portare listino</div>
+        <div class="modal-subtitle" id="listino-badge-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeListinoBadge()">&times;</button>
+    </div>
+    <div class="modal-body" id="listino-badge-body" style="padding:16px 20px"></div>
   </div>
 </div>
 
@@ -1756,6 +1790,7 @@ header {
 <script>
 const DEFAULT_ZONES = ['CHIETI','PESCARA','SULMONA','TERAMO','AQUILA','MOLISE','VASTO'];
 const OBIETTIVI_PRESET_DEFAULT = ['Presentare catalogo', 'Raccogliere ordine', 'Recupero pagamento', 'Visita di cortesia', 'Risolvere un problema', 'Presentare nuovo prodotto'];
+const CATALOGHI_PRESET_DEFAULT = ['Emilceramica', 'Ergon', 'Provenza'];
 // Lista vuota: i clienti reali arrivano da Firebase (cloud) o da localStorage.
 // Lasciandola vuota si evita che, caricando la nuova versione del file,
 // appaiano clienti di esempio che si sovrappongono ai tuoi dati reali.
@@ -1784,6 +1819,8 @@ let giriVisitLayout = (function(){
 })(); // 'card' | 'list'
 let savedGiri = []; // [{id, name, data:{...snapshot di giroContinuo...}, savedAt}]
 let obiettiviPreset = OBIETTIVI_PRESET_DEFAULT.slice(); // obiettivi predefiniti per le visite, personalizzabili da Impostazioni
+let catalogPreset = CATALOGHI_PRESET_DEFAULT.slice(); // cataloghi predefiniti, personalizzabili da Impostazioni
+let listinoPreset = []; // listini predefiniti, personalizzabili da Impostazioni
 const GIRO_CONTINUO_SETTIMANE = [1,2,3,4];
 const GIRO_CONTINUO_GIORNI = [
   {key:'lun', name:'Lunedì'}, {key:'mar', name:'Martedì'}, {key:'mer', name:'Mercoledì'},
@@ -1884,6 +1921,8 @@ function loadAll(){
     remFolders=Array.isArray(s.remFolders)?s.remFolders:[];
     savedGiri=Array.isArray(s.savedGiri)?s.savedGiri:[];
     obiettiviPreset=Array.isArray(s.obiettiviPreset)?s.obiettiviPreset:OBIETTIVI_PRESET_DEFAULT.slice();
+    catalogPreset=Array.isArray(s.catalogPreset)?s.catalogPreset:CATALOGHI_PRESET_DEFAULT.slice();
+    listinoPreset=Array.isArray(s.listinoPreset)?s.listinoPreset:[];
     if(kmlSync) KML_CLIENTS = kmlSync;
     if(s.giri && typeof s.giri==='object'){
       giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[], ...s.giri};
@@ -1920,9 +1959,11 @@ function reset(){
   remFolders=[];
   savedGiri=[];
   obiettiviPreset=OBIETTIVI_PRESET_DEFAULT.slice();
+  catalogPreset=CATALOGHI_PRESET_DEFAULT.slice();
+  listinoPreset=[];
 }
 function buildState(){
-  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders,savedGiri,obiettiviPreset};
+  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders,savedGiri,obiettiviPreset,catalogPreset,listinoPreset};
 }
 function saveAll(){
   try {
@@ -2060,7 +2101,7 @@ function _badgesWeight(clientiArr){
   clientiArr.forEach(c=>{
     if(!c || !c.badges) return;
     if(c.badges.catalogo) n += Object.keys(c.badges.catalogo).length;
-    if(c.badges.listino && c.badges.listino.active) n += 1;
+    if(c.badges.listino) n += Object.keys(c.badges.listino).length;
     if(Array.isArray(c.badges.invitiCersaie)) n += c.badges.invitiCersaie.length;
     if(Array.isArray(c.badges.ceneCersaie)) n += c.badges.ceneCersaie.length;
   });
@@ -2080,6 +2121,8 @@ function _stateSize(s){
        + (Array.isArray(s.giriHistory)?s.giriHistory.length:0) * 2
        + (Array.isArray(s.zoneGroups)?s.zoneGroups.length:0)
        + (Array.isArray(s.obiettiviPreset)?s.obiettiviPreset.length:0)
+       + (Array.isArray(s.catalogPreset)?s.catalogPreset.length:0)
+       + (Array.isArray(s.listinoPreset)?s.listinoPreset.length:0)
        + _badgesWeight(s.clienti) * 4;
 }
 
@@ -2191,6 +2234,8 @@ function applyCloudState(s){
     if(Array.isArray(s.remFolders)) remFolders = s.remFolders;
     if(Array.isArray(s.savedGiri)) savedGiri = s.savedGiri;
     if(Array.isArray(s.obiettiviPreset)) obiettiviPreset = s.obiettiviPreset;
+    if(Array.isArray(s.catalogPreset)) catalogPreset = s.catalogPreset;
+    if(Array.isArray(s.listinoPreset)) listinoPreset = s.listinoPreset;
     if(s.giroContinuo && typeof s.giroContinuo==='object'){
       const localCount = Object.values(giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
       const cloudCount = Object.values(s.giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
@@ -2393,6 +2438,250 @@ function getV(id){
     if(visits[id].visitDate) visits[id].visitHistory.push(visits[id].visitDate);
   }
   return visits[id];
+}
+
+// ── POSTAZIONI: documenti azienda, postazioni cliente, matrice di consegna ──
+function getAziendaDocumenti(a){ if(!Array.isArray(a.documenti)) a.documenti=[]; return a.documenti; }
+function getPostazioni(c){
+  if(Array.isArray(c.postazioni) && c.postazioni.length) return c.postazioni;
+  return [{id:'pz-default', nome:'Postazione unica'}];
+}
+function getDistribDoc(c, aziendaId, docId){
+  if(!c.badges) c.badges = {};
+  if(!c.badges.distribuzione) c.badges.distribuzione = {};
+  if(!c.badges.distribuzione[aziendaId]) c.badges.distribuzione[aziendaId]={};
+  if(!c.badges.distribuzione[aziendaId][docId]) c.badges.distribuzione[aziendaId][docId]={};
+  return c.badges.distribuzione[aziendaId][docId];
+}
+function toggleDocDato(clientId, aziendaId, docId, postazioneId){
+  const c = clienti.find(x=>x.id===clientId); if(!c) return;
+  const map = getDistribDoc(c, aziendaId, docId);
+  if(map[postazioneId] && map[postazioneId].dato) delete map[postazioneId];
+  else map[postazioneId] = {dato:true, data:new Date().toISOString()};
+  saveAll();
+  if(typeof renderPostazioniOverlayBody==='function') renderPostazioniOverlayBody();
+  renderClients();
+}
+function countDistribTotals(c, onlyAziendaId){
+  const postazioni = getPostazioni(c);
+  const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean).filter(a=>!onlyAziendaId || a.id===onlyAziendaId);
+  let total=0, given=0;
+  const dist = (c.badges && c.badges.distribuzione) || {};
+  clientAziende.forEach(a=>{
+    getAziendaDocumenti(a).forEach(doc=>{
+      const map = (dist[a.id] && dist[a.id][doc.id]) || {};
+      postazioni.forEach(p=>{ total++; if(map[p.id] && map[p.id].dato) given++; });
+    });
+  });
+  return {given, total};
+}
+
+let activePostazioniClientId = null;
+function openPostazioniOverlay(id){
+  activePostazioniClientId = id;
+  const c = clienti.find(x=>x.id===id);
+  document.getElementById('postazioni-overlay-title').textContent = c ? c.nome : 'Postazioni';
+  document.getElementById('postazioni-overlay-sub').textContent = c ? (c.zona||'') : '';
+  renderPostazioniOverlayBody();
+  openOverlay('postazioni-overlay');
+}
+window.openPostazioniOverlay = openPostazioniOverlay;
+function closePostazioniOverlay(){
+  closeOverlay('postazioni-overlay');
+  activePostazioniClientId = null;
+}
+window.closePostazioniOverlay = closePostazioniOverlay;
+function renderPostazioniOverlayBody(){
+  const body = document.getElementById('postazioni-overlay-body');
+  const id = activePostazioniClientId;
+  if(!body || !id) return;
+  const c = clienti.find(x=>x.id===id);
+  if(!c){ closePostazioniOverlay(); return; }
+  let html = `<button class="zone-add-btn" style="margin-bottom:14px" onclick="printPostazioniScheda('${c.id}')">Stampa scheda</button>`
+    + renderPostazioniEditorHtml(c);
+  const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean);
+  html += '<div style="font-size:0.64rem;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);margin:18px 0 10px">Aziende</div>';
+  if(!clientAziende.length){
+    html += '<div style="color:var(--text-muted);font-size:0.82rem;padding:6px 0">Assegna un\'azienda a questo cliente per gestire i documenti.</div>';
+  } else {
+    const postazioni = getPostazioni(c);
+    clientAziende.forEach(az=>{
+      const docs = getAziendaDocumenti(az);
+      html += `<div class="zone-manage-item" style="flex-direction:column;align-items:stretch;margin-bottom:10px">
+        <div style="font-weight:700;font-size:0.86rem;color:var(--text);margin-bottom:${docs.length?'8px':'0'}">${escH(az.nome)}</div>`;
+      if(!docs.length){
+        html += `<div style="color:var(--text-muted);font-size:0.78rem">Nessun documento definito. Vai in Impostazioni &gt; Aziende per aggiungerne.</div>`;
+      } else {
+        html += docs.map(doc=>{
+          const map = (c.badges && c.badges.distribuzione && c.badges.distribuzione[az.id] && c.badges.distribuzione[az.id][doc.id]) || {};
+          const cells = postazioni.map(p=>{
+            const given = !!(map[p.id] && map[p.id].dato);
+            return `<button class="postazione-toggle${given?' given':''}" onclick="toggleDocDato('${c.id}','${az.id}','${doc.id}','${p.id}')">
+              <span class="postazione-toggle-check">${given?'&#10003;':''}</span>
+              <span class="postazione-toggle-nome">${escH(p.nome)}</span>
+            </button>`;
+          }).join('');
+          return `<div style="margin-bottom:8px">
+            <div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:5px">${escH(doc.nome)} <span style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.04em">(${doc.tipo==='listino'?'Listino':'Catalogo'})</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:7px">${cells}</div>
+          </div>`;
+        }).join('');
+      }
+      html += `</div>`;
+    });
+  }
+  body.innerHTML = html;
+}
+function renderPostazioniEditorHtml(c){
+  const real = Array.isArray(c.postazioni) ? c.postazioni : [];
+  const count = real.length || 1;
+  const rows = real.length ? real.map(p=>`<div class="zone-manage-item">
+      <input class="zone-manage-name" type="text" value="${escA(p.nome)}" placeholder="Nome postazione" onchange="renamePostazione('${c.id}','${p.id}',this.value)">
+    </div>`).join('') : '';
+  return `<div style="margin-bottom:8px">
+    <div style="font-size:0.64rem;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:var(--text-muted);margin:0 0 10px">Postazioni di lavoro</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:${rows?'10px':'0'}">
+      <span style="font-size:0.8rem;color:var(--text-muted)">N&deg; dipendenti/postazioni:</span>
+      <select class="move-client-select" onchange="setPostazioniCount('${c.id}',this.value)">
+        ${Array.from({length:9},(_,i)=>i+1).map(n=>`<option value="${n}"${n===count?' selected':''}>${n}</option>`).join('')}
+      </select>
+    </div>
+    ${rows ? `<div class="zone-manage-list">${rows}</div>` : ''}
+  </div>`;
+}
+function setPostazioniCount(clientId, n){
+  n = Math.max(1, parseInt(n,10)||1);
+  const c = clienti.find(x=>x.id===clientId); if(!c) return;
+  let cur = Array.isArray(c.postazioni) ? c.postazioni.slice() : [];
+  if(n<=1){ c.postazioni = []; saveAll(); renderPostazioniOverlayBody(); renderClients(); return; }
+  if(cur.length > n){
+    showConfirm('Ridurre a '+n+' postazioni? Le consegne registrate per le postazioni rimosse resteranno salvate ma non saranno piu\' visibili.', ()=>{
+      c.postazioni = cur.slice(0,n); saveAll(); renderPostazioniOverlayBody(); renderClients();
+    });
+    return;
+  }
+  while(cur.length < n) cur.push({id:'pz'+Date.now()+cur.length, nome:'Postazione '+(cur.length+1)});
+  c.postazioni = cur;
+  saveAll(); renderPostazioniOverlayBody(); renderClients();
+}
+function renamePostazione(clientId, postazioneId, nome){
+  const c = clienti.find(x=>x.id===clientId); if(!c || !Array.isArray(c.postazioni)) return;
+  const p = c.postazioni.find(x=>x.id===postazioneId); if(!p) return;
+  p.nome = (nome||'').trim() || p.nome;
+  saveAll(); showToast('Salvato');
+}
+function printPostazioniScheda(clientId){
+  const c = clienti.find(x=>x.id===clientId);
+  if(!c){ showToast('Apri prima un cliente'); return; }
+  const win = window.open('', '_blank');
+  if(!win){ showToast('Il browser ha bloccato la nuova scheda: consenti i popup per questo sito'); return; }
+  const postazioni = getPostazioni(c);
+  const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean);
+  const dist = (c.badges && c.badges.distribuzione) || {};
+  const oggi = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+  let tables = '';
+  if(!clientAziende.length){ tables = '<p style="color:#6f7a74">Nessuna azienda assegnata.</p>'; }
+  clientAziende.forEach(az=>{
+    const docs = getAziendaDocumenti(az);
+    if(!docs.length) return;
+    tables += `<div class="exp-zone-title"><b>${escH(az.nome)}</b><span class="exp-zline"></span></div>
+    <table style="border-collapse:collapse;width:100%;margin:6px 0 18px;font-size:0.78rem">
+      <tr><th align="left" style="padding:5px 8px;border-bottom:1.5px solid #ca0013">Documento</th>${postazioni.map(p=>`<th align="left" style="padding:5px 8px;border-bottom:1.5px solid #ca0013">${escH(p.nome)}</th>`).join('')}</tr>
+      ${docs.map(doc=>{
+        const map = (dist[az.id] && dist[az.id][doc.id]) || {};
+        return `<tr><td style="padding:5px 8px;border-bottom:1px solid rgba(183,198,194,0.4)">${escH(doc.nome)} (${doc.tipo==='listino'?'Listino':'Catalogo'})</td>${postazioni.map(p=>{
+          const e = map[p.id];
+          return `<td style="padding:5px 8px;border-bottom:1px solid rgba(183,198,194,0.4)">${e&&e.dato?'Si &mdash; '+escH(fmtDateTime(e.data)):'&mdash;'}</td>`;
+        }).join('')}</tr>`;
+      }).join('')}
+    </table>`;
+  });
+  const html = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">
+<title>Scheda postazioni &mdash; ${escH(c.nome)}</title>
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;padding:18px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#171e19;background:#fff;}
+  .exp-header{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #ca0013;padding-bottom:7px;margin-bottom:14px;}
+  .exp-title{font-size:1.15rem;font-weight:800;letter-spacing:-0.01em;}
+  .exp-title span{color:#ca0013;}
+  .exp-date{font-size:0.7rem;color:#6f7a74;}
+  .exp-zone-title{font-size:0.7rem;font-weight:800;letter-spacing:0.03em;text-transform:uppercase;color:#ca0013;display:flex;align-items:baseline;gap:7px;margin:6px 0 2px;break-after:avoid;}
+  .exp-zline{flex:1;height:1px;background:#ca0013;opacity:0.4;align-self:center;}
+  @media print{ .exp-print-btn{display:none;} }
+  .exp-print-btn{position:fixed;top:16px;right:16px;background:#ca0013;color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:0.84rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(202,0,19,0.3);}
+</style></head>
+<body>
+  <button class="exp-print-btn" onclick="window.print()">&#128424; Stampa / Salva PDF</button>
+  <div class="exp-header">
+    <div class="exp-title">Scheda <span>${escH(c.nome)}</span></div>
+    <div class="exp-date">${escH(c.zona||'')} &middot; ${oggi}</div>
+  </div>
+  ${tables}
+</body></html>`;
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+function escCSVpost(v){ v=String(v??''); return /[;"\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+function exportDistribuzioneCSV(){
+  const rows = [['Zona','Cliente','Azienda','Documento','Tipo','Postazione','Consegnato','Data']];
+  clienti.forEach(c=>{
+    const postazioni = getPostazioni(c);
+    const dist = (c.badges && c.badges.distribuzione) || {};
+    (c.aziende||[]).forEach(aid=>{
+      const az = aziende.find(a=>a.id===aid); if(!az) return;
+      getAziendaDocumenti(az).forEach(doc=>{
+        const map = (dist[az.id] && dist[az.id][doc.id]) || {};
+        postazioni.forEach(p=>{
+          const entry = map[p.id];
+          rows.push([c.zona, c.nome, az.nome, doc.nome, doc.tipo==='listino'?'Listino':'Catalogo', p.nome, entry&&entry.dato?'Si':'No', entry?fmtDateTime(entry.data):'']);
+        });
+      });
+    });
+  });
+  if(rows.length<=1){ showToast('Nessun documento da esportare'); return; }
+  const csv = '﻿' + rows.map(r=>r.map(escCSVpost).join(';')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'distribuzione_'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function renderDistribuzioneTab(){
+  const perAzienda = aziende.map(a=>{
+    let given=0, total=0;
+    clienti.forEach(c=>{
+      if(!(c.aziende||[]).includes(a.id)) return;
+      const t = countDistribTotals(c, a.id);
+      given += t.given; total += t.total;
+    });
+    return {a, given, total};
+  }).filter(x=>x.total>0);
+  const perZona = zoneOrder.map(z=>{
+    let given=0, total=0;
+    clienti.filter(c=>c.zona===z).forEach(c=>{
+      const t = countDistribTotals(c);
+      given += t.given; total += t.total;
+    });
+    return {zona:z, given, total};
+  }).filter(x=>x.total>0);
+  const barRow = (label, given, total)=>{
+    const pct = total ? Math.round(given/total*100) : 0;
+    return `<div class="zone-manage-item">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:0.86rem;color:var(--text)">${escH(label)}</div>
+        <div style="background:var(--surface2);border-radius:6px;height:6px;margin-top:6px;overflow:hidden"><div style="background:${pct===100?'var(--green)':'var(--accent)'};height:100%;width:${pct}%"></div></div>
+      </div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:0.66rem;font-weight:700;color:${pct===100?'var(--green)':'var(--accent)'};flex-shrink:0">${given}/${total} &middot; ${pct}%</span>
+    </div>`;
+  };
+  let html = `<div style="margin-bottom:14px"><button class="zone-add-btn" onclick="exportDistribuzioneCSV()">Esporta CSV</button></div>`;
+  html += '<div style="font-size:0.64rem;color:var(--text-muted);margin-bottom:8px;font-family:\'JetBrains Mono\',monospace;letter-spacing:0.05em">PER AZIENDA</div>';
+  html += perAzienda.length ? `<div class="zone-manage-list" style="margin-bottom:20px">${perAzienda.map(x=>barRow(x.a.nome,x.given,x.total)).join('')}</div>` : '<div style="color:var(--text-muted);font-size:0.82rem;padding:6px 0;margin-bottom:20px">Nessun dato ancora.</div>';
+  html += '<div style="font-size:0.64rem;color:var(--text-muted);margin-bottom:8px;font-family:\'JetBrains Mono\',monospace;letter-spacing:0.05em">PER ZONA</div>';
+  html += perZona.length ? `<div class="zone-manage-list">${perZona.map(x=>barRow(x.zona,x.given,x.total)).join('')}</div>` : '<div style="color:var(--text-muted);font-size:0.82rem;padding:6px 0">Nessun dato ancora.</div>';
+  return html;
 }
 
 const MONTHS_IT=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
@@ -2619,7 +2908,6 @@ function _bookIconSvg(letter){
 const ENVELOPE_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><polyline points="3 7 12 13 21 7"/></svg>';
 const WINEGLASS_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2h8l-1 7a3 3 0 0 1-6 0z"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/></svg>';
 const INFO_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.8" r="1" fill="currentColor" stroke="none"/></svg>';
-const CATALOGHI_FISSI = ['Emilceramica', 'Ergon', 'Provenza'];
 function _isCersaieEntryCurrent(entry){
   if(!entry || !entry.data) return false;
   const eventDate = new Date(entry.data+'T00:00:00');
@@ -2703,7 +2991,11 @@ function renderCatalogBadgeBody(){
   if(!c.badges) c.badges = {};
   if(!c.badges.catalogo) c.badges.catalogo = {};
   const cat = c.badges.catalogo;
-  body.innerHTML = CATALOGHI_FISSI.map(name=>{
+  if(!catalogPreset.length){
+    body.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:10px 0">Nessun catalogo configurato. Aggiungine uno in Impostazioni &rarr; Cataloghi.</div>';
+    return;
+  }
+  body.innerHTML = catalogPreset.map(name=>{
     const status = cat[name];
     const selected = !!status;
     return `<div style="margin-bottom:14px">
@@ -2743,22 +3035,73 @@ function setCatalogBadgeStatus(name, status){
 }
 window.setCatalogBadgeStatus = setCatalogBadgeStatus;
 
-// ── Portare listino (semplice interruttore) ─────────────────────────────────
-function toggleListinoDirect(id){
+// ── Portare listino (checklist personalizzabile + stato in corso/portato) ───
+let _listinoBadgeClientId = null;
+function openListinoBadge(id){
+  _listinoBadgeClientId = id;
   const c = clienti.find(x=>x.id===id);
+  const sub = document.getElementById('listino-badge-sub');
+  if(sub) sub.textContent = c ? c.nome : '';
+  renderListinoBadgeBody();
+  openOverlay('listino-badge-overlay');
+}
+window.openListinoBadge = openListinoBadge;
+function closeListinoBadge(){
+  closeOverlay('listino-badge-overlay');
+  _listinoBadgeClientId = null;
+}
+window.closeListinoBadge = closeListinoBadge;
+function renderListinoBadgeBody(){
+  const body = document.getElementById('listino-badge-body');
+  if(!body || !_listinoBadgeClientId) return;
+  const c = clienti.find(x=>x.id===_listinoBadgeClientId);
   if(!c) return;
   if(!c.badges) c.badges = {};
-  if(c.badges.listino && c.badges.listino.active){
-    delete c.badges.listino;
-    showToast('Listino rimosso');
-  } else {
-    c.badges.listino = { active: true };
-    showToast('Listino aggiunto');
+  if(!c.badges.listino) c.badges.listino = {};
+  const lst = c.badges.listino;
+  if(!listinoPreset.length){
+    body.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:10px 0">Nessun listino configurato. Aggiungine uno in Impostazioni &rarr; Listini.</div>';
+    return;
   }
+  body.innerHTML = listinoPreset.map(name=>{
+    const status = lst[name];
+    const selected = !!status;
+    return `<div style="margin-bottom:14px">
+      <label class="client-info-checkrow" style="margin-bottom:${selected?'8px':'0'}">
+        <input type="checkbox" ${selected?'checked':''} onchange="toggleListinoBadgeSelect('${escA(name)}', this.checked)">
+        ${escH(name)}
+      </label>
+      ${selected ? `
+        <div style="display:flex;gap:6px">
+          <button onclick="setListinoBadgeStatus('${escA(name)}','in_corso')" style="flex:1;padding:7px;border-radius:7px;border:1px solid ${status==='in_corso'?'var(--accent)':'var(--border)'};background:${status==='in_corso'?'var(--accent)':'var(--surface2)'};color:${status==='in_corso'?'#fff':'var(--text-muted)'};font-size:0.74rem;font-weight:700;cursor:pointer">&#8987; In corso</button>
+          <button onclick="setListinoBadgeStatus('${escA(name)}','portato')" style="flex:1;padding:7px;border-radius:7px;border:1px solid ${status==='portato'?'var(--green)':'var(--border)'};background:${status==='portato'?'var(--green)':'var(--surface2)'};color:${status==='portato'?'#fff':'var(--text-muted)'};font-size:0.74rem;font-weight:700;cursor:pointer">&#10003; Portato</button>
+        </div>
+      ` : ''}
+    </div>`;
+  }).join('');
+}
+function toggleListinoBadgeSelect(name, checked){
+  const c = clienti.find(x=>x.id===_listinoBadgeClientId);
+  if(!c) return;
+  if(!c.badges) c.badges = {};
+  if(!c.badges.listino) c.badges.listino = {};
+  if(checked) c.badges.listino[name] = 'in_corso';
+  else delete c.badges.listino[name];
+  if(!Object.keys(c.badges.listino).length) delete c.badges.listino;
   saveAll();
+  renderListinoBadgeBody();
   renderClients();
 }
-window.toggleListinoDirect = toggleListinoDirect;
+window.toggleListinoBadgeSelect = toggleListinoBadgeSelect;
+function setListinoBadgeStatus(name, status){
+  const c = clienti.find(x=>x.id===_listinoBadgeClientId);
+  if(!c || !c.badges || !c.badges.listino || !c.badges.listino[name]) return;
+  c.badges.listino[name] = status;
+  saveAll();
+  renderListinoBadgeBody();
+  renderClients();
+}
+window.setListinoBadgeStatus = setListinoBadgeStatus;
 
 // ── Inviti / cene Cersaie: storico, ogni salvataggio aggiunge una voce nuova ─
 let _cersaieAddClientId = null;
@@ -2926,8 +3269,8 @@ function _infoRemindersSectionHtml(v){
 }
 function _infoCatalogSectionHtml(c){
   const cat = c.badges.catalogo || {};
-  const listinoOn = !!(c.badges.listino && c.badges.listino.active);
-  const rows = CATALOGHI_FISSI.map(name=>{
+  const listinoOn = !!(c.badges.listino && Object.values(c.badges.listino).some(st=>st==='portato'));
+  const rows = catalogPreset.map(name=>{
     const status = cat[name];
     const label = status==='portato' ? '&#10003; Portato' : (status==='in_corso' ? '&#8987; In corso' : '&mdash; Non selezionato');
     const color = status==='portato' ? 'var(--green)' : (status==='in_corso' ? 'var(--yellow)' : 'var(--text-muted)');
@@ -2993,10 +3336,14 @@ function renderCard(c){
           <button class="card-action-btn card-action-clock" onclick="openGiriDayPicker('${c.id}')" title="Aggiungi a un giro della settimana"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><polyline points="8 5 8 8 10 9.5"/></svg></button>
           <button class="card-action-btn${inRoute?' selected':''}" onclick="toggleRoute('${c.id}')" id="rb-${c.id}" title="Aggiungi al giro corrente">${inRoute?'&#10003;':'+'}</button>
           <button class="card-action-btn" onclick="openCatalogBadge('${c.id}')" title="Portare catalogo">${_bookIconSvg('C')}</button>
-          <button class="card-action-btn" onclick="toggleListinoDirect('${c.id}')" title="Portare listino">${_bookIconSvg('L')}</button>
+          <button class="card-action-btn" onclick="openListinoBadge('${c.id}')" title="Portare listino">${_bookIconSvg('L')}</button>
           <button class="card-action-btn" onclick="openCersaieAdd('${c.id}','invitiCersaie')" title="Invito Cersaie">${ENVELOPE_SVG}</button>
           <button class="card-action-btn" onclick="openCersaieAdd('${c.id}','ceneCersaie')" title="Prenotato cena Cersaie">${WINEGLASS_SVG}</button>
           <button class="card-action-btn" onclick="openClientInfo('${c.id}')" title="Scheda cliente (sola visualizzazione)">${INFO_SVG}</button>
+          <button class="card-action-btn" style="position:relative" onclick="openPostazioniOverlay('${c.id}')" title="Postazioni / documenti consegnati">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            ${(()=>{const t=countDistribTotals(c); return t.total>0?`<span class="postazioni-count-badge${t.given===t.total?' complete':''}" style="position:absolute;top:-9px;right:-9px;white-space:nowrap">${t.given}/${t.total}</span>`:'';})()}
+          </button>
         </div>
       </div>
       ${c.contatti?`<div class="contacts">${escH(c.contatti)}</div>`:'<div class="contacts"></div>'}
@@ -3065,10 +3412,14 @@ function renderCardCompact(c){
           ${cnt>0?`<span class="client-row-notes-badge">${cnt}</span>`:''}
         </button>
         <button class="client-row-btn" onclick="openCatalogBadge('${c.id}')" title="Portare catalogo">${_bookIconSvg('C')}</button>
-        <button class="client-row-btn" onclick="toggleListinoDirect('${c.id}')" title="Portare listino">${_bookIconSvg('L')}</button>
+        <button class="client-row-btn" onclick="openListinoBadge('${c.id}')" title="Portare listino">${_bookIconSvg('L')}</button>
         <button class="client-row-btn" onclick="openCersaieAdd('${c.id}','invitiCersaie')" title="Invito Cersaie">${ENVELOPE_SVG}</button>
         <button class="client-row-btn" onclick="openCersaieAdd('${c.id}','ceneCersaie')" title="Prenotato cena Cersaie">${WINEGLASS_SVG}</button>
         <button class="client-row-btn" onclick="openClientInfo('${c.id}')" title="Scheda cliente (sola visualizzazione)">${INFO_SVG}</button>
+        <button class="client-row-btn" onclick="openPostazioniOverlay('${c.id}')" title="Postazioni / documenti consegnati">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          ${(()=>{const t=countDistribTotals(c); return t.total>0?`<span class="postazioni-count-badge${t.given===t.total?' complete':''}" style="position:absolute;top:-9px;right:-9px;white-space:nowrap">${t.given}/${t.total}</span>`:'';})()}
+        </button>
       </div>
     </div>
   </div>`;
@@ -3319,7 +3670,7 @@ function setSettingsTab(t){
 }
 function renderSettingsTabs(){
   document.getElementById('settings-tabs').innerHTML =
-    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['obiettivi','Obiettivi visite'],['targhet','Targhet mappa'],['salvataggi','Salvataggi'],['esporta','Esporta clienti'],['sospendi','Sospendi clienti'],['incorso','Clienti in corso'],['escludiexport','Escludi da esportazione']].map(([k,l])=>
+    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['obiettivi','Obiettivi visite'],['targhet','Targhet mappa'],['distribuzione','Cataloghi/Postazioni'],['salvataggi','Salvataggi'],['esporta','Esporta clienti'],['sospendi','Sospendi clienti'],['incorso','Clienti in corso'],['escludiexport','Escludi da esportazione']].map(([k,l])=>
       `<button class="settings-tab${settingsTab===k?' active':''}" onclick="setSettingsTab('${k}')">${l}</button>`
     ).join('');
 }
@@ -3333,6 +3684,7 @@ function renderSettings(){
   else if(settingsTab === 'targhet') body.innerHTML = renderTarghetTab();
   else if(settingsTab === 'salvataggi') body.innerHTML = renderSalvataggiTab();
   else if(settingsTab === 'esporta') body.innerHTML = renderEsportaTab();
+  else if(settingsTab === 'distribuzione') body.innerHTML = renderDistribuzioneTab();
   else if(settingsTab === 'sospendi') body.innerHTML = renderSospendiTab();
   else if(settingsTab === 'escludiexport') body.innerHTML = renderEscludiExportTab();
   else if(settingsTab === 'incorso') body.innerHTML = renderIncorsoTab();
@@ -3610,8 +3962,8 @@ async function exportClientiExcel(){
       list.forEach(c=>{
         const clientAziende = (c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean).map(a=>a.nome).join(', ');
         const cat = (c.badges && c.badges.catalogo) || {};
-        const catTxt = CATALOGHI_FISSI.filter(x=>cat[x]).map(x=>x+(cat[x]==='portato'?' (portato)':' (in corso)')).join(', ');
-        const listinoOn = !!(c.badges && c.badges.listino && c.badges.listino.active);
+        const catTxt = catalogPreset.filter(x=>cat[x]).map(x=>x+(cat[x]==='portato'?' (portato)':' (in corso)')).join(', ');
+        const listinoOn = !!(c.badges && c.badges.listino && Object.values(c.badges.listino).some(st=>st==='portato'));
         const invitiSorted = ((c.badges&&c.badges.invitiCersaie)||[]).slice().sort((a,b)=>new Date(b.data||0)-new Date(a.data||0));
         const ceneSorted = ((c.badges&&c.badges.ceneCersaie)||[]).slice().sort((a,b)=>new Date(b.data||0)-new Date(a.data||0));
         const ultimoInvito = invitiSorted[0] ? fmtDate(invitiSorted[0].data) : '';
@@ -5471,15 +5823,21 @@ function moveClientTo(id,zona){
   c.zona=zona; saveAll(); showToast(c.nome+' \u2192 '+zona);
 }
 
+let openAziendaDocRows = new Set();
+function toggleAziendaDocRow(i){
+  if(openAziendaDocRows.has(i)) openAziendaDocRows.delete(i); else openAziendaDocRows.add(i);
+  renderSettings();
+}
 function renderAziendeTab(){
   const rows = aziende.map((a,i)=>`<div class="azienda-row">
     ${a.logo? `<img class="azienda-logo-preview" src="${a.logo}" alt="${escA(a.nome)}">` : `<div class="azienda-logo-placeholder">&#127970;</div>`}
     <span class="azienda-nome">${escH(a.nome)}</span>
+    <button class="zone-add-btn" onclick="toggleAziendaDocRow(${i})">${openAziendaDocRows.has(i)?'Chiudi':'Documenti'}</button>
     <label style="cursor:pointer;font-size:0.72rem;color:var(--text-muted);border:1px solid var(--border);border-radius:6px;padding:3px 8px;transition:all 0.15s" title="Carica logo">&#128247;
       <input type="file" accept="image/*" style="display:none" onchange="uploadAziendaLogo(${i},this)">
     </label>
     <button class="azienda-del" onclick="deleteAzienda(${i})">&#128465;</button>
-  </div>`).join('');
+  </div>${openAziendaDocRows.has(i) ? renderAziendaDocumentiPanelHtml(a,i) : ''}`).join('');
   return `${rows || '<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:20px 0">Nessuna azienda ancora.</div>'}
     <div class="add-azienda-form">
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
@@ -5491,6 +5849,44 @@ function renderAziendeTab(){
       </div>
       <button class="add-client-btn" onclick="addAzienda()">+ Aggiungi azienda</button>
     </div>`;
+}
+function renderAziendaDocumentiPanelHtml(a,i){
+  const docs = getAziendaDocumenti(a);
+  const rows = docs.map(d=>`<div class="zone-manage-item">
+      <span style="font-size:0.65rem;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:var(--accent);background:var(--accent-dim);border-radius:6px;padding:3px 7px;flex-shrink:0">${d.tipo==='listino'?'Listino':'Catalogo'}</span>
+      <input class="zone-manage-name" type="text" value="${escA(d.nome)}" onchange="renameAziendaDocumento(${i},'${d.id}',this.value)">
+      <button class="zone-manage-del" onclick="deleteAziendaDocumento(${i},'${d.id}')" title="Elimina">&#128465;</button>
+    </div>`).join('');
+  return `<div style="padding:10px 4px 4px 4px;margin:0 0 4px 0">
+    <div class="zone-manage-list" style="margin-bottom:10px">${rows || '<div style="color:var(--text-muted);font-size:0.78rem;padding:4px 2px">Nessun documento ancora.</div>'}</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input class="add-client-input" type="text" id="new-doc-nome-${i}" placeholder="Es. Catalogo Bagno 2024" style="flex:1;width:auto;min-width:0">
+      <select class="move-client-select" id="new-doc-tipo-${i}" style="flex:0 0 auto">
+        <option value="catalogo">Catalogo</option>
+        <option value="listino">Listino</option>
+      </select>
+      <button class="add-client-btn" style="flex:0 0 auto;width:auto;margin-top:0" onclick="addAziendaDocumento(${i})">+ Aggiungi</button>
+    </div>
+  </div>`;
+}
+function addAziendaDocumento(i){
+  const nomeInp = document.getElementById('new-doc-nome-'+i);
+  const tipoSel = document.getElementById('new-doc-tipo-'+i);
+  const nome = (nomeInp.value||'').trim();
+  if(!nome){ showToast('Inserisci il nome del documento'); return; }
+  getAziendaDocumenti(aziende[i]).push({id:'doc'+Date.now(), nome, tipo: tipoSel.value});
+  saveAll(); renderSettings(); renderClients();
+  showToast('"'+nome+'" aggiunto');
+}
+function renameAziendaDocumento(i, docId, nome){
+  nome = (nome||'').trim(); if(!nome) return;
+  const d = getAziendaDocumenti(aziende[i]).find(x=>x.id===docId); if(!d) return;
+  d.nome = nome; saveAll(); showToast('Salvato');
+}
+function deleteAziendaDocumento(i, docId){
+  const az = aziende[i];
+  az.documenti = getAziendaDocumenti(az).filter(d=>d.id!==docId);
+  saveAll(); renderSettings(); renderClients();
 }
 let newAziendaLogoB64 = null;
 function previewNewAziendaLogo(input){
@@ -6961,7 +7357,7 @@ window.setStatsTab = setStatsTab;
 function renderStatsCatalogPage(){
   const typeSel = document.getElementById('stats-cat-type');
   if(typeSel && !typeSel.dataset.populated){
-    typeSel.innerHTML = '<option value="">Tutti i cataloghi</option>' + CATALOGHI_FISSI.map(n=>`<option value="${escA(n)}">${escH(n)}</option>`).join('');
+    typeSel.innerHTML = '<option value="">Tutti i cataloghi</option>' + catalogPreset.map(n=>`<option value="${escA(n)}">${escH(n)}</option>`).join('');
     typeSel.dataset.populated = '1';
   }
   renderStatsCatalogList();
@@ -6987,13 +7383,13 @@ function renderStatsCatalogList(){
         const st = cat[typeFilter] || 'mancante';
         return !statusFilter || st === statusFilter;
       }
-      if(statusFilter === 'mancante') return CATALOGHI_FISSI.some(n=> !cat[n]);
-      return CATALOGHI_FISSI.some(n=> cat[n] === statusFilter);
+      if(statusFilter === 'mancante') return catalogPreset.some(n=> !cat[n]);
+      return catalogPreset.some(n=> cat[n] === statusFilter);
     });
   }
   if(listinoFilter){
     rows = rows.filter(c=>{
-      const has = !!(c.badges && c.badges.listino && c.badges.listino.active);
+      const has = !!(c.badges && c.badges.listino && Object.values(c.badges.listino).some(st=>st==='portato'));
       return listinoFilter==='si' ? has : !has;
     });
   }
@@ -7009,8 +7405,8 @@ function renderStatsCatalogList(){
 
   list.innerHTML = rows.map(c=>{
     const cat = (c.badges && c.badges.catalogo) || {};
-    const listinoOn = !!(c.badges && c.badges.listino && c.badges.listino.active);
-    const catBadges = CATALOGHI_FISSI.map(name=>{
+    const listinoOn = !!(c.badges && c.badges.listino && Object.values(c.badges.listino).some(st=>st==='portato'));
+    const catBadges = catalogPreset.map(name=>{
       const st = cat[name];
       const color = st==='portato' ? 'var(--green)' : (st==='in_corso' ? 'var(--yellow)' : 'var(--text-light)');
       const bg = st==='portato' ? 'rgba(31,157,95,0.12)' : (st==='in_corso' ? 'rgba(219,164,40,0.12)' : 'var(--surface2)');
