@@ -1973,6 +1973,7 @@ function saveAll(){
     const prev = localStorage.getItem('emilV4');
     if(prev && prev !== json) localStorage.setItem('emilV4_backup', prev);
     localStorage.setItem('emilV4', json);
+    localStorage.setItem('emilV4_updatedAt', String(Date.now()));
     recordSaveHistory(json);
   } catch(e){ console.error('saveAll local failed', e); }
   cloudSave();
@@ -2142,15 +2143,25 @@ async function cloudInit(user){
     const snap = await getDoc(ref);
     const localState = buildState();
     const localSize = _stateSize(localState);
+    const localUpdatedAt = parseInt(localStorage.getItem('emilV4_updatedAt')||'0', 10) || 0;
     if(snap.exists() && snap.data().data){
       let cloudState = null;
       try { cloudState = JSON.parse(snap.data().data); } catch(e){ console.error('cloud JSON corrupt', e); }
+      const cloudUpdatedAt = Number(snap.data().updatedAt) || 0;
       const cloudSize = _stateSize(cloudState);
-      if(cloudState && cloudSize >= localSize){
-        // Cloud piu' ricco (o uguale): applica
-        applyCloudState(cloudState);
+      if(cloudState && cloudUpdatedAt && localUpdatedAt){
+        // Entrambi datati: vince il piu' recente (evita che un cloud "piu' ricco" ma vecchio
+        // resusciti clienti/dati cancellati di recente — la vecchia euristica sulla dimensione
+        // sceglieva erroneamente il cloud solo perche' aveva piu' roba, anche se era piu' vecchio)
+        if(cloudUpdatedAt > localUpdatedAt){
+          applyCloudState(cloudState, cloudUpdatedAt);
+        } else if(localUpdatedAt > cloudUpdatedAt){
+          await cloudSaveNow();
+        }
+      } else if(cloudState && cloudSize >= localSize){
+        // Fallback per dati senza timestamp (versioni precedenti a questo fix): euristica sulla dimensione
+        applyCloudState(cloudState, cloudUpdatedAt);
       } else if(cloudState && cloudSize > 0 && cloudSize < localSize){
-        // Cloud ha qualcosa ma il locale è più ricco: tieni il locale e fai push
         console.warn('Cloud size('+cloudSize+') < local size('+localSize+'): preservo locale');
         await cloudSaveNow();
       } else {
@@ -2176,7 +2187,7 @@ async function cloudInit(user){
     if(d.client && d.client === _myClientId) return; // mio echo
     try {
       const remote = JSON.parse(d.data);
-      applyCloudState(remote);
+      applyCloudState(remote, Number(d.updatedAt) || Date.now());
       setCloudStatus('synced');
     } catch(e){ console.error('snapshot apply failed', e); }
   }, err => {
@@ -2185,7 +2196,7 @@ async function cloudInit(user){
   });
 }
 
-function applyCloudState(s){
+function applyCloudState(s, remoteUpdatedAt){
   if(!s || typeof s !== 'object') return;
   _isApplyingRemote = true;
   try {
@@ -2247,7 +2258,10 @@ function applyCloudState(s){
     }
     // Dopo l'apply, verifica eventuale rollover settimanale
     if(typeof _checkWeekRollover === 'function') _checkWeekRollover();
-    try { localStorage.setItem('emilV4', JSON.stringify(buildState())); } catch(_){}
+    try {
+      localStorage.setItem('emilV4', JSON.stringify(buildState()));
+      localStorage.setItem('emilV4_updatedAt', String(remoteUpdatedAt || Date.now()));
+    } catch(_){}
     if(typeof renderClients==='function') renderClients();
     if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
     if(typeof renderCalendar==='function' && currentView==='calendar') renderCalendar();
@@ -6592,7 +6606,15 @@ function savePinEdit(){
 
 function openOverlay(id){ document.getElementById(id).classList.add('open'); }
 function closeOverlay(id){ document.getElementById(id).classList.remove('open'); }
-function closeOverlayBg(e,id,fn){ if(e.target===document.getElementById(id)) fn(); }
+// Ricorda dove e' partito il mousedown/touchstart: un click generato da un trascinamento
+// (es. selezioni testo dentro il modale) che finisce sullo sfondo NON deve chiudere l'overlay.
+let _lastPointerDownTarget = null;
+document.addEventListener('mousedown', e=>{ _lastPointerDownTarget = e.target; }, true);
+document.addEventListener('touchstart', e=>{ _lastPointerDownTarget = e.target; }, true);
+function closeOverlayBg(e,id,fn){
+  const bg = document.getElementById(id);
+  if(e.target===bg && _lastPointerDownTarget===bg) fn();
+}
 
 let toastTimer;
 function showToast(msg){
