@@ -680,6 +680,141 @@ header {
 .giri-mode-tabs { display: inline-flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 11px; padding: 3px; gap: 2px; margin-bottom: 12px; }
 .giri-mode-tab { border: none; background: none; padding: 9px 16px; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
 .giri-mode-tab:hover { color: var(--accent); }
+@media (max-width: 600px){ .giri-mode-tabs { flex-wrap: wrap; max-width: 100%; } .giri-mode-tab { padding: 9px 12px; font-size: 0.76rem; } }
+/* CREAZIONE GIRO */
+.gb-app { display: flex; flex-direction: column; gap: 8px; height: 100%; min-height: 0; }
+.gb-top { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 7px; flex-shrink: 0; }
+.gb-row { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.gb-wrapx { flex-wrap: wrap; }
+.gb-scrollx { overflow-x: auto; scrollbar-width: none; }
+.gb-scrollx::-webkit-scrollbar { display: none; }
+.gb-scrollx > * { flex-shrink: 0; }
+.gb-lbl { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); }
+.gb-chip { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 18px; padding: 6px 13px; font-size: 0.76rem; font-weight: 600; color: var(--text); cursor: pointer; font-family: 'Nunito', sans-serif; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; min-height: 34px; touch-action: manipulation; }
+.gb-chip.sm { padding: 3px 10px; min-height: 30px; font-size: 0.72rem; gap: 5px; }
+.gb-chip:hover { border-color: var(--accent); color: var(--accent); }
+.gb-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.gb-chip img { width: 14px; height: 14px; object-fit: contain; border-radius: 2px; }
+.gb-select { flex-shrink: 0; max-width: 42%; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; padding: 6px 8px; font-family: 'Nunito', sans-serif; font-size: 0.76rem; font-weight: 600; color: var(--text); min-height: 34px; }
+.gb-rulebtn { flex: 1; min-width: 0; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; padding: 6px 10px; font-family: 'Nunito', sans-serif; font-size: 0.74rem; color: var(--text); cursor: pointer; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 34px; }
+.gb-rulebtn.open, .gb-rulebtn:hover { border-color: var(--accent); }
+.gb-seg2 { display: inline-flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 2px; gap: 2px; flex-shrink: 0; }
+.gb-seg2 button { border: none; background: none; border-radius: 7px; padding: 5px 9px; font-family: 'Nunito', sans-serif; font-size: 0.72rem; font-weight: 700; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
+.gb-seg2 button.on { background: var(--accent); color: #fff; }
+.gb-seg2 small { margin-left: 4px; opacity: 0.85; font-weight: 800; }
+.gb-days { display: flex; gap: 5px; flex: 1 1 230px; min-width: 0; }
+.gb-dp { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; padding: 3px 0 4px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 9px; cursor: pointer; font-family: 'Nunito', sans-serif; color: var(--text); touch-action: manipulation; }
+.gb-dp b { font-size: 0.68rem; font-weight: 800; }
+.gb-dp span { font-family: 'JetBrains Mono', monospace; font-size: 0.92rem; font-weight: 800; line-height: 1.1; }
+.gb-dp.free span { color: var(--text-light); }
+.gb-dp:hover { border-color: var(--accent); }
+.gb-dp.sel { background: var(--accent); border-color: var(--accent); color: #fff; }
+.gb-dp.sel span { color: #fff; }
+.gb-today { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--green); margin-left: 3px; vertical-align: middle; }
+.gb-dest-detail { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gb-dest-detail b { color: var(--text); }
+.gb-rules { background: var(--surface2); border: 1px solid var(--border); border-radius: 11px; padding: 10px 12px; max-height: 34vh; overflow-y: auto; }
+.gb-rule-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 4px 0; font-size: 0.78rem; color: var(--text); }
+.gb-sub-label { font-size: 0.64rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted); margin: 10px 0 5px; }
+.gb-num { width: 62px; padding: 5px 7px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+.gb-hint, .gb-muted { font-size: 0.72rem; color: var(--text-muted); }
+
+.gb-top-c { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; cursor: pointer; }
+.gb-sumtxt { font-size: 0.74rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.gb-sumtxt b { color: var(--text); }
+.gb-chev { font-size: 0.7rem; font-weight: 800; color: var(--accent); white-space: nowrap; flex-shrink: 0; }
+.gb-seg3 { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 11px; padding: 3px; gap: 3px; flex-shrink: 0; }
+.gb-seg3 button { flex: 1; border: none; background: none; border-radius: 8px; padding: 8px 6px; font-family: 'Nunito', sans-serif; font-size: 0.8rem; font-weight: 800; color: var(--text-muted); cursor: pointer; touch-action: manipulation; }
+.gb-seg3 button.on { background: var(--accent); color: #fff; }
+.gb-seg3 small { opacity: 0.85; }
+
+.gb-panes { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr; grid-template-rows: minmax(0,1fr); gap: 10px; }
+.gb-right { display: contents; }
+.gb-pane { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden; }
+.gb-pane-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); flex-shrink: 0; font-size: 0.84rem; color: var(--text); }
+.gb-pane-body { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px; -webkit-overflow-scrolling: touch; }
+.gb-spacer { flex: 1; }
+.gb-search { flex: 1 1 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 7px 10px; font-family: 'Nunito', sans-serif; font-size: 0.8rem; color: var(--text); min-width: 0; }
+.gb-sumline { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 700; color: var(--accent); }
+@media (max-width: 759px) {
+  .gb-seg3 { display: flex; }
+  .gb-app[data-view="clienti"] .gb-pane-giro, .gb-app[data-view="clienti"] .gb-pane-mappa,
+  .gb-app[data-view="giro"] .gb-pane-clienti, .gb-app[data-view="giro"] .gb-pane-mappa,
+  .gb-app[data-view="mappa"] .gb-pane-clienti, .gb-app[data-view="mappa"] .gb-pane-giro { display: none; }
+}
+@media (min-width: 760px) {
+  .gb-panes { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+  .gb-right { display: flex; flex-direction: column; gap: 10px; min-height: 0; min-width: 0; }
+  .gb-pane-giro { flex: 1 1 0; }
+  .gb-pane-mappa { flex: 0 0 38%; }
+}
+
+.gb-sug, .gb-stop { display: flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 11px; padding: 7px 9px; margin-bottom: 6px; }
+.gb-stop { margin-bottom: 0; }
+.gb-sug.dim { opacity: 0.6; }
+.gb-sug-main { flex: 1; min-width: 0; }
+.gb-sug-l1 { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.gb-stop-name { font-weight: 700; font-size: 0.86rem; color: var(--text); overflow: hidden; text-overflow: ellipsis; }
+.gb-stop-sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; display: flex; flex-wrap: wrap; align-items: center; gap: 3px 7px; }
+.gb-near { color: var(--accent); }
+.gb-nd { color: var(--text-muted); font-style: italic; }
+.gb-plus { width: 42px; height: 42px; border-radius: 50%; border: none; background: var(--accent); color: #fff; font-size: 1.5rem; font-weight: 700; line-height: 1; cursor: pointer; flex-shrink: 0; touch-action: manipulation; display: flex; align-items: center; justify-content: center; padding: 0 0 3px; }
+.gb-plus:active { transform: scale(0.94); }
+.gb-stop-n { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 0.78rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.gb-stop-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.gb-mini { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); cursor: pointer; font-size: 0.78rem; display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.gb-mini:disabled { opacity: 0.35; cursor: default; }
+.gb-mini-del:hover { color: #fff; background: var(--accent); border-color: var(--accent); }
+.gb-link { background: none; border: none; padding: 0; color: var(--accent); font-family: 'Nunito', sans-serif; font-size: 0.7rem; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.gb-leg { margin: 0 0 0 22px; padding: 4px 0 4px 14px; border-left: 2px dashed var(--border2); font-size: 0.74rem; font-weight: 700; color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+.gb-leg.nd { color: var(--text-muted); font-weight: 600; }
+.gb-logos { display: inline-flex; gap: 3px; align-items: center; }
+.gb-logo { width: 18px; height: 18px; object-fit: contain; border-radius: 4px; background: #fff; border: 1px solid var(--border); }
+.gb-logo-t { display: inline-flex; align-items: center; justify-content: center; font-size: 0.45rem; font-weight: 800; color: var(--text-muted); }
+.gb-tag { font-size: 0.6rem; font-weight: 700; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1px 6px; }
+.gb-thr-edit { display: inline-flex; align-items: center; gap: 5px; }
+.gb-empty, .gb-map-empty { text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 18px 10px; border: 1px dashed var(--border2); border-radius: 11px; }
+.gb-add-btn { background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 9px 12px; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.78rem; cursor: pointer; flex-shrink: 0; white-space: nowrap; touch-action: manipulation; }
+
+.gb-map-body { display: flex; flex-direction: column; gap: 6px; padding: 6px; }
+.gb-map { flex: 1; min-height: 0; width: 100%; background: var(--surface2); border-radius: 10px; display: block; }
+.gb-dot { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+.gb-dot.picked { fill: var(--accent); }
+.gb-line { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 6 4; }
+.gb-stopdot { fill: var(--accent); stroke: #fff; stroke-width: 2; }
+.gb-stoptxt { fill: #fff; font-size: 11px; font-weight: 800; font-family: 'Nunito', sans-serif; pointer-events: none; }
+.gb-picked { display: flex; align-items: center; gap: 10px; background: var(--accent-dim); border-radius: 10px; padding: 8px 10px; font-size: 0.82rem; flex-shrink: 0; }
+
+.gb-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; padding: 8px 12px; flex-shrink: 0; }
+.gb-bar-info { font-size: 0.84rem; color: var(--text); }
+.gb-bar-btns { display: flex; gap: 7px; flex-wrap: wrap; }
+.gb-btn { background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 10px 16px; font-family: 'Nunito', sans-serif; font-size: 0.82rem; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+.gb-btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); font-weight: 700; }
+.gb-btn:disabled { opacity: 0.4; cursor: default; }
+.gb-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.pos-help { background: var(--surface2); border: 1px solid var(--border); border-radius: 11px; padding: 10px 12px; margin-bottom: 12px; font-size: 0.8rem; color: var(--text); line-height: 1.5; }
+.pos-help summary { font-weight: 800; cursor: pointer; }
+.pos-help ol { margin: 8px 0 6px 18px; padding: 0; }
+.pos-help li { margin-bottom: 5px; }
+.pos-note { font-size: 0.72rem; color: var(--text-muted); line-height: 1.45; padding: 4px 0; }
+.pos-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 11px; padding: 9px 11px; margin-bottom: 8px; }
+.pos-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.pos-name { font-weight: 700; font-size: 0.86rem; color: var(--text); }
+.pos-sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 1px; }
+.pos-b { font-size: 0.64rem; font-weight: 800; border-radius: 8px; padding: 3px 8px; white-space: nowrap; flex-shrink: 0; }
+.pos-b.ok { color: var(--green); background: rgba(47,182,115,0.15); }
+.pos-b.pin { color: #b58900; background: rgba(219,164,40,0.18); }
+.pos-b.no { color: var(--accent); background: var(--accent-dim); }
+.pos-edit { display: flex; gap: 6px; margin-top: 8px; }
+.pos-in { flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 9px 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: var(--text); }
+.pos-in:focus { outline: none; border-color: var(--accent); }
+.pos-btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 9px; padding: 0 12px; min-width: 40px; font-family: 'Nunito', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
+.pos-save { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pos-pvline { min-height: 0; }
+.pos-pv { display: inline-block; margin-top: 5px; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); }
+.pos-pv.ok { color: var(--green); }
+.pos-pv.no { color: var(--accent); }
+.pos-links { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 5px; }
 .giri-mode-tab.active { background: var(--accent); color: #fff; }
 .giri-title-row { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
 .giri-title { font-size: 1.3rem; font-weight: 700; color: var(--text); margin: 0; flex: 1; }
@@ -1128,6 +1263,7 @@ header {
       <div class="giri-mode-tabs">
         <button class="giri-mode-tab active" id="giri-mode-settimana-btn" onclick="setGiriViewMode('settimana')">Giri della settimana</button>
         <button class="giri-mode-tab" id="giri-mode-continuo-btn" onclick="setGiriViewMode('continuo')">Giro continuo</button>
+        <button class="giri-mode-tab" id="giri-mode-creazione-btn" onclick="setGiriViewMode('creazione')">Creazione giro</button>
       </div>
       <div class="giri-title-row">
         <h2 class="giri-title" id="giri-title-text">Giri della settimana</h2>
@@ -1176,6 +1312,24 @@ header {
     </div>
     <div class="giri-grid" id="giri-grid"></div>
     <div id="giro-continuo-container" style="display:none"></div>
+    <div id="giro-builder-container" style="display:none"></div>
+  </div>
+</div>
+
+<div class="overlay" id="gb-save-overlay" onclick="closeOverlayBg(event,'gb-save-overlay',closeGbSave)">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Salva nel giro</div>
+        <div class="modal-subtitle" id="gb-save-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeGbSave()">&times;</button>
+    </div>
+    <div class="modal-body" id="gb-save-body" style="padding:16px 20px"></div>
+    <div class="modal-footer" style="display:flex;gap:8px">
+      <button onclick="closeGbSave()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Annulla</button>
+      <button onclick="giroBuilderConfirmSave()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Salva nel giro</button>
+    </div>
   </div>
 </div>
 
@@ -1591,7 +1745,7 @@ header {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
           </button>
         </div>
-        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:5px">Il campo indirizzo viene mostrato nel popup. Le coordinate spostano il pin sulla mappa.</div>
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:5px">Il campo indirizzo viene mostrato nel popup. Le coordinate spostano il pin sulla mappa. Puoi incollare anche il link di Google Maps.</div>
       </div>
     </div>
     <div class="modal-footer" style="display:flex;gap:8px">
@@ -1820,6 +1974,19 @@ let obiettiviPreset = OBIETTIVI_PRESET_DEFAULT.slice(); // obiettivi predefiniti
 let catalogPreset = CATALOGHI_PRESET_DEFAULT.slice(); // cataloghi predefiniti, personalizzabili da Impostazioni
 let listinoPreset = []; // listini predefiniti, personalizzabili da Impostazioni
 let catalogStatsHiddenAziende = []; // id aziende nascoste dalla sezione Statistiche > Cataloghi
+function _routeSuggestDefaults(){ return {defaultDays:15, perAzienda:{}, perClient:{}}; }
+function _normRouteSuggest(x){
+  const d = _routeSuggestDefaults();
+  if(!x || typeof x!=='object') return d;
+  const n = parseInt(x.defaultDays,10);
+  return {
+    defaultDays: n>0 ? n : d.defaultDays,
+    perAzienda: (x.perAzienda && typeof x.perAzienda==='object') ? x.perAzienda : {},
+    perClient: (x.perClient && typeof x.perClient==='object') ? x.perClient : {}
+  };
+}
+let routeSuggest = _routeSuggestDefaults(); // soglie giorni per i suggerimenti di "Creazione giro"
+let giroDraft = [];                         // bozza del giro in costruzione: [clientId, ...]
 const GIRO_CONTINUO_SETTIMANE = [1,2,3,4];
 const GIRO_CONTINUO_GIORNI = [
   {key:'lun', name:'Lunedì'}, {key:'mar', name:'Martedì'}, {key:'mer', name:'Mercoledì'},
@@ -1923,6 +2090,8 @@ function loadAll(){
     catalogPreset=Array.isArray(s.catalogPreset)?s.catalogPreset:CATALOGHI_PRESET_DEFAULT.slice();
     listinoPreset=Array.isArray(s.listinoPreset)?s.listinoPreset:[];
     catalogStatsHiddenAziende=Array.isArray(s.catalogStatsHiddenAziende)?s.catalogStatsHiddenAziende:[];
+    routeSuggest=_normRouteSuggest(s.routeSuggest);
+    giroDraft=Array.isArray(s.giroDraft)?s.giroDraft:[];
     if(kmlSync) KML_CLIENTS = kmlSync;
     if(s.giri && typeof s.giri==='object'){
       giri = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[], ...s.giri};
@@ -1962,9 +2131,11 @@ function reset(){
   catalogPreset=CATALOGHI_PRESET_DEFAULT.slice();
   listinoPreset=[];
   catalogStatsHiddenAziende=[];
+  routeSuggest=_routeSuggestDefaults();
+  giroDraft=[];
 }
 function buildState(){
-  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders,savedGiri,obiettiviPreset,catalogPreset,listinoPreset,catalogStatsHiddenAziende};
+  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders,savedGiri,obiettiviPreset,catalogPreset,listinoPreset,catalogStatsHiddenAziende,routeSuggest,giroDraft};
 }
 function saveAll(){
   try {
@@ -2125,6 +2296,7 @@ function _stateSize(s){
        + (Array.isArray(s.obiettiviPreset)?s.obiettiviPreset.length:0)
        + (Array.isArray(s.catalogPreset)?s.catalogPreset.length:0)
        + (Array.isArray(s.listinoPreset)?s.listinoPreset.length:0)
+       + (Array.isArray(s.giroDraft)?s.giroDraft.length:0)
        + _badgesWeight(s.clienti) * 4;
 }
 
@@ -2249,6 +2421,8 @@ function applyCloudState(s, remoteUpdatedAt){
     if(Array.isArray(s.catalogPreset)) catalogPreset = s.catalogPreset;
     if(Array.isArray(s.listinoPreset)) listinoPreset = s.listinoPreset;
     if(Array.isArray(s.catalogStatsHiddenAziende)) catalogStatsHiddenAziende = s.catalogStatsHiddenAziende;
+    if(s.routeSuggest && typeof s.routeSuggest==='object') routeSuggest = _normRouteSuggest(s.routeSuggest);
+    if(Array.isArray(s.giroDraft)) giroDraft = s.giroDraft;
     if(s.giroContinuo && typeof s.giroContinuo==='object'){
       const localCount = Object.values(giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
       const cloudCount = Object.values(s.giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0);
@@ -3730,7 +3904,7 @@ function setSettingsTab(t){
 }
 function renderSettingsTabs(){
   document.getElementById('settings-tabs').innerHTML =
-    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['obiettivi','Obiettivi visite'],['targhet','Targhet mappa'],['distribuzione','Cataloghi/Postazioni'],['salvataggi','Salvataggi'],['esporta','Esporta clienti'],['sospendi','Sospendi clienti'],['incorso','Clienti in corso'],['escludiexport','Escludi da esportazione']].map(([k,l])=>
+    [['zone','Zone'],['merge','Unisci zone'],['clienti','Clienti'],['aggiungi','+ Nuovo cliente'],['aziende','Aziende'],['obiettivi','Obiettivi visite'],['targhet','Targhet mappa'],['posizioni','Posizioni clienti'],['distribuzione','Cataloghi/Postazioni'],['salvataggi','Salvataggi'],['esporta','Esporta clienti'],['sospendi','Sospendi clienti'],['incorso','Clienti in corso'],['escludiexport','Escludi da esportazione']].map(([k,l])=>
       `<button class="settings-tab${settingsTab===k?' active':''}" onclick="setSettingsTab('${k}')">${l}</button>`
     ).join('');
 }
@@ -3744,6 +3918,7 @@ function renderSettings(){
   else if(settingsTab === 'targhet') body.innerHTML = renderTarghetTab();
   else if(settingsTab === 'salvataggi') body.innerHTML = renderSalvataggiTab();
   else if(settingsTab === 'esporta') body.innerHTML = renderEsportaTab();
+  else if(settingsTab === 'posizioni') body.innerHTML = renderPosizioniTab();
   else if(settingsTab === 'distribuzione') body.innerHTML = renderDistribuzioneTab();
   else if(settingsTab === 'sospendi') body.innerHTML = renderSospendiTab();
   else if(settingsTab === 'escludiexport') body.innerHTML = renderEscludiExportTab();
@@ -3807,6 +3982,188 @@ function renderEsportaTab(){
       <button class="add-client-btn" onclick="exportClientiExcel()">&#128202; Esporta clienti (Excel) &middot; ${totalClienti} clienti</button>
     </div>`;
 }
+// ============ POSIZIONE CLIENTI (Impostazioni) ============
+// Legge coordinate scritte in modi diversi: "42.3510, 14.1670", "42,3510 14,1670", gradi/minuti/secondi,
+// oppure un link di Google Maps (@lat,lon / ?q=lat,lon / !3dLAT!4dLON). I link corti (maps.app.goo.gl) non si possono leggere.
+function parsePositionInput(input){
+  if(input == null) return null;
+  let s = String(input).trim();
+  if(!s) return null;
+  try { s = decodeURIComponent(s); } catch(_){}
+  const ok = (la, lo)=>{
+    la = parseFloat(la); lo = parseFloat(lo);
+    if(!isFinite(la) || !isFinite(lo) || Math.abs(la) > 90 || Math.abs(lo) > 180) return null;
+    // latitudine e longitudine invertite (in Italia lat 35-48, lon 6-19): correggo
+    if(la >= 6 && la <= 19.5 && lo >= 35 && lo <= 48) return {lat:lo, lon:la, swapped:true};
+    return {lat:la, lon:lo};
+  };
+  const dms = (d, mi, se, h)=>{
+    const v = parseFloat(d) + parseFloat(mi)/60 + parseFloat(String(se).replace(',', '.'))/3600;
+    return /[SWO]/i.test(h) ? -v : v;
+  };
+  let m;
+  if((m = /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/.exec(s))) return ok(m[1], m[2]);
+  if((m = /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/.exec(s))) return ok(m[1], m[2]);
+  if((m = /[?&](?:q|ll|query|destination|daddr|center)=(-?\d+(?:\.\d+)?)[,+ ]+(-?\d+(?:\.\d+)?)/.exec(s))) return ok(m[1], m[2]);
+  if((m = /(\d{1,3})\s*°\s*(\d{1,2})\s*['′’]\s*(\d{1,2}(?:[.,]\d+)?)\s*(?:["″”]|'')?\s*([NS])[\s,;]*(\d{1,3})\s*°\s*(\d{1,2})\s*['′’]\s*(\d{1,2}(?:[.,]\d+)?)\s*(?:["″”]|'')?\s*([EWO])/i.exec(s)))
+    return ok(dms(m[1], m[2], m[3], m[4]), dms(m[5], m[6], m[7], m[8]));
+  if((m = /^\s*(-?\d{1,2},\d+)\s*[;\s]\s*(-?\d{1,3},\d+)\s*$/.exec(s))) return ok(m[1].replace(',', '.'), m[2].replace(',', '.'));
+  if((m = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/.exec(s))) return ok(m[1], m[2]);
+  return null;
+}
+function fmtPos(p){ return p.lat.toFixed(6)+','+p.lon.toFixed(6); }
+let _posFilter = 'mancanti', _posSearch = '';
+function _posStatus(c){
+  const v = visits[c.id];
+  const explicit = (v && v.position) ? _parseLatLon(v.position) : null;
+  if(explicit) return {kind:'ok', p:explicit};
+  const g = getClientLatLng(c);
+  if(g) return {kind:'pin', p:g, exact:!!g.exact};
+  return {kind:'no'};
+}
+function _posAll(){ _gbPinIdx = null; return clienti.map(c=>({c, s:_posStatus(c)})); }
+function _posTopHtml(){
+  const all = _posAll();
+  const nOk = all.filter(x=>x.s.kind==='ok').length, nPin = all.filter(x=>x.s.kind==='pin').length, nNo = all.filter(x=>x.s.kind==='no').length;
+  const nExact = all.filter(x=>x.s.kind==='pin' && x.s.exact).length;
+  const chip = (k, l, n)=>`<button class="gb-chip sm${_posFilter===k?' active':''}" onclick="posSetFilter('${k}')">${l} <b>${n}</b></button>`;
+  return `<div class="gb-chips" style="margin-bottom:10px">${chip('mancanti','Senza posizione',nNo)}${chip('pin','Solo dal pin MyMaps',nPin)}${chip('ok','Con posizione',nOk)}${chip('tutti','Tutti',all.length)}</div>
+    ${nExact ? `<button class="zone-add-btn" style="margin-bottom:10px" onclick="posBulkPins()">Conferma ${nExact} posizion${nExact===1?'e':'i'} trovat${nExact===1?'a':'e'} dai pin MyMaps</button>` : ''}`;
+}
+function renderPosizioniTab(){
+  const nNo = _posAll().filter(x=>x.s.kind==='no').length;
+  return `<details class="pos-help"${nNo?' open':''}>
+      <summary>Come si inserisce la posizione di un cliente</summary>
+      <ol>
+        <li>Su <b>Google Maps</b> tieni premuto sul punto del negozio: compare un segnaposto e in alto le <b>coordinate</b> (es. 42.3510, 14.1670). Toccale per copiarle.</li>
+        <li>Incollale qui sotto nel campo del cliente (va bene anche il <b>link</b> di Google Maps, se è quello lungo con le coordinate) e premi <b>Salva</b>. L'app scrive <b>Riconosciuta</b> quando ha capito.</li>
+        <li>Se sei dal cliente, premi il pulsante con il mirino: usa il GPS del telefono.</li>
+      </ol>
+      <div class="pos-note">I link corti (maps.app.goo.gl) non si possono leggere: aprili e copia le coordinate. Senza posizione l'app non calcola le distanze nel giro.</div>
+    </details>
+    <div id="pos-top">${_posTopHtml()}</div>
+    <input class="settings-search" type="text" placeholder="Cerca cliente..." value="${escA(_posSearch)}" oninput="posSearch(this.value)">
+    <div id="pos-list">${buildPosizioniListHTML()}</div>`;
+}
+function _posRowHtml(x){
+  const c = x.c, s = x.s, addr = _gbAddrOf(c);
+  const badge = s.kind === 'ok' ? '<span class="pos-b ok">&#10003; Riconosciuta</span>'
+    : (s.kind === 'pin' ? `<span class="pos-b pin">&asymp; ${s.exact?'Dal pin MyMaps':'Pin MyMaps (approssimato)'}</span>` : '<span class="pos-b no">&#10007; Manca</span>');
+  const cur = s.kind === 'ok' ? fmtPos(s.p) : '';
+  const info = s.kind !== 'no' ? `<span class="pos-pv ok">${s.p.lat.toFixed(5)}, ${s.p.lon.toFixed(5)}</span>` : '';
+  const links = (s.kind !== 'no' ? `<button class="gb-link" onclick="posOpenMaps('${c.id}')">Controlla su Maps</button>` : '')
+    + (s.kind === 'pin' ? ` <button class="gb-link" onclick="posUsePin('${c.id}')">Conferma la posizione del pin</button>` : '')
+    + (s.kind === 'ok' ? ` <button class="gb-link" onclick="posClear('${c.id}')">Togli posizione</button>` : '');
+  return `<div class="pos-row">
+    <div class="pos-top"><div style="min-width:0"><div class="pos-name">${escH(c.nome)}</div><div class="pos-sub">${escH(c.zona||'')}${addr?' &middot; '+escH(addr):''}</div></div>${badge}</div>
+    <div class="pos-edit">
+      <input class="pos-in" id="pos-in-${c.id}" type="text" placeholder="Coordinate o link Maps" value="${escA(cur)}" oninput="posPreview('${c.id}',this.value)" onkeydown="if(event.key==='Enter')posSave('${c.id}')">
+      <button class="pos-btn" onclick="posGPS('${c.id}')" title="Usa il GPS (devi essere dal cliente)">&#9678;</button>
+      <button class="pos-btn pos-save" onclick="posSave('${c.id}')">Salva</button>
+    </div>
+    <div class="pos-pvline"><span id="pos-pv-${c.id}">${info}</span></div>
+    ${links ? `<div class="pos-links">${links}</div>` : ''}
+  </div>`;
+}
+function buildPosizioniListHTML(){
+  const q = (_posSearch||'').trim().toLowerCase();
+  const rows = _posAll().filter(x=>{
+    if(_posFilter === 'mancanti' && x.s.kind !== 'no') return false;
+    if(_posFilter === 'pin' && x.s.kind !== 'pin') return false;
+    if(_posFilter === 'ok' && x.s.kind !== 'ok') return false;
+    return !q || x.c.nome.toLowerCase().includes(q);
+  }).sort((a,b)=>(a.c.zona||'').localeCompare(b.c.zona||'') || a.c.nome.localeCompare(b.c.nome));
+  if(!rows.length){
+    return '<div style="color:var(--text-muted);font-size:0.82rem;text-align:center;padding:20px 0">'
+      + (_posFilter==='mancanti' && !q ? '&#10003; Tutti i clienti hanno una posizione.' : 'Nessun cliente trovato.') + '</div>';
+  }
+  const MAX = 60;
+  return rows.slice(0, MAX).map(_posRowHtml).join('')
+    + (rows.length > MAX ? `<div class="pos-note" style="text-align:center">Mostrati ${MAX} di ${rows.length}: usa la ricerca.</div>` : '');
+}
+function _posRefresh(){
+  const top = document.getElementById('pos-top'), list = document.getElementById('pos-list');
+  if(top) top.innerHTML = _posTopHtml();
+  if(list) list.innerHTML = buildPosizioniListHTML();
+}
+function _posAfter(){
+  if(typeof refreshLeafletMarkers === 'function') refreshLeafletMarkers();
+  if(currentView === 'giri' && giriViewMode === 'creazione') renderGiroBuilder();
+}
+function _posWrite(c, p){
+  const addr = _gbAddrOf(c);
+  getV(c.id).position = addr ? addr+'|'+fmtPos(p) : fmtPos(p);
+  saveAll(); _posAfter();
+}
+function posSetFilter(k){ _posFilter = k; _posRefresh(); }
+function posSearch(v){ _posSearch = v || ''; const l = document.getElementById('pos-list'); if(l) l.innerHTML = buildPosizioniListHTML(); }
+function posPreview(id, val){
+  const el = document.getElementById('pos-pv-'+id);
+  if(!el) return;
+  if(!String(val||'').trim()){ el.innerHTML = ''; return; }
+  const p = parsePositionInput(val);
+  el.innerHTML = p
+    ? `<span class="pos-pv ok">&#10003; Riconosciuta: ${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}${p.swapped?' (latitudine e longitudine erano invertite: corretto)':''}</span>`
+    : '<span class="pos-pv no">&#10007; Non riconosciuta: scrivi 42.3510, 14.1670 oppure incolla il link di Google Maps</span>';
+}
+function posSave(id){
+  const c = clienti.find(x=>x.id===id), inp = document.getElementById('pos-in-'+id);
+  if(!c || !inp) return;
+  const raw = inp.value.trim();
+  if(!raw){ showToast('Scrivi le coordinate o incolla il link di Google Maps'); return; }
+  const p = parsePositionInput(raw);
+  if(!p){ showToast('Posizione non riconosciuta'); posPreview(id, raw); return; }
+  _posWrite(c, p);
+  showToast('Posizione salvata: '+c.nome);
+  _posRefresh();
+}
+function posGPS(id){
+  if(!navigator.geolocation){ showToast('GPS non disponibile'); return; }
+  showToast('Rilevamento...');
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const inp = document.getElementById('pos-in-'+id);
+    if(inp){ inp.value = pos.coords.latitude.toFixed(6)+','+pos.coords.longitude.toFixed(6); posPreview(id, inp.value); }
+    showToast('Coordinate rilevate: premi Salva');
+  }, ()=>showToast('Impossibile rilevare la posizione'));
+}
+function posUsePin(id){
+  const c = clienti.find(x=>x.id===id); if(!c) return;
+  _gbPinIdx = null;
+  const g = getClientLatLng(c);
+  if(!g || g.src !== 'pin'){ showToast('Nessun pin per questo cliente'); return; }
+  _posWrite(c, {lat:g.lat, lon:g.lon});
+  showToast('Posizione confermata: '+c.nome);
+  _posRefresh();
+}
+function posBulkPins(){
+  let n = 0;
+  _posAll().forEach(x=>{
+    if(x.s.kind === 'pin' && x.s.exact){
+      const addr = _gbAddrOf(x.c);
+      getV(x.c.id).position = addr ? addr+'|'+fmtPos(x.s.p) : fmtPos(x.s.p);
+      n++;
+    }
+  });
+  if(n){ saveAll(); _posAfter(); }
+  showToast(n ? n+' posizion'+(n===1?'e confermata':'i confermate') : 'Nessun pin esatto da confermare');
+  _posRefresh();
+}
+function posClear(id){
+  const c = clienti.find(x=>x.id===id); if(!c) return;
+  showConfirm('Togliere la posizione di "'+c.nome+'"? Le distanze nel giro non saranno più calcolate.', ()=>{
+    getV(c.id).position = _gbAddrOf(c);
+    saveAll(); _posAfter(); _posRefresh();
+    showToast('Posizione tolta');
+  });
+}
+function posOpenMaps(id){
+  const c = clienti.find(x=>x.id===id); if(!c) return;
+  _gbPinIdx = null;
+  const g = getClientLatLng(c);
+  if(!g){ showToast('Nessuna posizione da controllare'); return; }
+  window.open('https://www.google.com/maps/search/?api=1&query='+g.lat.toFixed(6)+','+g.lon.toFixed(6), '_blank');
+}
+
 let sospendiSearch = '';
 function renderSospendiTab(){
   const totalSospesi = clienti.filter(c=>c.sospeso).length;
@@ -4547,18 +4904,530 @@ function _renderGiroVisitRowHtml(v, idx, list, mode, dayKey){
     <button class="giri-visit-del" onclick="removeGiro('${mode}','${dayKey}','${v.id}')" title="Elimina">&times;</button>
   </div>`;
 }
+// ============ CREAZIONE GIRO (builder) ============
+// Distanze stimate in locale: linea d'aria (Haversine) x 1,25; nessun dato viene inviato a servizi esterni.
+const GB_ROAD_FACTOR = 1.25;
+const GB_AVG_KMH = 50;
+let _gbUI = (function(){
+  const d = {aziende:[], zona:'', tab:'consigliati', sort:'auto', saveMode:'settimana', saveDay:'lun', saveWeek:1, saveReplace:false, view:'clienti', topOpen:(window.innerWidth||800) >= 760};
+  try { return Object.assign(d, JSON.parse(localStorage.getItem('agentmapGiroBuilderUI')||'{}')); } catch(_){ return d; }
+})();
+let _gbPick = null, _gbRulesOpen = false, _gbEditClientThr = null, _gbPinIdx = null;
+function _gbSaveUI(){ try { localStorage.setItem('agentmapGiroBuilderUI', JSON.stringify(_gbUI)); } catch(_){} }
+
+// ---- coordinate dei clienti: position "lat,lon" / "indirizzo|lat,lon" oppure pin KML di MyMaps ----
+function _parseLatLon(str){
+  if(!str) return null;
+  const raw = String(str);
+  const part = raw.includes('|') ? raw.split('|')[1] : raw;
+  const m = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/.exec(part||'');
+  if(!m) return null;
+  const lat = parseFloat(m[1]), lon = parseFloat(m[2]);
+  if(Math.abs(lat)>90 || Math.abs(lon)>180) return null;
+  return {lat, lon};
+}
+function _gbAddrOf(c){
+  const v = visits[c.id];
+  if(!v || !v.position) return '';
+  const raw = String(v.position);
+  if(raw.includes('|')) return raw.split('|')[0].trim();
+  return _parseLatLon(raw) ? '' : raw.trim();
+}
+function _gbNorm(s){ return String(s||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+function _gbBuildPinIdx(){
+  const byName = {}, fuzzy = {};
+  KML_CLIENTS.forEach(k=>{
+    if(kmlHidden[k.nome]) return;
+    const lat = parseFloat(k.lat), lon = parseFloat(k.lon);
+    if(isNaN(lat) || isNaN(lon)) return;
+    const pt = {lat, lon};
+    byName[_gbNorm(k.nome)] = pt;
+    if(kmlOverrides[k.nome]) byName[_gbNorm(kmlOverrides[k.nome])] = pt;
+    const mc = findMainClient(k.nome);
+    if(mc && !fuzzy[mc.id]) fuzzy[mc.id] = pt;
+  });
+  _gbPinIdx = {byName, fuzzy};
+}
+function getClientLatLng(c){
+  const v = visits[c.id];
+  if(v && v.position){ const p = _parseLatLon(v.position); if(p) return {lat:p.lat, lon:p.lon, src:'pos'}; }
+  if(!_gbPinIdx) _gbBuildPinIdx();
+  const e = _gbPinIdx.byName[_gbNorm(c.nome)];
+  if(e) return {lat:e.lat, lon:e.lon, src:'pin', exact:true};
+  const f = _gbPinIdx.fuzzy[c.id];
+  return f ? {lat:f.lat, lon:f.lon, src:'pin', exact:false} : null;
+}
+function haversineKm(a, b){
+  const R = 6371, t = Math.PI/180;
+  const dLat = (b.lat-a.lat)*t, dLon = (b.lon-a.lon)*t;
+  const s = Math.sin(dLat/2)**2 + Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1, Math.sqrt(s)));
+}
+function giroLegInfo(ca, cb){
+  const a = getClientLatLng(ca), b = getClientLatLng(cb);
+  if(!a || !b) return null;
+  const km = haversineKm(a, b)*GB_ROAD_FACTOR;
+  return {km, min: Math.max(1, Math.round(km/GB_AVG_KMH*60))};
+}
+function _gbFmtKm(km){ return km < 10 ? km.toFixed(1).replace('.', ',') : String(Math.round(km)); }
+function _gbFmtMin(m){ if(m < 60) return m+' min'; const h = Math.floor(m/60), r = m%60; return h+' h'+(r ? ' '+r+' min' : ''); }
+
+// ---- soglia giorni per i suggerimenti: cliente > azienda (la piu' bassa tra quelle scelte) > generale ----
+function routeSuggestThreshold(c, selAz){
+  const rs = routeSuggest;
+  if(rs.perClient[c.id] > 0) return {days:Number(rs.perClient[c.id]), src:'cliente'};
+  const ids = (c.aziende||[]).filter(id=>!selAz.length || selAz.includes(id));
+  const vals = ids.map(id=>Number(rs.perAzienda[id])).filter(n=>n > 0);
+  if(vals.length) return {days:Math.min(...vals), src:'azienda'};
+  return {days:rs.defaultDays, src:'generale'};
+}
+function _gbDaysCmp(x, y){ return (y.days===null ? 1e9 : y.days) - (x.days===null ? 1e9 : x.days); }
+function _gbDraftClients(){ return giroDraft.map(id=>clienti.find(c=>c.id===id)).filter(Boolean); }
+function _gbTotals(stops){
+  let km = 0, min = 0, nd = 0;
+  for(let i=1; i<stops.length; i++){
+    const l = giroLegInfo(stops[i-1], stops[i]);
+    if(l){ km += l.km; min += l.min; } else nd++;
+  }
+  return {km, min, nd};
+}
+function _gbCandidates(stops){
+  const sel = _gbUI.aziende.filter(id=>aziende.some(a=>a.id===id));
+  const inDraft = new Set(giroDraft);
+  const weekMap = {};
+  const planStore = _giroStore(_gbUI.saveMode);
+  _gbPlanRows(_gbUI.saveMode).forEach(r=>r.days.forEach(d=>(planStore[d.key]||[]).forEach(v=>{
+    (weekMap[v.clientId] = weekMap[v.clientId] || []).push(_gbUI.saveMode==='continuo' ? 'S'+r.week+' '+d.short : d.short);
+  })));
+  const last = stops.length ? stops[stops.length-1] : null;
+  const lastPos = last ? getClientLatLng(last) : null;
+  return clienti.filter(c=>{
+    if(inDraft.has(c.id)) return false;
+    if(_gbUI.zona && c.zona !== _gbUI.zona) return false;
+    if(sel.length && !(c.aziende||[]).some(id=>sel.includes(id))) return false;
+    return true;
+  }).map(c=>{
+    const v = visits[c.id];
+    const days = (v && v.visitDate) ? daysSince(v.visitDate) : null;
+    const thr = routeSuggestThreshold(c, sel);
+    const pos = getClientLatLng(c);
+    return {c, days, thr, overdue: days===null || days > thr.days, pos,
+            dist: (lastPos && pos) ? haversineKm(lastPos, pos)*GB_ROAD_FACTOR : null,
+            week: weekMap[c.id] || []};
+  });
+}
+function _gbShown(cands, stops){
+  const lastPos = stops.length ? getClientLatLng(stops[stops.length-1]) : null;
+  const nOver = cands.filter(x=>x.overdue && !x.c.sospeso).length;
+  let list = _gbUI.tab === 'consigliati' ? cands.filter(x=>x.overdue && !x.c.sospeso) : cands.slice();
+  const sort = _gbUI.sort === 'auto' ? (lastPos ? 'vicini' : 'ritardo') : _gbUI.sort;
+  list.sort((x, y)=> sort === 'vicini'
+    ? ((x.dist==null) - (y.dist==null)) || ((x.dist||0) - (y.dist||0)) || _gbDaysCmp(x, y)
+    : _gbDaysCmp(x, y));
+  return {list, sort, nOver, total:cands.length};
+}
+
+// ---- azioni ----
+function gbToggleAzienda(id){
+  const i = _gbUI.aziende.indexOf(id);
+  if(i >= 0) _gbUI.aziende.splice(i, 1); else _gbUI.aziende.push(id);
+  _gbPick = null; _gbSaveUI(); renderGiroBuilder();
+}
+function gbSetZona(i){ _gbUI.zona = i >= 0 ? (zoneOrder[i]||'') : ''; _gbPick = null; _gbSaveUI(); renderGiroBuilder(); }
+function gbSetTab(t){ _gbUI.tab = t==='tutti' ? 'tutti' : 'consigliati'; _gbPick = null; _gbSaveUI(); renderGiroBuilder(); }
+function gbSetSort(s){ _gbUI.sort = s==='vicini' ? 'vicini' : 'ritardo'; _gbSaveUI(); renderGiroBuilder(); }
+function gbToggleRules(){ _gbRulesOpen = !_gbRulesOpen; renderGiroBuilder(); }
+function gbPick(id){ _gbPick = (_gbPick === id) ? null : id; renderGiroBuilder(); }
+function gbSetDefaultDays(v){
+  const n = parseInt(v, 10);
+  if(!(n > 0)){ showToast('Inserisci un numero di giorni'); renderGiroBuilder(); return; }
+  routeSuggest.defaultDays = Math.min(n, 999); saveAll(); renderGiroBuilder();
+}
+function gbSetAziendaDays(id, v){
+  const n = parseInt(v, 10);
+  if(n > 0) routeSuggest.perAzienda[id] = Math.min(n, 999); else delete routeSuggest.perAzienda[id];
+  saveAll(); renderGiroBuilder();
+}
+function gbSetClientDays(id, v){
+  const n = parseInt(v, 10);
+  if(n > 0) routeSuggest.perClient[id] = Math.min(n, 999); else delete routeSuggest.perClient[id];
+  _gbEditClientThr = null; saveAll(); renderGiroBuilder();
+}
+function gbEditClientThr(id){
+  _gbEditClientThr = id; renderGiroBuilder();
+  setTimeout(()=>{ const i = document.getElementById('gb-thr-'+id); if(i){ i.focus(); i.select(); } }, 30);
+}
+function giroBuilderAdd(id){
+  if(giroDraft.includes(id)) return;
+  const c = clienti.find(x=>x.id===id); if(!c) return;
+  const prev = _gbDraftClients().slice(-1)[0];
+  giroDraft.push(id); _gbPick = null; _gbResetList = true; saveAll(); renderGiroBuilder();
+  const l = prev ? giroLegInfo(prev, c) : null;
+  showToast(c.nome + ' aggiunto' + (l ? ' (≈ '+_gbFmtKm(l.km)+' km dalla tappa precedente)' : ''));
+}
+function giroBuilderRemove(id){ giroDraft = giroDraft.filter(x=>x!==id); saveAll(); renderGiroBuilder(); }
+function giroBuilderMove(id, dir){
+  const i = giroDraft.indexOf(id), j = i + dir;
+  if(i < 0 || j < 0 || j >= giroDraft.length) return;
+  [giroDraft[i], giroDraft[j]] = [giroDraft[j], giroDraft[i]];
+  saveAll(); renderGiroBuilder();
+}
+function giroBuilderClear(){
+  if(!giroDraft.length) return;
+  showConfirm('Svuotare il giro in costruzione ('+giroDraft.length+' visite)?', ()=>{ giroDraft = []; _gbPick = null; saveAll(); renderGiroBuilder(); });
+}
+function _gbMapsPoint(c){
+  const p = getClientLatLng(c);
+  if(p && p.src === 'pos') return p.lat.toFixed(6)+','+p.lon.toFixed(6);
+  const addr = _gbAddrOf(c);
+  if(addr) return addr;
+  if(p) return p.lat.toFixed(6)+','+p.lon.toFixed(6);
+  return c.nome + ', Italia';
+}
+function giroBuilderOpenMaps(){
+  const stops = _gbDraftClients();
+  if(!stops.length) return;
+  const pts = stops.map(_gbMapsPoint);
+  if(pts.length === 1){ window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(pts[0]), '_blank'); return; }
+  if(pts.length > 10) showToast('Google Maps gestisce circa 10 tappe: le ultime potrebbero non comparire');
+  const wp = pts.slice(1, -1).map(s=>encodeURIComponent(s)).join('|');
+  let url = 'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(pts[0])+'&destination='+encodeURIComponent(pts[pts.length-1])+'&travelmode=driving';
+  if(wp) url += '&waypoints='+wp;
+  window.open(url, '_blank');
+}
+
+// ---- salvataggio del giro in costruzione dentro Settimana / Giro continuo ----
+function _gbSaveTargetKey(){ return _gbUI.saveMode === 'continuo' ? _giroContinuoKey(_gbUI.saveWeek, _gbUI.saveDay) : _gbUI.saveDay; }
+
+// ---- planner: settimane lun-ven con i giorni gia' occupati, per scegliere dove mettere il giro ----
+function _gbPlanRows(mode){
+  if(mode === 'continuo'){
+    return GIRO_CONTINUO_SETTIMANE.map(s=>({label:'Settimana '+s, week:s,
+      days: GIRO_CONTINUO_GIORNI.map(g=>({day:g.key, short:g.name.slice(0,3), name:g.name, key:_giroContinuoKey(s, g.key)}))}));
+  }
+  return [{label:'', week:1, days: GIORNI.map(g=>({day:g.key, short:g.short, name:g.name, key:g.key}))}];
+}
+function _gbTargetLabel(){
+  const cont = _gbUI.saveMode === 'continuo';
+  const g = (cont ? GIRO_CONTINUO_GIORNI : GIORNI).find(x=>x.key === _gbUI.saveDay);
+  return (g ? g.name : _gbUI.saveDay) + (cont ? ' (sett. '+_gbUI.saveWeek+')' : '');
+}
+function _gbTargetShort(){
+  const cont = _gbUI.saveMode === 'continuo';
+  const g = (cont ? GIRO_CONTINUO_GIORNI : GIORNI).find(x=>x.key === _gbUI.saveDay);
+  const s = g ? g.name.slice(0,3) : _gbUI.saveDay;
+  return cont ? s+' S'+_gbUI.saveWeek : s;
+}
+function gbPickTarget(mode, week, day){
+  _gbUI.saveMode = mode === 'continuo' ? 'continuo' : 'settimana';
+  _gbUI.saveWeek = week; _gbUI.saveDay = day;
+  _gbSaveUI(); renderGiroBuilder();
+}
+function gbSetPlanMode(mode){
+  _gbUI.saveMode = mode === 'continuo' ? 'continuo' : 'settimana';
+  if(_gbUI.saveMode === 'continuo' && (_gbUI.saveDay === 'sab' || _gbUI.saveDay === 'dom')) _gbUI.saveDay = 'lun';
+  _gbSaveUI(); renderGiroBuilder();
+}
+function giroBuilderOpenSave(){
+  if(!giroDraft.length){ showToast('Aggiungi almeno una visita'); return; }
+  // giorno libero: salva subito, niente finestra; se ci sono gia' visite chiedo coda o sostituisci
+  if(!(_giroStore(_gbUI.saveMode)[_gbSaveTargetKey()]||[]).length){ _gbUI.saveReplace = false; giroBuilderConfirmSave(); return; }
+  document.getElementById('gb-save-sub').textContent = giroDraft.length+' visit'+(giroDraft.length===1?'a':'e')+' da salvare';
+  renderGbSaveBody();
+  openOverlay('gb-save-overlay');
+}
+function closeGbSave(){ closeOverlay('gb-save-overlay'); }
+function gbSaveSet(k, v){
+  _gbUI[k] = v;
+  if(_gbUI.saveMode === 'continuo' && (_gbUI.saveDay === 'sab' || _gbUI.saveDay === 'dom')) _gbUI.saveDay = 'lun';
+  _gbSaveUI(); renderGbSaveBody();
+}
+function renderGbSaveBody(){
+  const body = document.getElementById('gb-save-body'); if(!body) return;
+  const cont = _gbUI.saveMode === 'continuo';
+  const days = cont ? GIRO_CONTINUO_GIORNI.map(g=>({key:g.key, name:g.name})) : GIORNI.map(g=>({key:g.key, name:g.name}));
+  const chip = (act, on, label)=>`<button class="gb-chip${on?' active':''}" onclick="${act}">${label}</button>`;
+  const store = _giroStore(_gbUI.saveMode);
+  const existing = (store[_gbSaveTargetKey()]||[]).length;
+  body.innerHTML = `
+    <div class="gb-sub-label" style="margin-top:0">Dove</div>
+    <div class="gb-chips">${chip("gbSaveSet('saveMode','settimana')", !cont, 'Giri della settimana')}${chip("gbSaveSet('saveMode','continuo')", cont, 'Giro continuo')}</div>
+    ${cont ? `<div class="gb-sub-label">Settimana</div><div class="gb-chips">${GIRO_CONTINUO_SETTIMANE.map(s=>chip("gbSaveSet('saveWeek',"+s+")", _gbUI.saveWeek===s, 'Settimana '+s)).join('')}</div>` : ''}
+    <div class="gb-sub-label">Giorno</div>
+    <div class="gb-chips">${days.map(d=>chip("gbSaveSet('saveDay','"+d.key+"')", _gbUI.saveDay===d.key, d.name)).join('')}</div>
+    ${existing ? `<div class="gb-sub-label">In quel giorno ci sono già ${existing} visit${existing===1?'a':'e'}</div>
+      <div class="gb-chips">${chip("gbSaveSet('saveReplace',false)", !_gbUI.saveReplace, 'Aggiungi in coda')}${chip("gbSaveSet('saveReplace',true)", _gbUI.saveReplace, 'Sostituisci')}</div>` : ''}`;
+}
+function giroBuilderConfirmSave(){
+  const stops = _gbDraftClients();
+  if(!stops.length){ showToast('Aggiungi almeno una visita'); return; }
+  const mode = _gbUI.saveMode, key = _gbSaveTargetKey();
+  const store = _giroStore(mode);
+  if(!Array.isArray(store[key]) || _gbUI.saveReplace) store[key] = [];
+  const sel = _gbUI.aziende;
+  stops.forEach(c=>{
+    const azIds = (c.aziende||[]).filter(id=>sel.includes(id));
+    store[key].push({
+      id: 'g'+Date.now()+Math.random().toString(36).slice(2,6),
+      clientId: c.id, clientName: c.nome, time: '', note: '',
+      aziendaIds: azIds.length ? azIds : undefined,
+    });
+  });
+  const dayName = (mode==='continuo' ? GIRO_CONTINUO_GIORNI : GIORNI).find(g=>g.key===_gbUI.saveDay);
+  const label = (dayName ? dayName.name : key) + (mode==='continuo' ? ' (sett. '+_gbUI.saveWeek+')' : '');
+  giroDraft = []; _gbPick = null; _gbUI.saveReplace = false; _gbSaveUI();
+  saveAll();
+  closeGbSave();
+  setGiriViewMode(mode);
+  showToast('Giro salvato: '+stops.length+' visite in '+label);
+}
+
+// ---- rendering (schermata unica a pannelli, senza scorrere la pagina) ----
+let _gbQuery = '', _gbResetList = false;
+function _gbDaysChip(days){
+  return days===null ? '<span class="days-chip chip-nero">mai</span>' : '<span class="days-chip '+chipKey(days)+'">'+days+'g</span>';
+}
+function _gbLogos(c, azIds){
+  return (c.aziende||[]).filter(id=>!azIds.length || azIds.includes(id)).map(id=>aziende.find(a=>a.id===id)).filter(Boolean)
+    .map(a=> a.logo ? `<img class="gb-logo" src="${escA(a.logo)}" alt="${escA(a.nome)}" title="${escA(a.nome)}">`
+                    : `<span class="gb-logo gb-logo-t" title="${escA(a.nome)}">${escH(a.nome.substring(0,2).toUpperCase())}</span>`).join('');
+}
+// l'area del builder occupa esattamente lo schermo sotto le tab: niente scroll della pagina
+function _gbFitHeight(){
+  const box = document.getElementById('giro-builder-container');
+  if(!box || box.style.display === 'none') return;
+  const top = box.getBoundingClientRect().top;
+  box.style.height = Math.max(430, window.innerHeight - top - 10) + 'px';
+}
+window.addEventListener('resize', ()=>{ if(currentView==='giri' && giriViewMode==='creazione') _gbFitHeight(); });
+function gbClearAziende(){ _gbUI.aziende = []; _gbPick = null; _gbSaveUI(); renderGiroBuilder(); }
+function gbSetView(v){ _gbUI.view = (v==='giro' || v==='mappa') ? v : 'clienti'; _gbSaveUI(); renderGiroBuilder(); }
+function gbSearch(v){ _gbQuery = v || ''; _gbRefreshList(); }
+function _gbRefreshList(){
+  const el = document.getElementById('gb-list');
+  if(!el) return;
+  const stops = _gbDraftClients();
+  el.innerHTML = _gbRowsHtml(_gbShown(_gbCandidates(stops), stops), stops.length ? stops[stops.length-1] : null);
+}
+
+function _gbRulesHtml(){
+  const az = aziende.map(a=>`<div class="gb-rule-row"><span>${escH(a.nome)}</span><span><input class="gb-num" type="number" min="1" max="999" placeholder="${routeSuggest.defaultDays}" value="${routeSuggest.perAzienda[a.id]||''}" onchange="gbSetAziendaDays('${a.id}',this.value)"> <span class="gb-muted">giorni</span></span></div>`).join('');
+  const cl = Object.keys(routeSuggest.perClient).map(id=>{
+    const c = clienti.find(x=>x.id===id);
+    return c ? `<div class="gb-rule-row"><span>${escH(c.nome)}</span><span><b>${routeSuggest.perClient[id]}g</b> <button class="gb-mini gb-mini-del" onclick="gbSetClientDays('${c.id}','')" title="Togli">&times;</button></span></div>` : '';
+  }).join('');
+  return `<div class="gb-rules">
+    <div class="gb-rule-row"><span><b>Soglia generale</b> (mai visitato = sempre consigliato)</span><span><input class="gb-num" type="number" min="1" max="999" value="${routeSuggest.defaultDays}" onchange="gbSetDefaultDays(this.value)"> <span class="gb-muted">giorni</span></span></div>
+    <div class="gb-sub-label">Soglia per azienda (vuoto = generale)</div>${az || '<div class="gb-muted">Nessuna azienda.</div>'}
+    <div class="gb-sub-label">Soglie per singolo cliente</div>${cl || '<div class="gb-muted">Nessuna. Tocca &ldquo;soglia&hellip;&rdquo; su un cliente dell\'elenco per impostarla.</div>'}
+  </div>`;
+}
+function _gbDestHtml(){
+  const mode = _gbUI.saveMode, cont = mode === 'continuo', store = _giroStore(mode), today = todayDayKey(), week = _gbUI.saveWeek;
+  const modeSeg = `<div class="gb-seg2"><button class="${!cont?'on':''}" onclick="gbSetPlanMode('settimana')">Settimana</button><button class="${cont?'on':''}" onclick="gbSetPlanMode('continuo')">4 settimane</button></div>`;
+  const weekSeg = cont ? `<div class="gb-seg2">${GIRO_CONTINUO_SETTIMANE.map(s=>{
+      const tot = GIRO_CONTINUO_GIORNI.reduce((n,g)=>n+(store[_giroContinuoKey(s,g.key)]||[]).length, 0);
+      return `<button class="${week===s?'on':''}" onclick="gbPickTarget('continuo',${s},'${_gbUI.saveDay}')" title="Settimana ${s}: ${tot} visite">S${s}<small>${tot}</small></button>`;
+    }).join('')}</div>` : '';
+  const defs = cont ? GIRO_CONTINUO_GIORNI.map(g=>({day:g.key, short:g.name.slice(0,3), name:g.name, key:_giroContinuoKey(week, g.key)}))
+                    : GIORNI.map(g=>({day:g.key, short:g.short, name:g.name, key:g.key}));
+  const days = defs.map(d=>{
+    const n = (store[d.key]||[]).length, on = _gbUI.saveDay === d.day;
+    return `<button class="gb-dp${on?' sel':''}${n?'':' free'}" onclick="gbPickTarget('${mode}',${week},'${d.day}')" title="${escA(d.name)}: ${n} ${n===1?'visita':'visite'}"><b>${d.short}${(!cont && today===d.day)?'<i class="gb-today"></i>':''}</b><span>${n||'&middot;'}</span></button>`;
+  }).join('');
+  const ex = store[_gbSaveTargetKey()] || [];
+  const exTxt = ex.map(v=>(v.time ? v.time+' ' : '')+(v.clientName||'')).join(' · ');
+  return `<div class="gb-row gb-wrapx">${modeSeg}${weekSeg}<div class="gb-days">${days}</div></div>
+    <div class="gb-dest-detail" title="${escA(exTxt)}"><b>${escH(_gbTargetLabel())}</b>: ${ex.length ? 'già '+ex.length+' &mdash; '+escH(exTxt) : 'giorno libero'}</div>`;
+}
+function gbToggleTop(){ _gbUI.topOpen = !_gbUI.topOpen; _gbSaveUI(); renderGiroBuilder(); }
+function _gbTopHtml(){
+  const sel = _gbUI.aziende;
+  if(_gbUI.topOpen === false){
+    const names = sel.map(id=>(aziende.find(a=>a.id===id)||{}).nome).filter(Boolean);
+    const n = (_giroStore(_gbUI.saveMode)[_gbSaveTargetKey()]||[]).length;
+    return `<div class="gb-top gb-top-c" onclick="gbToggleTop()" title="Apri filtri e giorno"><span class="gb-sumtxt">In <b>${escH(_gbTargetShort())}</b> (${n?n+' già':'libero'}) &middot; <b>${escH(names.length ? names.join(', ') : 'tutte le aziende')}</b> &middot; ${escH(_gbUI.zona || 'tutte le zone')} &middot; &gt;${routeSuggest.defaultDays} gg</span><span class="gb-chev">&#9662;</span></div>`;
+  }
+  const az = `<button class="gb-chip sm${!sel.length?' active':''}" onclick="gbClearAziende()">Tutte</button>`
+    + aziende.map(a=>`<button class="gb-chip sm${sel.includes(a.id)?' active':''}" onclick="gbToggleAzienda('${a.id}')">${a.logo?`<img src="${escA(a.logo)}" alt="">`:''}${escH(a.nome)}</button>`).join('');
+  const zopts = '<option value="-1">Tutte le zone</option>' + zoneOrder.map((z,i)=>`<option value="${i}"${_gbUI.zona===z?' selected':''}>${escH(z)}</option>`).join('');
+  const custom = Object.keys(routeSuggest.perAzienda).length + Object.keys(routeSuggest.perClient).length;
+  return `<div class="gb-top">
+    <div class="gb-row gb-scrollx"><span class="gb-lbl">Azienda</span>${az}</div>
+    <div class="gb-row">
+      <select class="gb-select" onchange="gbSetZona(parseInt(this.value,10))">${zopts}</select>
+      <button class="gb-rulebtn${_gbRulesOpen?' open':''}" onclick="gbToggleRules()" title="Imposta dopo quanti giorni consigliare un cliente">Non visitati da più di <b>${routeSuggest.defaultDays}</b> gg${custom?' +':''} &#9881;</button>
+      <button class="gb-mini" onclick="gbToggleTop()" title="Nascondi filtri e giorno" style="flex-shrink:0">&#9652;</button>
+    </div>
+    ${_gbRulesOpen ? _gbRulesHtml() : ''}
+    ${_gbDestHtml()}
+  </div>`;
+}
+function _gbSegHtml(stops, shown){
+  const v = _gbUI.view || 'clienti';
+  const b = (k, label, n)=>`<button class="${v===k?'on':''}" onclick="gbSetView('${k}')">${label}${n!=null?` <small>${n}</small>`:''}</button>`;
+  return `<div class="gb-seg3">${b('clienti','Clienti',shown.nOver)}${b('giro','Il giro',stops.length)}${b('mappa','Mappa',null)}</div>`;
+}
+
+function _gbSugRowHtml(x, lastC){
+  const c = x.c, sel = _gbUI.aziende;
+  const thr = _gbEditClientThr === c.id
+    ? `<span class="gb-thr-edit"><input type="number" min="1" max="999" value="${x.thr.days}" id="gb-thr-${c.id}" class="gb-num" onkeydown="if(event.key==='Enter')gbSetClientDays('${c.id}',this.value)"> g <button class="gb-mini" onclick="gbSetClientDays('${c.id}',document.getElementById('gb-thr-${c.id}').value)" title="Salva">&#10003;</button>${routeSuggest.perClient[c.id]?` <button class="gb-link" onclick="gbSetClientDays('${c.id}','')">ripristina</button>`:''}</span>`
+    : `<button class="gb-link" onclick="gbEditClientThr('${c.id}')" title="Cambia la soglia solo per questo cliente">soglia ${x.thr.days}g${x.thr.src==='cliente'?' (cliente)':(x.thr.src==='azienda'?' (azienda)':'')}</button>`;
+  const dist = x.dist != null ? `<b class="gb-near">a ${_gbFmtKm(x.dist)} km</b>` : (lastC && x.pos ? '' : (lastC ? '<span class="gb-nd">distanza n/d</span>' : ''));
+  const posBtn = x.pos ? '' : `<button class="gb-link" onclick="openClientPositionEdit('${c.id}')">&#128205; posizione</button>`;
+  return `<div class="gb-sug${c.sospeso?' dim':''}">
+    <div class="gb-sug-main">
+      <div class="gb-sug-l1"><span class="gb-stop-name">${escH(c.nome)}</span>${c.sospeso?'<span class="gb-tag">sospeso</span>':''}${x.week.length?`<span class="gb-tag">già in ${x.week.join(', ')}</span>`:''}</div>
+      <div class="gb-stop-sub">${escH(c.zona||'')} ${_gbDaysChip(x.days)} <span class="gb-logos">${_gbLogos(c, sel)}</span> ${dist} ${thr} ${posBtn}</div>
+    </div>
+    <button class="gb-plus" onclick="giroBuilderAdd('${c.id}')" aria-label="Aggiungi al giro" title="Aggiungi al giro">+</button>
+  </div>`;
+}
+function _gbRowsHtml(shown, lastC){
+  const q = _gbQuery.trim().toLowerCase();
+  const list = q ? shown.list.filter(x=>x.c.nome.toLowerCase().includes(q) || (x.c.contatti||'').toLowerCase().includes(q)) : shown.list;
+  const MAX = 60;
+  if(!list.length){
+    return '<div class="gb-empty">' + (q ? 'Nessun cliente trovato.'
+      : (_gbUI.tab === 'consigliati' ? 'Nessun cliente da consigliare con questi filtri.<br>Abbassa la soglia (&#9881;) o guarda &ldquo;Tutti&rdquo;.' : 'Nessun cliente con questi filtri.')) + '</div>';
+  }
+  return list.slice(0, MAX).map(x=>_gbSugRowHtml(x, lastC)).join('')
+    + (list.length > MAX ? `<div class="gb-muted" style="padding:6px 2px">Mostrati ${MAX} di ${list.length}: restringi con azienda, zona o ricerca.</div>` : '');
+}
+function _gbClientiPaneHtml(stops, shown){
+  const lastC = stops.length ? stops[stops.length-1] : null;
+  const t = _gbUI.tab;
+  return `<section class="gb-pane gb-pane-clienti">
+    <div class="gb-pane-head">
+      <button class="gb-chip sm${t==='consigliati'?' active':''}" onclick="gbSetTab('consigliati')">Consigliati <b>${shown.nOver}</b></button>
+      <button class="gb-chip sm${t==='tutti'?' active':''}" onclick="gbSetTab('tutti')">Tutti <b>${shown.total}</b></button>
+      <span class="gb-spacer"></span>
+      <button class="gb-chip sm${shown.sort==='ritardo'?' active':''}" onclick="gbSetSort('ritardo')" title="Prima chi manca da più tempo">In ritardo</button>
+      <button class="gb-chip sm${shown.sort==='vicini'?' active':''}" onclick="gbSetSort('vicini')" title="Prima i più vicini all'ultima tappa">Vicini</button>
+      <input class="gb-search" type="search" placeholder="Cerca cliente..." value="${escA(_gbQuery)}" oninput="gbSearch(this.value)">
+    </div>
+    <div class="gb-pane-body" id="gb-list" data-k="cl">${_gbRowsHtml(shown, lastC)}</div>
+  </section>`;
+}
+
+function _gbLegHtml(a, b){
+  const l = giroLegInfo(a, b);
+  return l ? `<div class="gb-leg">&darr; &asymp; ${_gbFmtKm(l.km)} km &middot; ~${_gbFmtMin(l.min)}</div>`
+           : '<div class="gb-leg nd">&darr; distanza n/d</div>';
+}
+function _gbGiroPaneHtml(stops){
+  const sel = _gbUI.aziende, t = _gbTotals(stops);
+  let body;
+  if(!stops.length){
+    body = '<div class="gb-empty">Il giro è vuoto.<br>Tocca <b>+</b> sui clienti per aggiungerli: qui vedi la distanza tra una visita e l\'altra.</div>';
+  } else {
+    body = stops.map((c, i)=>{
+      const v = visits[c.id];
+      const days = (v && v.visitDate) ? daysSince(v.visitDate) : null;
+      const noPos = !getClientLatLng(c);
+      return (i > 0 ? _gbLegHtml(stops[i-1], c) : '') + `<div class="gb-stop">
+        <span class="gb-stop-n">${i+1}</span>
+        <div class="gb-sug-main">
+          <div class="gb-stop-name">${escH(c.nome)}</div>
+          <div class="gb-stop-sub">${escH(c.zona||'')} ${_gbDaysChip(days)} <span class="gb-logos">${_gbLogos(c, sel)}</span>${noPos?` <button class="gb-link" onclick="openClientPositionEdit('${c.id}')">&#128205; imposta posizione</button>`:''}</div>
+        </div>
+        <div class="gb-stop-actions">
+          <button class="gb-mini" onclick="giroBuilderMove('${c.id}',-1)" title="Su"${i===0?' disabled':''}>&#9650;</button>
+          <button class="gb-mini" onclick="giroBuilderMove('${c.id}',1)" title="Giù"${i===stops.length-1?' disabled':''}>&#9660;</button>
+          <button class="gb-mini gb-mini-del" onclick="giroBuilderRemove('${c.id}')" title="Togli dal giro">&times;</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  const sum = stops.length ? `<span class="gb-sumline">${stops.length} vis.${stops.length>1?` &middot; &asymp; ${_gbFmtKm(t.km)} km &middot; ~${_gbFmtMin(t.min)}`:''}${t.nd?` &middot; ${t.nd} senza distanza`:''}</span>` : '';
+  return `<section class="gb-pane gb-pane-giro">
+    <div class="gb-pane-head"><b>Il giro</b><span class="gb-muted">${escH(_gbTargetShort())}</span><span class="gb-spacer"></span>${sum}</div>
+    <div class="gb-pane-body" data-k="gi">${body}</div>
+  </section>`;
+}
+function _gbMapPaneHtml(stops, shown){
+  const pts = stops.map((c,i)=>({c, i, p:getClientLatLng(c)})).filter(x=>x.p);
+  const cands = shown.list.filter(x=>x.pos).slice(0, 60);
+  const all = pts.map(x=>x.p).concat(cands.map(x=>x.pos));
+  let inner;
+  if(!all.length){
+    inner = '<div class="gb-map-empty">Nessun cliente con posizione: imposta la posizione (&#128205;) per vederli sulla mappa.</div>';
+  } else {
+    const W = 600, H = 400, PAD = 26;
+    let minLat = Math.min(...all.map(p=>p.lat)), maxLat = Math.max(...all.map(p=>p.lat));
+    let minLon = Math.min(...all.map(p=>p.lon)), maxLon = Math.max(...all.map(p=>p.lon));
+    const kx = Math.cos(((minLat+maxLat)/2)*Math.PI/180);
+    const MIN = 0.03;
+    if((maxLon-minLon)*kx < MIN){ const d = (MIN-(maxLon-minLon)*kx)/2/kx; minLon -= d; maxLon += d; }
+    if(maxLat-minLat < MIN){ const d = (MIN-(maxLat-minLat))/2; minLat -= d; maxLat += d; }
+    const spanX = (maxLon-minLon)*kx, spanY = maxLat-minLat;
+    const sc = Math.min((W-2*PAD)/spanX, (H-2*PAD)/spanY);
+    const offX = (W-spanX*sc)/2, offY = (H-spanY*sc)/2;
+    const px = p=>(offX+(p.lon-minLon)*kx*sc).toFixed(1), py = p=>(offY+(maxLat-p.lat)*sc).toFixed(1);
+    const dots = cands.map(x=>`<g onclick="gbPick('${x.c.id}')" style="cursor:pointer"><circle cx="${px(x.pos)}" cy="${py(x.pos)}" r="16" fill="transparent"/><circle cx="${px(x.pos)}" cy="${py(x.pos)}" r="${_gbPick===x.c.id?9:6}" class="gb-dot${_gbPick===x.c.id?' picked':''}"/></g>`).join('');
+    const line = pts.length > 1 ? `<polyline class="gb-line" points="${pts.map(x=>px(x.p)+','+py(x.p)).join(' ')}"/>` : '';
+    const nums = pts.map(x=>`<g><circle cx="${px(x.p)}" cy="${py(x.p)}" r="11" class="gb-stopdot"/><text x="${px(x.p)}" y="${py(x.p)}" class="gb-stoptxt" text-anchor="middle" dominant-baseline="central">${x.i+1}</text></g>`).join('');
+    const picked = _gbPick ? shown.list.find(x=>x.c.id===_gbPick) : null;
+    const pickedHtml = picked ? `<div class="gb-picked"><div style="min-width:0"><b>${escH(picked.c.nome)}</b><div class="gb-stop-sub">${escH(picked.c.zona||'')} &middot; ${picked.days===null?'mai visitato':picked.days+'g dall\'ultima visita'}${picked.dist!=null?' &middot; a '+_gbFmtKm(picked.dist)+' km dall\'ultima tappa':''}</div></div><button class="gb-add-btn" onclick="giroBuilderAdd('${picked.c.id}')">+ Aggiungi</button></div>` : '';
+    inner = `<svg class="gb-map" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${dots}${line}${nums}</svg>${pickedHtml}`;
+  }
+  return `<section class="gb-pane gb-pane-mappa">
+    <div class="gb-pane-head"><b>Mappa</b><span class="gb-muted">numeri = tappe &middot; cerchi = consigliati (tocca)</span></div>
+    <div class="gb-pane-body gb-map-body">${inner}</div>
+  </section>`;
+}
+function _gbBarHtml(stops){
+  const t = _gbTotals(stops), has = stops.length > 0;
+  return `<div class="gb-bar">
+    <div class="gb-bar-info">${has ? `<b>${stops.length}</b> visit${stops.length===1?'a':'e'}${stops.length>1?` &middot; &asymp; ${_gbFmtKm(t.km)} km`:''}` : 'Nessuna visita'}</div>
+    <div class="gb-bar-btns">
+      <button class="gb-btn gb-btn-ghost" onclick="giroBuilderClear()"${has?'':' disabled'}>Svuota</button>
+      <button class="gb-btn gb-btn-ghost" onclick="giroBuilderOpenMaps()"${has?'':' disabled'}>Maps</button>
+      <button class="gb-btn" onclick="giroBuilderOpenSave()"${has?'':' disabled'}>Salva in ${escH(_gbTargetShort())}</button>
+    </div>
+  </div>`;
+}
+function renderGiroBuilder(){
+  const box = document.getElementById('giro-builder-container');
+  if(!box) return;
+  _gbPinIdx = null;
+  giroDraft = giroDraft.filter(id=>clienti.some(c=>c.id===id));
+  const stops = _gbDraftClients();
+  const shown = _gbShown(_gbCandidates(stops), stops);
+  if(_gbPick && !shown.list.some(x=>x.c.id===_gbPick)) _gbPick = null;
+  const scroll = {};
+  box.querySelectorAll('.gb-pane-body[data-k]').forEach(el=>{ scroll[el.dataset.k] = el.scrollTop; });
+  const view = _gbUI.view || 'clienti';
+  box.innerHTML = `<div class="gb-app" data-view="${view}">${_gbTopHtml()}${_gbSegHtml(stops, shown)}<div class="gb-panes">${_gbClientiPaneHtml(stops, shown)}<div class="gb-right">${_gbGiroPaneHtml(stops)}${_gbMapPaneHtml(stops, shown)}</div></div>${_gbBarHtml(stops)}</div>`;
+  _gbFitHeight();
+  if(!_gbResetList) box.querySelectorAll('.gb-pane-body[data-k]').forEach(el=>{ if(scroll[el.dataset.k] != null) el.scrollTop = scroll[el.dataset.k]; });
+  _gbResetList = false;
+}
+
 function setGiriViewMode(mode){
-  giriViewMode = mode === 'continuo' ? 'continuo' : 'settimana';
+  giriViewMode = mode === 'continuo' ? 'continuo' : (mode === 'creazione' ? 'creazione' : 'settimana');
   const bs = document.getElementById('giri-mode-settimana-btn');
   const bc = document.getElementById('giri-mode-continuo-btn');
+  const bb = document.getElementById('giri-mode-creazione-btn');
   if(bs) bs.classList.toggle('active', giriViewMode==='settimana');
   if(bc) bc.classList.toggle('active', giriViewMode==='continuo');
+  if(bb) bb.classList.toggle('active', giriViewMode==='creazione');
   const title = document.getElementById('giri-title-text');
   const sub = document.getElementById('giri-sub-text');
   const histBtn = document.getElementById('giri-history-visible-btn');
   const clearBtn = document.getElementById('giri-clear-visible-btn');
   const savedBtn = document.getElementById('giri-savedgiri-btn');
-  if(giriViewMode==='continuo'){
+  const actions = document.getElementById('giri-header-actions');
+  if(actions) actions.style.display = giriViewMode==='creazione' ? 'none' : 'flex';
+  const titleRow = document.querySelector('#view-giri .giri-title-row');
+  if(titleRow) titleRow.style.display = giriViewMode==='creazione' ? 'none' : '';
+  if(sub) sub.style.display = giriViewMode==='creazione' ? 'none' : '';
+  const gMain = document.querySelector('#view-giri .giri-main');
+  if(gMain) gMain.style.paddingBottom = giriViewMode==='creazione' ? '8px' : '';
+  if(giriViewMode==='creazione'){
+    window.scrollTo(0, 0);
+  } else if(giriViewMode==='continuo'){
     if(title) title.textContent = 'Giro continuo';
     if(sub) sub.textContent = "Rotazione fissa di 20 giorni (4 settimane, lun–ven). Non si azzera mai da sola: modificala quando vuoi.";
     if(histBtn) histBtn.style.display = 'none';
@@ -4592,10 +5461,24 @@ function renderGiri(){
     try { saveAll(); } catch(_){}
     showToast('Settimana archiviata. Inizio nuova settimana.');
   }
-  _renderGiriAssignUI();
-  updateGiriLayoutToggleUI();
   const gridWeek = document.getElementById('giri-grid');
   const contContainer = document.getElementById('giro-continuo-container');
+  const builderBox = document.getElementById('giro-builder-container');
+  const assignToolbar = document.querySelector('#view-giri .giri-view-filter-toolbar');
+  const assignEls = ['giri-view-filter-azienda-panel','giri-view-filter-obiettivo-panel','giri-assign-action-bar'].map(id=>document.getElementById(id));
+  if(giriViewMode === 'creazione'){
+    if(gridWeek) gridWeek.style.display = 'none';
+    if(contContainer) contContainer.style.display = 'none';
+    if(assignToolbar) assignToolbar.style.display = 'none';
+    assignEls.forEach(el=>{ if(el) el.style.display = 'none'; });
+    if(builderBox) builderBox.style.display = '';
+    renderGiroBuilder();
+    return;
+  }
+  if(builderBox) builderBox.style.display = 'none';
+  if(assignToolbar) assignToolbar.style.display = '';
+  _renderGiriAssignUI();
+  updateGiriLayoutToggleUI();
   if(gridWeek) gridWeek.classList.toggle('layout-list', giriVisitLayout==='list');
   if(giriViewMode === 'continuo'){
     if(gridWeek) gridWeek.style.display = 'none';
@@ -6559,7 +7442,24 @@ function refreshLeafletMarkers(){
 })();
 
 let activePinEditIdx = null;
+let activePinEditClientId = null;
+function openClientPositionEdit(id){
+  const c = clienti.find(x=>x.id===id);
+  if(!c) return;
+  activePinEditIdx = null;
+  activePinEditClientId = id;
+  const pos = (visits[id] && visits[id].position) || '';
+  let addr='', coords='';
+  if(pos.includes('|')){ [addr,coords]=pos.split('|'); }
+  else if(/^[\d\.,\-\s]+$/.test(pos)){ coords=pos; }
+  else { addr=pos; }
+  document.getElementById('pin-edit-sub').textContent = c.nome;
+  document.getElementById('pin-edit-address').value = addr;
+  document.getElementById('pin-edit-coords').value = coords;
+  openOverlay('pin-edit-overlay');
+}
 function openPinEdit(idx){
+  activePinEditClientId = null;
   activePinEditIdx = idx;
   const p = _lastRenderedPins[idx];
   if(!p) return;
@@ -6575,7 +7475,7 @@ function openPinEdit(idx){
   document.getElementById('pin-edit-coords').value = coords;
   openOverlay('pin-edit-overlay');
 }
-function closePinEdit(){ closeOverlay('pin-edit-overlay'); activePinEditIdx=null; }
+function closePinEdit(){ closeOverlay('pin-edit-overlay'); activePinEditIdx=null; activePinEditClientId=null; }
 function pinEditGPS(){
   if(!navigator.geolocation){ showToast('GPS non disponibile'); return; }
   showToast('Rilevamento...');
@@ -6586,13 +7486,25 @@ function pinEditGPS(){
   }, ()=>showToast('Impossibile rilevare'));
 }
 function savePinEdit(){
-  if(activePinEditIdx===null) return;
-  const p = _lastRenderedPins ? _lastRenderedPins[activePinEditIdx] : null;
-  if(!p) return;
-  const mc = p.fromApp ? clienti.find(x=>x.id===p.id) : findMainClient(p.originalNome||p.nome);
+  let mc = null, label = '';
+  if(activePinEditClientId){
+    mc = clienti.find(x=>x.id===activePinEditClientId);
+    label = mc ? mc.nome : '';
+  } else {
+    if(activePinEditIdx===null) return;
+    const p = _lastRenderedPins ? _lastRenderedPins[activePinEditIdx] : null;
+    if(!p) return;
+    mc = p.fromApp ? clienti.find(x=>x.id===p.id) : findMainClient(p.originalNome||p.nome);
+    label = p.nome;
+  }
   if(!mc){ showToast('Cliente non trovato'); closePinEdit(); return; }
   const addr = document.getElementById('pin-edit-address').value.trim();
-  const coords = document.getElementById('pin-edit-coords').value.trim();
+  let coords = document.getElementById('pin-edit-coords').value.trim();
+  if(coords){
+    const pp = parsePositionInput(coords);
+    if(!pp){ showToast('Coordinate non riconosciute: scrivi 42.3510, 14.1670 oppure incolla il link di Google Maps'); return; }
+    coords = fmtPos(pp);
+  }
   let pos = '';
   if(addr && coords) pos = addr + '|' + coords;
   else if(addr) pos = addr;
@@ -6601,7 +7513,8 @@ function savePinEdit(){
   saveAll();
   closePinEdit();
   if(typeof refreshLeafletMarkers==='function') refreshLeafletMarkers();
-  showToast('Posizione salvata per '+p.nome);
+  if(currentView==='giri' && giriViewMode==='creazione') renderGiroBuilder();
+  showToast('Posizione salvata per '+label);
 }
 
 function openOverlay(id){ document.getElementById(id).classList.add('open'); }
