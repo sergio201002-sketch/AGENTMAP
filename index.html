@@ -844,6 +844,9 @@ header {
 .giri-hist-day-visit .ghv-zone { font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); background: var(--surface3); border-radius: 3px; padding: 1px 5px; }
 .giri-hist-del { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 7px; padding: 5px 10px; font-family: 'Nunito', sans-serif; font-size: 0.7rem; font-weight: 600; cursor: pointer; margin-top: 8px; -webkit-tap-highlight-color: rgba(202,0,19,0.2); touch-action: manipulation; }
 .giri-hist-del:hover { border-color: var(--red); color: var(--red); }
+.giri-hist-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; align-items: center; }
+.giri-hist-actions .giri-hist-del { margin-top: 0; }
+.giri-hist-restore { background: var(--accent); border: 1px solid var(--accent); color: #fff; border-radius: 8px; padding: 8px 14px; font-family: 'Nunito', sans-serif; font-size: 0.78rem; font-weight: 800; cursor: pointer; touch-action: manipulation; }
 .giri-hist-empty { text-align: center; color: var(--text-muted); font-size: 0.85rem; padding: 30px 14px; }
 .giri-sub { font-size: 0.78rem; color: var(--text-muted); margin: 0; }
 /* Layout 4+3: Lun-Gio sopra (4 colonne), Ven-Dom sotto (3 colonne) */
@@ -6469,7 +6472,10 @@ function renderGiriHistory(){
       '</div>' +
       '<div class="giri-hist-body">' +
         (total ? daysHtml : '<div style="color:var(--text-muted);font-size:0.8rem;text-align:center;padding:8px">Nessuna visita.</div>') +
-        '<button class="giri-hist-del" onclick="deleteGiriHistEntry('+idx+');event.stopPropagation()">&#128465; Elimina dalla cronologia</button>' +
+        '<div class="giri-hist-actions">' +
+          (total ? '<button class="giri-hist-restore" onclick="restoreGiriHistEntry('+idx+');event.stopPropagation()">&#8617; Rimetti come settimana attuale</button>' : '') +
+          '<button class="giri-hist-del" onclick="deleteGiriHistEntry('+idx+');event.stopPropagation()">&#128465; Elimina dalla cronologia</button>' +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -6481,6 +6487,46 @@ function toggleGiriHistEntry(idx){
   if(el) el.classList.toggle('open');
 }
 window.toggleGiriHistEntry = toggleGiriHistEntry;
+
+// Rimette una settimana archiviata come giro attuale. Il giro attuale (se ha visite) finisce prima in cronologia.
+function restoreGiriHistEntry(idx){
+  if(!Array.isArray(giriHistory) || idx < 0 || idx >= giriHistory.length) return;
+  const entry = giriHistory[idx];
+  const days = entry.days || {};
+  const countOf = o => GIORNI.reduce((n,g)=>n + (o && Array.isArray(o[g.key]) ? o[g.key].length : 0), 0);
+  const restoredTotal = countOf(days);
+  if(!restoredTotal){ showToast('Questa settimana non ha visite da ripristinare'); return; }
+  const currentTotal = countOf(giri);
+  const fmtD = s => s ? new Date(s).toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric'}) : '';
+  const label = (entry.from && entry.to) ? (fmtD(entry.from)+' - '+fmtD(entry.to)) : ((entry.weekKey||'').replace(/_manual$/, '') || 'questa settimana');
+  const doRestore = ()=>{
+    if(currentTotal > 0){
+      if(!Array.isArray(giriHistory)) giriHistory = [];
+      const range = _isoWeekRange(new Date());
+      giriHistory.unshift({
+        weekKey: (giriCurrentWeekKey || _currentWeekKey()) + '_manual',
+        from: range.from, to: range.to,
+        archivedAt: new Date().toISOString(),
+        manual: true,
+        days: JSON.parse(JSON.stringify(giri))
+      });
+      if(giriHistory.length > 16) giriHistory.length = 16;
+    }
+    const fresh = {lun:[],mar:[],mer:[],gio:[],ven:[],sab:[],dom:[]};
+    GIORNI.forEach(g=>{ if(Array.isArray(days[g.key])) fresh[g.key] = JSON.parse(JSON.stringify(days[g.key])); });
+    giri = fresh;
+    saveAll();
+    closeGiriHistory();
+    setGiriViewMode('settimana');
+    showToast('Giro ripristinato: '+restoredTotal+' visit'+(restoredTotal===1?'a':'e')+' nella settimana attuale');
+  };
+  if(currentTotal > 0){
+    showConfirm('Rimettere come attuale il giro della settimana '+label+' ('+restoredTotal+' visite)? Il giro attuale ('+currentTotal+' visite) verrà salvato in cronologia.', doRestore, null, 'Ripristina');
+  } else {
+    doRestore();
+  }
+}
+window.restoreGiriHistEntry = restoreGiriHistEntry;
 
 function deleteGiriHistEntry(idx){
   if(!Array.isArray(giriHistory) || idx < 0 || idx >= giriHistory.length) return;
@@ -7537,7 +7583,7 @@ function showToast(msg){
 
 // Custom confirm modal — mobile-friendly, sostituisce confirm() nativo
 // che su alcuni browser/WebView mobili viene bloccato.
-function showConfirm(message, onYes, onNo){
+function showConfirm(message, onYes, onNo, yesLabel){
   let m = document.getElementById('custom-confirm');
   if(!m){
     m = document.createElement('div');
@@ -7553,6 +7599,7 @@ function showConfirm(message, onYes, onNo){
     document.body.appendChild(m);
   }
   document.getElementById('cc-msg').textContent = message;
+  document.getElementById('cc-yes').textContent = yesLabel || 'Elimina';
   m.style.display = 'flex';
   const yes = document.getElementById('cc-yes');
   const no = document.getElementById('cc-no');
