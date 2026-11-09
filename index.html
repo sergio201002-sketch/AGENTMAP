@@ -5640,31 +5640,47 @@ function _gexpDayCardHtml(giornoName, listRaw){
   }).join('');
   return `<div class="gexp-day"><div class="gexp-day-title">${escH(giornoName)}<span class="gexp-day-count">${list.length}</span></div>${rows}</div>`;
 }
-// ---- layout verticale (A4 in piedi): per ogni visita orario, cliente, loghi aziende e obiettivi ----
+// ---- layout verticale (A4 in piedi): tutto in una pagina, caselle tutte uguali ----
+function _gexpVList(raw){
+  return (raw||[]).filter(v=>{ const cli = clienti.find(c=>c.id===v.clientId); return !(cli && cli.escludiExport); });
+}
+function _gexpVAz(v){ return _visitAziendaIds(v).map(id=>aziende.find(a=>a.id===id)).filter(Boolean); }
 function _gexpVRowHtml(v){
   const cli = clienti.find(c=>c.id===v.clientId);
   const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
   const zona = cli ? cli.zona : '';
-  const az = _visitAziendaIds(v).map(id=>aziende.find(a=>a.id===id)).filter(Boolean);
   const obs = _visitObiettivi(v);
-  const azHtml = az.map(a=>`<div class="v-az">${a.logo ? `<img src="${escA(a.logo)}" alt="">` : `<span class="v-az-t">${escH(a.nome.substring(0,2).toUpperCase())}</span>`}<span>${escH(a.nome)}</span></div>`).join('');
-  const obHtml = obs.map(o=>`<span class="v-ob">${escH(o)}</span>`).join('');
+  const azHtml = _gexpVAz(v).map(a=>`<div class="v-az"><div class="v-az-box">${a.logo ? `<img src="${escA(a.logo)}" alt="">` : `<span class="v-az-t">${escH(a.nome.substring(0,2).toUpperCase())}</span>`}</div><span class="v-az-n">${escH(a.nome)}</span></div>`).join('');
+  const det = obs.map(o=>`<span class="v-ob">${escH(o)}</span>`).join('') + (v.note ? `<span class="v-note">${escH(v.note)}</span>` : '');
   return `<div class="v-row">
     <div class="v-time">${escH(v.time||'--:--')}</div>
-    <div class="v-main">
-      <div class="v-name">${escH(nome)}${zona?`<span class="v-zone">${escH(zona)}</span>`:''}</div>
-      ${obHtml ? `<div class="v-obs"><b>Obiettivi:</b> ${obHtml}</div>` : ''}
-      ${v.note ? `<div class="v-note">${escH(v.note)}</div>` : ''}
-    </div>
-    ${azHtml ? `<div class="v-azs">${azHtml}</div>` : ''}
+    <div class="v-main"><div class="v-name">${escH(nome)}${zona?`<span class="v-zone">${escH(zona)}</span>`:''}</div>${det?`<div class="v-det">${det}</div>`:''}</div>
+    <div class="v-azs">${azHtml}</div>
   </div>`;
 }
-function _gexpVDayHtml(giornoName, listRaw, hideIfEmpty){
-  const list = (listRaw||[]).filter(v=>{ const cli = clienti.find(c=>c.id===v.clientId); return !(cli && cli.escludiExport); });
-  if(!list.length){
-    return hideIfEmpty ? '' : `<div class="v-day"><div class="v-day-title"><span>${escH(giornoName)}</span><span class="v-day-count">nessuna visita</span></div></div>`;
-  }
-  return `<div class="v-day"><div class="v-day-title"><span>${escH(giornoName)}</span><span class="v-day-count">${list.length} visit${list.length===1?'a':'e'}</span></div><div class="v-day-body">${list.map(_gexpVRowHtml).join('')}</div></div>`;
+function _gexpVDayHtml(d){
+  const n = d.list.length;
+  return `<div class="v-day"><div class="v-day-title"><span>${escH(d.name)}</span><span class="v-day-count">${n ? n+' visit'+(n===1?'a':'e') : 'nessuna visita'}</span></div><div class="v-day-body">${d.list.map(_gexpVRowHtml).join('')}</div></div>`;
+}
+function _gexpVPageHtml(left, right, days){
+  return `<div class="v-page"><div class="v-head"><div class="exp-title">${left}</div><div class="exp-date">${right}</div></div><div class="v-days" style="--n:${days.length}">${days.map(_gexpVDayHtml).join('')}</div></div>`;
+}
+// Misure (in mm) uguali per tutte le caselle: dipendono dal giorno con piu' visite e dal massimo di loghi per visita.
+function _gexpVMetrics(pages){
+  const PAGE_H = 277, HEAD_H = 13, GAP = 2.5, TITLE_H = 6.5;
+  const N = Math.max(1, ...pages.map(p=>p.length));
+  let maxV = 1, maxL = 0;
+  pages.forEach(p=>p.forEach(d=>{ maxV = Math.max(maxV, d.list.length); d.list.forEach(v=>{ maxL = Math.max(maxL, _gexpVAz(v).length); }); }));
+  const boxH = (PAGE_H - HEAD_H - GAP*(N-1)) / N;
+  const bodyH = boxH - TITLE_H - 1;
+  let R = Math.min(16, bodyH / maxV), flow = false;
+  if(R < 5.2){ R = 7; flow = true; }          // troppe visite in un giorno: la pagina si allunga
+  const names = R >= 9;
+  const th = names ? Math.min(10, R - 4.6) : Math.max(2.5, R - 2);
+  const tw = maxL ? Math.min(th*2.6, (68 - 2*(maxL-1)) / maxL) : th*2.6;
+  const azw = maxL ? maxL*tw + 2*(maxL-1) : 0;
+  const f = x => x.toFixed(2)+'mm';
+  return {flow, names, compact: R < 9.5, style:`--r:${f(R)};--th:${f(th)};--tw:${f(tw)};--azw:${f(azw)}`};
 }
 function exportGiriPDF(){
   const mode = giriViewMode === 'continuo' ? 'continuo' : 'settimana';
@@ -5672,7 +5688,7 @@ function exportGiriPDF(){
   if(!win){ showToast('Il browser ha bloccato la nuova scheda: consenti i popup per questo sito'); return; }
   const oggi = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
 
-  let titleMain, titleAccent, bodyHtml, vertHtml, totalVisite;
+  let titleMain, titleAccent, bodyHtml, pagesDef, totalVisite;
   if(mode === 'continuo'){
     titleMain = 'Giro'; titleAccent = 'continuo';
     totalVisite = _giroVisitCount(giroContinuo);
@@ -5680,15 +5696,21 @@ function exportGiriPDF(){
       const dayCards = GIRO_CONTINUO_GIORNI.map(g=>_gexpDayCardHtml(g.name, giroContinuo[_giroContinuoKey(s,g.key)]||[])).join('');
       return `<div class="gexp-week-title">Settimana ${s}</div><div class="gexp-grid">${dayCards}</div>`;
     }).join('');
-    vertHtml = GIRO_CONTINUO_SETTIMANE.map(s=>
-      `<div class="v-weekblock"><div class="v-week">Settimana ${s}</div>${GIRO_CONTINUO_GIORNI.map(g=>_gexpVDayHtml(g.name, giroContinuo[_giroContinuoKey(s,g.key)]||[], false)).join('')}</div>`
-    ).join('');
+    pagesDef = GIRO_CONTINUO_SETTIMANE.map(s=>({
+      left: `Giro <span>continuo</span> &middot; Settimana ${s}`,
+      days: GIRO_CONTINUO_GIORNI.map(g=>({name:g.name, list:_gexpVList(giroContinuo[_giroContinuoKey(s,g.key)])}))
+    }));
   } else {
     titleMain = 'Giri della'; titleAccent = 'settimana';
     totalVisite = _giroVisitCount(giri);
     bodyHtml = `<div class="gexp-grid">${GIORNI.map(g=>_gexpDayCardHtml(g.name, giri[g.key]||[])).join('')}</div>`;
-    vertHtml = `<div class="v-weekblock">${GIORNI.map(g=>_gexpVDayHtml(g.name, giri[g.key]||[], g.key==='sab' || g.key==='dom')).join('')}</div>`;
+    const days = GIORNI.map(g=>({key:g.key, name:g.name, list:_gexpVList(giri[g.key])}))
+      .filter(d=>['lun','mar','mer','gio','ven'].includes(d.key) || d.list.length);
+    pagesDef = [{left:'Giri della <span>settimana</span>', days}];
   }
+  const met = _gexpVMetrics(pagesDef.map(p=>p.days));
+  const dateTxt = `Generato il ${oggi} &middot; ${totalVisite} visite programmate`;
+  const vertHtml = pagesDef.map(p=>_gexpVPageHtml(p.left, dateTxt, p.days)).join('');
   let initial = 'vert';
   try { if(localStorage.getItem('agentmapGiriPdfLayout') === 'grid') initial = 'grid'; } catch(_){}
 
@@ -5716,32 +5738,46 @@ function exportGiriPDF(){
   .gexp-name{font-weight:700;}
   .gexp-zone{color:#6f7a74;font-size:0.62rem;}
   .gexp-note{color:#ca0013;font-weight:700;font-size:0.62rem;margin-top:1px;}
-  /* layout verticale */
-  #lay-vert{max-width:780px;margin:0 auto;}
-  .v-week{font-size:1rem;font-weight:800;color:#ca0013;text-transform:uppercase;letter-spacing:0.03em;margin:0 0 10px;break-after:avoid;}
-  .v-weekblock + .v-weekblock{break-before:page;margin-top:22px;}
-  .v-day{margin-bottom:12px;}
-  .v-day-title{background:#ca0013;color:#fff;font-weight:800;font-size:0.95rem;padding:7px 12px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center;break-after:avoid;}
-  .v-day-title:only-child{border-radius:8px;}
-  .v-day-body{border:1px solid rgba(183,198,194,0.8);border-top:none;border-radius:0 0 8px 8px;}
-  .v-day-count{font-size:0.74rem;font-weight:700;background:rgba(255,255,255,0.25);border-radius:10px;padding:1px 9px;}
-  .v-row{display:flex;gap:12px;align-items:flex-start;padding:9px 12px;border-bottom:1px solid rgba(183,198,194,0.45);break-inside:avoid;}
+  /* layout verticale: pagina A4 fissa, caselle (giorni e righe) tutte della stessa misura */
+  #lay-vert{width:192mm;margin:0 auto;}
+  .v-page{height:277mm;display:flex;flex-direction:column;overflow:hidden;}
+  .v-page + .v-page{break-before:page;}
+  @media screen{ .v-page + .v-page{margin-top:6mm;} }
+  .v-head{height:10mm;flex:none;display:flex;justify-content:space-between;align-items:baseline;border-bottom:0.6mm solid #ca0013;margin-bottom:3mm;gap:4mm;}
+  .v-head .exp-title{font-size:5.2mm;}
+  .v-head .exp-date{font-size:2.9mm;}
+  .v-days{flex:1;min-height:0;display:grid;grid-template-rows:repeat(var(--n),minmax(0,1fr));gap:2.5mm;}
+  .v-day{display:flex;flex-direction:column;min-height:0;border:0.25mm solid #b7c6c2;border-radius:2mm;overflow:hidden;}
+  .v-day-title{height:6.5mm;flex:none;background:#ca0013;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:0 3mm;font-size:3.7mm;font-weight:800;}
+  .v-day-count{font-size:2.8mm;font-weight:700;background:rgba(255,255,255,0.25);border-radius:3mm;padding:0 2.2mm;}
+  .v-day-body{flex:1;min-height:0;overflow:hidden;}
+  .v-row{height:var(--r);display:flex;align-items:center;gap:3mm;padding:0 3mm;border-bottom:0.2mm solid rgba(183,198,194,0.55);}
   .v-row:last-child{border-bottom:none;}
-  .v-time{font-family:'JetBrains Mono',monospace;font-weight:800;color:#ca0013;font-size:0.95rem;min-width:50px;padding-top:1px;}
-  .v-main{flex:1;min-width:0;}
-  .v-name{font-weight:800;font-size:0.98rem;line-height:1.25;}
-  .v-zone{margin-left:8px;font-size:0.68rem;font-weight:700;color:#6f7a74;text-transform:uppercase;letter-spacing:0.03em;}
-  .v-obs{margin-top:5px;font-size:0.76rem;color:#3a443f;}
-  .v-obs b{margin-right:3px;}
-  .v-ob{display:inline-block;background:#fdecee;color:#a5000f;border:1px solid #f1b4bb;border-radius:10px;padding:1px 9px;margin:2px 4px 0 0;font-weight:700;font-size:0.74rem;}
-  .v-note{margin-top:4px;color:#ca0013;font-weight:700;font-size:0.76rem;}
-  .v-azs{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px 12px;justify-content:flex-end;align-items:flex-start;flex-shrink:0;max-width:42%;}
-  .v-az{display:flex;flex-direction:column;align-items:center;gap:2px;max-width:92px;}
-  .v-az img{height:40px;max-width:92px;object-fit:contain;display:block;}
-  .v-az-t{width:40px;height:40px;border-radius:8px;background:#eef1f0;display:inline-flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:800;color:#7d859c;}
-  .v-az > span:last-child{font-size:0.5rem;font-weight:600;color:#8a948f;line-height:1.1;text-align:center;word-break:break-word;}
+  .v-time{flex:none;width:12mm;font-family:'JetBrains Mono',monospace;font-weight:800;color:#ca0013;font-size:min(3.8mm,calc(var(--r) * 0.36));}
+  .v-main{flex:1;min-width:0;align-self:stretch;display:flex;flex-direction:column;justify-content:center;overflow:hidden;--fs:1;}
+  .v-name{font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:calc(min(4mm,calc(var(--r) * 0.34)) * var(--fs));}
+  .v-zone{margin-left:2mm;font-weight:700;color:#6f7a74;text-transform:uppercase;font-size:0.72em;}
+  .v-det{display:flex;flex-wrap:wrap;gap:0.6mm 1.2mm;align-items:center;margin-top:0.5mm;line-height:1.2;font-size:calc(min(3mm,calc(var(--r) * 0.25)) * var(--fs));}
+  .v-ob{background:#fdecee;color:#a5000f;border:0.2mm solid #f1b4bb;border-radius:3mm;padding:0 1.6mm;font-weight:700;white-space:nowrap;}
+  .v-note{color:#ca0013;font-weight:700;white-space:nowrap;}
+  .v-azs{flex:none;width:var(--azw);display:flex;justify-content:flex-end;gap:2mm;}
+  .v-az{width:var(--tw);display:flex;flex-direction:column;align-items:center;}
+  .v-az-box{width:var(--tw);height:var(--th);display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:1.2mm;}
+  .v-az-box img{max-width:100%;max-height:100%;object-fit:contain;display:block;}
+  .v-az-t{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#eef1f0;color:#7d859c;font-weight:800;font-size:calc(var(--th) * 0.4);}
+  .v-az-n{font-size:1.7mm;font-weight:600;color:#8a948f;line-height:1;margin-top:0.4mm;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  #lay-vert.v-nonames .v-az-n{display:none;}
+  #lay-vert.v-compact .v-main{flex-direction:row;align-items:center;gap:2mm;}
+  #lay-vert.v-compact .v-name{flex:0 1 auto;max-width:52%;font-size:calc(min(3.8mm,calc(var(--r) * 0.5)) * var(--fs));}
+  #lay-vert.v-compact .v-det{flex:1 1 0;min-width:0;flex-wrap:nowrap;overflow:hidden;margin-top:0;font-size:calc(min(3mm,calc(var(--r) * 0.38)) * var(--fs));}
+  #lay-vert.v-compact .v-time{font-size:min(3.8mm,calc(var(--r) * 0.5));}
+  #lay-vert.v-flow .v-page{height:auto;min-height:277mm;overflow:visible;}
+  #lay-vert.v-flow .v-days{display:block;}
+  #lay-vert.v-flow .v-day{margin-bottom:2.5mm;}
+  #lay-vert.v-flow .v-row{break-inside:avoid;}
   body.lay-vert #lay-grid{display:none;}
   body.lay-grid #lay-vert{display:none;}
+  body.lay-vert .exp-header{display:none;}
   .exp-tools{position:fixed;top:12px;right:12px;display:flex;gap:6px;align-items:center;background:#fff;border:1px solid #d9dfdc;border-radius:11px;padding:5px 6px;box-shadow:0 8px 20px rgba(0,0,0,0.12);z-index:10;}
   .exp-tools span{font-size:0.7rem;color:#6f7a74;font-weight:700;padding:0 4px;}
   .exp-tools button{border:1px solid #d9dfdc;background:#f4f6f5;color:#171e19;border-radius:8px;padding:8px 12px;font-size:0.8rem;font-weight:700;cursor:pointer;}
@@ -5762,16 +5798,28 @@ function exportGiriPDF(){
   </div>
   <div class="exp-header">
     <div class="exp-title">${escH(titleMain)} <span>${escH(titleAccent)}</span></div>
-    <div class="exp-date">Generato il ${oggi} &middot; ${totalVisite} visite programmate</div>
+    <div class="exp-date">${dateTxt}</div>
   </div>
   <div id="lay-grid">${bodyHtml}</div>
-  <div id="lay-vert">${vertHtml}</div>
+  <div id="lay-vert" class="${met.flow?'v-flow ':''}${met.names?'':'v-nonames '}${met.compact?'v-compact':''}" style="${met.style}">${vertHtml}</div>
   <script>
+    function fitRows(){
+      var rows = document.querySelectorAll('#lay-vert .v-main');
+      for(var i = 0; i < rows.length; i++){
+        var m = rows[i], nm = m.querySelector('.v-name'), dt = m.querySelector('.v-det'), s = 1;
+        m.style.setProperty('--fs', 1);
+        while(s > 0.5 && (m.scrollHeight > m.clientHeight + 0.5 || (nm && nm.scrollWidth > nm.clientWidth + 0.5) || (dt && dt.scrollWidth > dt.clientWidth + 0.5))){
+          s -= 0.05;
+          m.style.setProperty('--fs', s);
+        }
+      }
+    }
     function setLay(m){
       document.body.className = 'lay-' + m;
-      document.getElementById('pgstyle').textContent = m === 'vert' ? '@page{size:A4 portrait;margin:10mm}' : '';
+      document.getElementById('pgstyle').textContent = m === 'vert' ? '@page{size:A4 portrait;margin:9mm}' : '';
       document.getElementById('b-vert').className = m === 'vert' ? 'on' : '';
       document.getElementById('b-grid').className = m === 'grid' ? 'on' : '';
+      if(m === 'vert') fitRows();
       try { window.opener.localStorage.setItem('agentmapGiriPdfLayout', m); } catch(e){}
     }
     setLay('${initial}');
