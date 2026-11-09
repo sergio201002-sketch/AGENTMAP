@@ -5640,13 +5640,39 @@ function _gexpDayCardHtml(giornoName, listRaw){
   }).join('');
   return `<div class="gexp-day"><div class="gexp-day-title">${escH(giornoName)}<span class="gexp-day-count">${list.length}</span></div>${rows}</div>`;
 }
+// ---- layout verticale (A4 in piedi): per ogni visita orario, cliente, loghi aziende e obiettivi ----
+function _gexpVRowHtml(v){
+  const cli = clienti.find(c=>c.id===v.clientId);
+  const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
+  const zona = cli ? cli.zona : '';
+  const az = _visitAziendaIds(v).map(id=>aziende.find(a=>a.id===id)).filter(Boolean);
+  const obs = _visitObiettivi(v);
+  const azHtml = az.map(a=>`<div class="v-az">${a.logo ? `<img src="${escA(a.logo)}" alt="">` : `<span class="v-az-t">${escH(a.nome.substring(0,2).toUpperCase())}</span>`}<span>${escH(a.nome)}</span></div>`).join('');
+  const obHtml = obs.map(o=>`<span class="v-ob">${escH(o)}</span>`).join('');
+  return `<div class="v-row">
+    <div class="v-time">${escH(v.time||'--:--')}</div>
+    <div class="v-main">
+      <div class="v-name">${escH(nome)}${zona?`<span class="v-zone">${escH(zona)}</span>`:''}</div>
+      ${obHtml ? `<div class="v-obs"><b>Obiettivi:</b> ${obHtml}</div>` : ''}
+      ${v.note ? `<div class="v-note">${escH(v.note)}</div>` : ''}
+    </div>
+    ${azHtml ? `<div class="v-azs">${azHtml}</div>` : ''}
+  </div>`;
+}
+function _gexpVDayHtml(giornoName, listRaw, hideIfEmpty){
+  const list = (listRaw||[]).filter(v=>{ const cli = clienti.find(c=>c.id===v.clientId); return !(cli && cli.escludiExport); });
+  if(!list.length){
+    return hideIfEmpty ? '' : `<div class="v-day"><div class="v-day-title"><span>${escH(giornoName)}</span><span class="v-day-count">nessuna visita</span></div></div>`;
+  }
+  return `<div class="v-day"><div class="v-day-title"><span>${escH(giornoName)}</span><span class="v-day-count">${list.length} visit${list.length===1?'a':'e'}</span></div><div class="v-day-body">${list.map(_gexpVRowHtml).join('')}</div></div>`;
+}
 function exportGiriPDF(){
-  const mode = giriViewMode;
+  const mode = giriViewMode === 'continuo' ? 'continuo' : 'settimana';
   const win = window.open('', '_blank');
   if(!win){ showToast('Il browser ha bloccato la nuova scheda: consenti i popup per questo sito'); return; }
   const oggi = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
 
-  let titleMain, titleAccent, bodyHtml, totalVisite;
+  let titleMain, titleAccent, bodyHtml, vertHtml, totalVisite;
   if(mode === 'continuo'){
     titleMain = 'Giro'; titleAccent = 'continuo';
     totalVisite = _giroVisitCount(giroContinuo);
@@ -5654,18 +5680,25 @@ function exportGiriPDF(){
       const dayCards = GIRO_CONTINUO_GIORNI.map(g=>_gexpDayCardHtml(g.name, giroContinuo[_giroContinuoKey(s,g.key)]||[])).join('');
       return `<div class="gexp-week-title">Settimana ${s}</div><div class="gexp-grid">${dayCards}</div>`;
     }).join('');
+    vertHtml = GIRO_CONTINUO_SETTIMANE.map(s=>
+      `<div class="v-weekblock"><div class="v-week">Settimana ${s}</div>${GIRO_CONTINUO_GIORNI.map(g=>_gexpVDayHtml(g.name, giroContinuo[_giroContinuoKey(s,g.key)]||[], false)).join('')}</div>`
+    ).join('');
   } else {
     titleMain = 'Giri della'; titleAccent = 'settimana';
     totalVisite = _giroVisitCount(giri);
     bodyHtml = `<div class="gexp-grid">${GIORNI.map(g=>_gexpDayCardHtml(g.name, giri[g.key]||[])).join('')}</div>`;
+    vertHtml = `<div class="v-weekblock">${GIORNI.map(g=>_gexpVDayHtml(g.name, giri[g.key]||[], g.key==='sab' || g.key==='dom')).join('')}</div>`;
   }
+  let initial = 'vert';
+  try { if(localStorage.getItem('agentmapGiriPdfLayout') === 'grid') initial = 'grid'; } catch(_){}
 
   const html = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">
 <title>${escH(titleMain)} ${escH(titleAccent)}</title>
+<style id="pgstyle"></style>
 <style>
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body{margin:0;padding:18px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#171e19;background:#fff;}
-  .exp-header{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #ca0013;padding-bottom:7px;margin-bottom:14px;}
+  .exp-header{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid #ca0013;padding-bottom:7px;margin-bottom:14px;gap:12px;}
   .exp-title{font-size:1.15rem;font-weight:800;letter-spacing:-0.01em;}
   .exp-title span{color:#ca0013;}
   .exp-date{font-size:0.7rem;color:#6f7a74;}
@@ -5683,20 +5716,66 @@ function exportGiriPDF(){
   .gexp-name{font-weight:700;}
   .gexp-zone{color:#6f7a74;font-size:0.62rem;}
   .gexp-note{color:#ca0013;font-weight:700;font-size:0.62rem;margin-top:1px;}
+  /* layout verticale */
+  #lay-vert{max-width:780px;margin:0 auto;}
+  .v-week{font-size:1rem;font-weight:800;color:#ca0013;text-transform:uppercase;letter-spacing:0.03em;margin:0 0 10px;break-after:avoid;}
+  .v-weekblock + .v-weekblock{break-before:page;margin-top:22px;}
+  .v-day{margin-bottom:12px;}
+  .v-day-title{background:#ca0013;color:#fff;font-weight:800;font-size:0.95rem;padding:7px 12px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center;break-after:avoid;}
+  .v-day-title:only-child{border-radius:8px;}
+  .v-day-body{border:1px solid rgba(183,198,194,0.8);border-top:none;border-radius:0 0 8px 8px;}
+  .v-day-count{font-size:0.74rem;font-weight:700;background:rgba(255,255,255,0.25);border-radius:10px;padding:1px 9px;}
+  .v-row{display:flex;gap:12px;align-items:flex-start;padding:9px 12px;border-bottom:1px solid rgba(183,198,194,0.45);break-inside:avoid;}
+  .v-row:last-child{border-bottom:none;}
+  .v-time{font-family:'JetBrains Mono',monospace;font-weight:800;color:#ca0013;font-size:0.95rem;min-width:50px;padding-top:1px;}
+  .v-main{flex:1;min-width:0;}
+  .v-name{font-weight:800;font-size:0.98rem;line-height:1.25;}
+  .v-zone{margin-left:8px;font-size:0.68rem;font-weight:700;color:#6f7a74;text-transform:uppercase;letter-spacing:0.03em;}
+  .v-obs{margin-top:5px;font-size:0.76rem;color:#3a443f;}
+  .v-obs b{margin-right:3px;}
+  .v-ob{display:inline-block;background:#fdecee;color:#a5000f;border:1px solid #f1b4bb;border-radius:10px;padding:1px 9px;margin:2px 4px 0 0;font-weight:700;font-size:0.74rem;}
+  .v-note{margin-top:4px;color:#ca0013;font-weight:700;font-size:0.76rem;}
+  .v-azs{display:flex;flex-direction:row;flex-wrap:wrap;gap:6px 12px;justify-content:flex-end;align-items:flex-start;flex-shrink:0;max-width:42%;}
+  .v-az{display:flex;flex-direction:column;align-items:center;gap:2px;max-width:92px;}
+  .v-az img{height:40px;max-width:92px;object-fit:contain;display:block;}
+  .v-az-t{width:40px;height:40px;border-radius:8px;background:#eef1f0;display:inline-flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:800;color:#7d859c;}
+  .v-az > span:last-child{font-size:0.5rem;font-weight:600;color:#8a948f;line-height:1.1;text-align:center;word-break:break-word;}
+  body.lay-vert #lay-grid{display:none;}
+  body.lay-grid #lay-vert{display:none;}
+  .exp-tools{position:fixed;top:12px;right:12px;display:flex;gap:6px;align-items:center;background:#fff;border:1px solid #d9dfdc;border-radius:11px;padding:5px 6px;box-shadow:0 8px 20px rgba(0,0,0,0.12);z-index:10;}
+  .exp-tools span{font-size:0.7rem;color:#6f7a74;font-weight:700;padding:0 4px;}
+  .exp-tools button{border:1px solid #d9dfdc;background:#f4f6f5;color:#171e19;border-radius:8px;padding:8px 12px;font-size:0.8rem;font-weight:700;cursor:pointer;}
+  .exp-tools button.on{background:#ca0013;border-color:#ca0013;color:#fff;}
+  .exp-tools .exp-print-btn{background:#ca0013;color:#fff;border-color:#ca0013;}
   @media print{
-    body{padding:8px 14px;}
-    .exp-print-btn{display:none;}
+    .exp-tools{display:none;}
+    body.lay-grid{padding:8px 14px;}
+    body.lay-vert{padding:0;}
   }
-  .exp-print-btn{position:fixed;top:16px;right:16px;background:#ca0013;color:#fff;border:none;border-radius:9px;padding:10px 18px;font-size:0.84rem;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(202,0,19,0.3);}
-  .exp-print-btn:hover{background:#a5000f;}
 </style></head>
-<body>
-  <button class="exp-print-btn" onclick="window.print()">&#128424; Stampa / Salva PDF</button>
+<body class="lay-${initial}">
+  <div class="exp-tools">
+    <span>Layout</span>
+    <button id="b-vert" onclick="setLay('vert')">Verticale</button>
+    <button id="b-grid" onclick="setLay('grid')">Griglia</button>
+    <button class="exp-print-btn" onclick="window.print()">&#128424; Stampa / Salva PDF</button>
+  </div>
   <div class="exp-header">
     <div class="exp-title">${escH(titleMain)} <span>${escH(titleAccent)}</span></div>
     <div class="exp-date">Generato il ${oggi} &middot; ${totalVisite} visite programmate</div>
   </div>
-  ${bodyHtml}
+  <div id="lay-grid">${bodyHtml}</div>
+  <div id="lay-vert">${vertHtml}</div>
+  <script>
+    function setLay(m){
+      document.body.className = 'lay-' + m;
+      document.getElementById('pgstyle').textContent = m === 'vert' ? '@page{size:A4 portrait;margin:10mm}' : '';
+      document.getElementById('b-vert').className = m === 'vert' ? 'on' : '';
+      document.getElementById('b-grid').className = m === 'grid' ? 'on' : '';
+      try { window.opener.localStorage.setItem('agentmapGiriPdfLayout', m); } catch(e){}
+    }
+    setLay('${initial}');
+  <\/script>
 </body></html>`;
   win.document.open();
   win.document.write(html);
