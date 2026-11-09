@@ -5654,7 +5654,7 @@ function _gexpVRowHtml(v){
   const det = obs.map(o=>`<span class="v-ob">${escH(o)}</span>`).join('') + (v.note ? `<span class="v-note">${escH(v.note)}</span>` : '');
   return `<div class="v-row">
     <div class="v-time">${escH(v.time||'--:--')}</div>
-    <div class="v-main"><div class="v-name">${escH(nome)}${zona?`<span class="v-zone">${escH(zona)}</span>`:''}</div>${det?`<div class="v-det">${det}</div>`:''}</div>
+    <div class="v-main"><div class="v-name">${escH(nome)}${zona?`<span class="v-zone">${escH(zona)}</span>`:''}</div><div class="v-det">${det || '<span class="v-ob" style="visibility:hidden">&nbsp;</span>'}</div></div>
     <div class="v-azs">${azHtml}</div>
   </div>`;
 }
