@@ -5640,7 +5640,7 @@ function _gexpDayCardHtml(giornoName, listRaw){
   }).join('');
   return `<div class="gexp-day"><div class="gexp-day-title">${escH(giornoName)}<span class="gexp-day-count">${list.length}</span></div>${rows}</div>`;
 }
-// ---- layout verticale (A4 in piedi): tutto in una pagina, caselle tutte uguali ----
+// ---- layout verticale (A4 in piedi): editoriale, tutto in una pagina, caselle tutte uguali ----
 function _gexpVList(raw){
   return (raw||[]).filter(v=>{ const cli = clienti.find(c=>c.id===v.clientId); return !(cli && cli.escludiExport); });
 }
@@ -5660,24 +5660,33 @@ function _gexpVRowHtml(v){
 }
 function _gexpVDayHtml(d){
   const n = d.list.length;
-  return `<div class="v-day"><div class="v-day-title"><span>${escH(d.name)}</span><span class="v-day-count">${n ? n+' visit'+(n===1?'a':'e') : 'nessuna visita'}</span></div><div class="v-day-body">${d.list.map(_gexpVRowHtml).join('')}</div></div>`;
+  const rail = `<div class="v-rail"><div class="v-dname">${escH(d.name)}</div><div class="v-dbig">${escH(d.big||'')}</div><div class="v-dsub">${escH(d.sub||'')}</div><div class="v-dcount">${n ? n+' visit'+(n===1?'a':'e') : 'libero'}</div></div>`;
+  const body = n ? d.list.map(_gexpVRowHtml).join('') : '<div class="v-none">Nessuna visita programmata</div>';
+  return `<div class="v-day">${rail}<div class="v-day-body">${body}</div></div>`;
 }
-function _gexpVPageHtml(left, right, days){
-  return `<div class="v-page"><div class="v-head"><div class="exp-title">${left}</div><div class="exp-date">${right}</div></div><div class="v-days" style="--n:${days.length}">${days.map(_gexpVDayHtml).join('')}</div></div>`;
+function _gexpVPageHtml(p, idx, total, genTxt){
+  return `<div class="v-page">
+    <div class="v-head">
+      <div><div class="v-over">AgentMap</div><div class="v-title">${p.title}</div>${p.sub?`<div class="v-sub">${escH(p.sub)}</div>`:''}</div>
+      <div class="v-head-r"><div class="v-big">${p.count}</div><div class="v-bigl">visit${p.count===1?'a':'e'} in programma</div></div>
+    </div>
+    <div class="v-days" style="--n:${p.days.length}">${p.days.map(_gexpVDayHtml).join('')}</div>
+    <div class="v-foot"><span>${escH(genTxt)}</span><span>${total>1 ? 'Pagina '+(idx+1)+' di '+total : ''}</span></div>
+  </div>`;
 }
 // Misure (in mm) uguali per tutte le caselle: dipendono dal giorno con piu' visite e dal massimo di loghi per visita.
 function _gexpVMetrics(pages){
-  const PAGE_H = 277, HEAD_H = 13, GAP = 2.5, TITLE_H = 6.5;
+  const PAGE_H = 277, HEAD_H = 23, FOOT_H = 7, GAP = 3;
   const N = Math.max(1, ...pages.map(p=>p.length));
   let maxV = 1, maxL = 0;
   pages.forEach(p=>p.forEach(d=>{ maxV = Math.max(maxV, d.list.length); d.list.forEach(v=>{ maxL = Math.max(maxL, _gexpVAz(v).length); }); }));
-  const boxH = (PAGE_H - HEAD_H - GAP*(N-1)) / N;
-  const bodyH = boxH - TITLE_H - 1;
+  const boxH = (PAGE_H - HEAD_H - FOOT_H - GAP*(N-1)) / N;
+  const bodyH = boxH - 1;
   let R = Math.min(16, bodyH / maxV), flow = false;
   if(R < 5.2){ R = 7; flow = true; }          // troppe visite in un giorno: la pagina si allunga
   const names = R >= 9;
   const th = names ? Math.min(10, R - 4.6) : Math.max(2.5, R - 2);
-  const tw = maxL ? Math.min(th*2.6, (68 - 2*(maxL-1)) / maxL) : th*2.6;
+  const tw = maxL ? Math.min(th*2.6, (60 - 2*(maxL-1)) / maxL) : th*2.6;
   const azw = maxL ? maxL*tw + 2*(maxL-1) : 0;
   const f = x => x.toFixed(2)+'mm';
   return {flow, names, compact: R < 9.5, style:`--r:${f(R)};--th:${f(th)};--tw:${f(tw)};--azw:${f(azw)}`};
@@ -5696,26 +5705,37 @@ function exportGiriPDF(){
       const dayCards = GIRO_CONTINUO_GIORNI.map(g=>_gexpDayCardHtml(g.name, giroContinuo[_giroContinuoKey(s,g.key)]||[])).join('');
       return `<div class="gexp-week-title">Settimana ${s}</div><div class="gexp-grid">${dayCards}</div>`;
     }).join('');
-    pagesDef = GIRO_CONTINUO_SETTIMANE.map(s=>({
-      left: `Giro <span>continuo</span> &middot; Settimana ${s}`,
-      days: GIRO_CONTINUO_GIORNI.map(g=>({name:g.name, list:_gexpVList(giroContinuo[_giroContinuoKey(s,g.key)])}))
-    }));
+    pagesDef = GIRO_CONTINUO_SETTIMANE.map(s=>{
+      const days = GIRO_CONTINUO_GIORNI.map((g,i)=>({name:g.name, big:String((s-1)*5+i+1), sub:'giorno', list:_gexpVList(giroContinuo[_giroContinuoKey(s,g.key)])}));
+      return {title:'Giro <em>continuo</em>', sub:'Settimana '+s+' di '+GIRO_CONTINUO_SETTIMANE.length, days, count:days.reduce((n,d)=>n+d.list.length,0)};
+    });
   } else {
     titleMain = 'Giri della'; titleAccent = 'settimana';
     totalVisite = _giroVisitCount(giri);
-    bodyHtml = `<div class="gexp-grid">${GIORNI.map(g=>_gexpDayCardHtml(g.name, giri[g.key]||[])).join('')}</div>`;
-    const days = GIORNI.map(g=>({key:g.key, name:g.name, list:_gexpVList(giri[g.key])}))
-      .filter(d=>['lun','mar','mer','gio','ven'].includes(d.key) || d.list.length);
-    pagesDef = [{left:'Giri della <span>settimana</span>', days}];
+    bodyHtml = `<div class="gexp-grid">${GIORNI.filter(g=>g.key!=='sab' && g.key!=='dom').map(g=>_gexpDayCardHtml(g.name, giri[g.key]||[])).join('')}</div>`;
+    const mon = new Date(_isoWeekRange(new Date()).from);
+    const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+    const mShort = d => d.toLocaleDateString('it-IT',{month:'short'}).replace('.','');
+    const mLong = d => d.toLocaleDateString('it-IT',{month:'long'});
+    const sub = mon.getMonth() === sun.getMonth()
+      ? mon.getDate()+' – '+sun.getDate()+' '+mLong(sun)+' '+sun.getFullYear()
+      : mon.getDate()+' '+mShort(mon)+' – '+sun.getDate()+' '+mShort(sun)+' '+sun.getFullYear();
+    const days = GIORNI.map((g,i)=>{
+      const d = new Date(mon); d.setDate(mon.getDate()+i);
+      return {key:g.key, name:g.name, big:String(d.getDate()), sub:mShort(d), list:_gexpVList(giri[g.key])};
+    }).filter(d=>['lun','mar','mer','gio','ven'].includes(d.key));
+    pagesDef = [{title:'Giri della <em>settimana</em>', sub, days, count:days.reduce((n,d)=>n+d.list.length,0)}];
   }
   const met = _gexpVMetrics(pagesDef.map(p=>p.days));
+  const genTxt = 'AgentMap · generato il '+oggi;
   const dateTxt = `Generato il ${oggi} &middot; ${totalVisite} visite programmate`;
-  const vertHtml = pagesDef.map(p=>_gexpVPageHtml(p.left, dateTxt, p.days)).join('');
+  const vertHtml = pagesDef.map((p,i)=>_gexpVPageHtml(p, i, pagesDef.length, genTxt)).join('');
   let initial = 'vert';
   try { if(localStorage.getItem('agentmapGiriPdfLayout') === 'grid') initial = 'grid'; } catch(_){}
 
   const html = `<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8">
 <title>${escH(titleMain)} ${escH(titleAccent)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style id="pgstyle"></style>
 <style>
   *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -5738,47 +5758,67 @@ function exportGiriPDF(){
   .gexp-name{font-weight:700;}
   .gexp-zone{color:#6f7a74;font-size:0.62rem;}
   .gexp-note{color:#ca0013;font-weight:700;font-size:0.62rem;margin-top:1px;}
-  /* layout verticale: pagina A4 fissa, caselle (giorni e righe) tutte della stessa misura */
-  #lay-vert{width:192mm;margin:0 auto;}
-  .v-page{height:277mm;display:flex;flex-direction:column;overflow:hidden;}
+
+  /* ===== layout verticale: pagina A4 fissa, giorni e righe tutti della stessa misura ===== */
+  #lay-vert{--ink:#1c1917;--mut:#78716c;--faint:#a8a29e;--line:#e9e4de;--tint:#f7f4f0;--acc:#ca0013;--accd:#8f0f1a;
+    width:192mm;margin:0 auto;color:var(--ink);font-family:'Inter','Segoe UI',system-ui,sans-serif;font-variant-numeric:tabular-nums;}
+  .v-page{height:277mm;display:flex;flex-direction:column;overflow:hidden;background:#fff;}
   .v-page + .v-page{break-before:page;}
-  @media screen{ .v-page + .v-page{margin-top:6mm;} }
-  .v-head{height:10mm;flex:none;display:flex;justify-content:space-between;align-items:baseline;border-bottom:0.6mm solid #ca0013;margin-bottom:3mm;gap:4mm;}
-  .v-head .exp-title{font-size:5.2mm;}
-  .v-head .exp-date{font-size:2.9mm;}
-  .v-days{flex:1;min-height:0;display:grid;grid-template-rows:repeat(var(--n),minmax(0,1fr));gap:2.5mm;}
-  .v-day{display:flex;flex-direction:column;min-height:0;border:0.25mm solid #b7c6c2;border-radius:2mm;overflow:hidden;}
-  .v-day-title{height:6.5mm;flex:none;background:#ca0013;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:0 3mm;font-size:3.7mm;font-weight:800;}
-  .v-day-count{font-size:2.8mm;font-weight:700;background:rgba(255,255,255,0.25);border-radius:3mm;padding:0 2.2mm;}
-  .v-day-body{flex:1;min-height:0;overflow:hidden;}
-  .v-row{height:var(--r);display:flex;align-items:center;gap:3mm;padding:0 3mm;border-bottom:0.2mm solid rgba(183,198,194,0.55);}
+  .v-head{height:19mm;margin-bottom:4mm;flex:none;display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:2.6mm;border-bottom:0.35mm solid var(--ink);gap:6mm;}
+  .v-over{font-size:2.3mm;letter-spacing:0.34em;text-transform:uppercase;color:var(--acc);font-weight:700;}
+  .v-title{font-family:'Fraunces',Georgia,'Times New Roman',serif;font-weight:600;font-size:8mm;line-height:1.02;letter-spacing:-0.01em;margin-top:1.2mm;}
+  .v-title em{font-style:italic;font-weight:500;color:var(--acc);}
+  .v-sub{font-size:3mm;color:var(--mut);margin-top:1.2mm;font-weight:500;}
+  .v-head-r{text-align:right;flex:none;}
+  .v-big{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:11mm;line-height:0.9;color:var(--acc);}
+  .v-bigl{font-size:2.2mm;letter-spacing:0.14em;text-transform:uppercase;color:var(--mut);font-weight:600;margin-top:1mm;}
+  .v-days{flex:1;min-height:0;display:grid;grid-template-rows:repeat(var(--n),minmax(0,1fr));gap:3mm;}
+  .v-day{display:flex;min-height:0;border:0.25mm solid var(--line);border-radius:2.2mm;overflow:hidden;background:#fff;}
+  .v-rail{flex:none;width:27mm;background:var(--tint);border-right:0.25mm solid var(--line);padding:3mm 2.6mm;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+  .v-dname{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:4.4mm;line-height:1.05;}
+  .v-dbig{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:10mm;line-height:1;color:var(--acc);margin-top:1.6mm;}
+  .v-dsub{font-size:2.3mm;letter-spacing:0.16em;text-transform:uppercase;color:var(--mut);font-weight:600;margin-top:0.6mm;}
+  .v-dcount{margin-top:auto;font-size:2.4mm;font-weight:600;color:var(--mut);}
+  .v-day-body{flex:1;min-width:0;min-height:0;overflow:hidden;display:flex;flex-direction:column;}
+  .v-none{flex:1;display:flex;align-items:center;justify-content:center;color:var(--faint);font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:3.2mm;}
+  .v-row{height:var(--r);flex:none;display:flex;align-items:center;gap:3mm;padding:0 3.5mm 0 4mm;border-bottom:0.2mm solid var(--line);}
   .v-row:last-child{border-bottom:none;}
-  .v-time{flex:none;width:12mm;font-family:'JetBrains Mono',monospace;font-weight:800;color:#ca0013;font-size:min(3.8mm,calc(var(--r) * 0.36));}
+  .v-time{flex:none;width:12mm;font-weight:600;color:var(--acc);font-size:min(3.6mm,calc(var(--r) * 0.34));}
   .v-main{flex:1;min-width:0;align-self:stretch;display:flex;flex-direction:column;justify-content:center;overflow:hidden;--fs:1;}
-  .v-name{font-weight:800;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:calc(min(4mm,calc(var(--r) * 0.34)) * var(--fs));}
-  .v-zone{margin-left:2mm;font-weight:700;color:#6f7a74;text-transform:uppercase;font-size:0.72em;}
-  .v-det{display:flex;flex-wrap:wrap;gap:0.6mm 1.2mm;align-items:center;margin-top:0.5mm;line-height:1.2;font-size:calc(min(3mm,calc(var(--r) * 0.25)) * var(--fs));}
-  .v-ob{background:#fdecee;color:#a5000f;border:0.2mm solid #f1b4bb;border-radius:3mm;padding:0 1.6mm;font-weight:700;white-space:nowrap;}
-  .v-note{color:#ca0013;font-weight:700;white-space:nowrap;}
+  .v-name{font-weight:600;line-height:1.15;letter-spacing:-0.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:calc(min(3.9mm,calc(var(--r) * 0.33)) * var(--fs));}
+  .v-zone{margin-left:2mm;font-size:0.62em;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);font-weight:600;}
+  .v-det{display:flex;flex-wrap:wrap;gap:0.6mm 1.3mm;align-items:center;margin-top:0.6mm;line-height:1.2;font-size:calc(min(2.9mm,calc(var(--r) * 0.24)) * var(--fs));}
+  .v-ob{background:#fbf4f3;color:var(--accd);border:0.2mm solid #ecd0d2;border-radius:3mm;padding:0 1.8mm;font-weight:500;white-space:nowrap;}
+  .v-note{color:var(--mut);font-style:italic;white-space:nowrap;}
   .v-azs{flex:none;width:var(--azw);display:flex;justify-content:flex-end;gap:2mm;}
   .v-az{width:var(--tw);display:flex;flex-direction:column;align-items:center;}
-  .v-az-box{width:var(--tw);height:var(--th);display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:1.2mm;}
+  .v-az-box{width:var(--tw);height:var(--th);display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;border:0.2mm solid var(--line);border-radius:1.4mm;padding:0.8mm;}
   .v-az-box img{max-width:100%;max-height:100%;object-fit:contain;display:block;}
-  .v-az-t{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#eef1f0;color:#7d859c;font-weight:800;font-size:calc(var(--th) * 0.4);}
-  .v-az-n{font-size:1.7mm;font-weight:600;color:#8a948f;line-height:1;margin-top:0.4mm;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  .v-az-t{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--tint);color:var(--mut);font-weight:700;font-size:calc(var(--th) * 0.36);border-radius:0.8mm;}
+  .v-az-n{font-size:1.6mm;font-weight:600;color:var(--faint);letter-spacing:0.05em;text-transform:uppercase;line-height:1;margin-top:0.5mm;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  .v-foot{flex:none;height:5mm;margin-top:2mm;display:flex;justify-content:space-between;align-items:center;border-top:0.2mm solid var(--line);font-size:2.3mm;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;color:var(--faint);}
   #lay-vert.v-nonames .v-az-n{display:none;}
   #lay-vert.v-compact .v-main{flex-direction:row;align-items:center;gap:2mm;}
   #lay-vert.v-compact .v-name{flex:0 1 auto;max-width:52%;font-size:calc(min(3.8mm,calc(var(--r) * 0.5)) * var(--fs));}
   #lay-vert.v-compact .v-det{flex:1 1 0;min-width:0;flex-wrap:nowrap;overflow:hidden;margin-top:0;font-size:calc(min(3mm,calc(var(--r) * 0.38)) * var(--fs));}
-  #lay-vert.v-compact .v-time{font-size:min(3.8mm,calc(var(--r) * 0.5));}
+  #lay-vert.v-compact .v-time{font-size:min(3.6mm,calc(var(--r) * 0.5));}
+  #lay-vert.v-compact .v-main.stack{flex-direction:column;align-items:stretch;gap:0;}
+  #lay-vert.v-compact .v-main.stack .v-name{max-width:100%;font-size:calc(min(3.2mm,calc(var(--r) * 0.4)) * var(--fs));}
+  #lay-vert.v-compact .v-main.stack .v-det{flex:none;flex-wrap:nowrap;overflow:hidden;margin-top:0.3mm;font-size:calc(min(2.5mm,calc(var(--r) * 0.3)) * var(--fs));}
   #lay-vert.v-flow .v-page{height:auto;min-height:277mm;overflow:visible;}
   #lay-vert.v-flow .v-days{display:block;}
-  #lay-vert.v-flow .v-day{margin-bottom:2.5mm;}
+  #lay-vert.v-flow .v-day{margin-bottom:3mm;}
   #lay-vert.v-flow .v-row{break-inside:avoid;}
   body.lay-vert #lay-grid{display:none;}
   body.lay-grid #lay-vert{display:none;}
   body.lay-vert .exp-header{display:none;}
-  .exp-tools{position:fixed;top:12px;right:12px;display:flex;gap:6px;align-items:center;background:#fff;border:1px solid #d9dfdc;border-radius:11px;padding:5px 6px;box-shadow:0 8px 20px rgba(0,0,0,0.12);z-index:10;}
+  @media screen{
+    body.lay-vert{background:#e9e6e1;}
+    body.lay-vert #lay-vert{width:210mm;}
+    body.lay-vert .v-page{height:297mm;padding:9mm;box-shadow:0 2px 16px rgba(0,0,0,0.16);margin-bottom:8mm;}
+    body.lay-vert #lay-vert.v-flow .v-page{height:auto;min-height:297mm;}
+  }
+  .exp-tools{position:sticky;top:10px;width:fit-content;margin:0 auto 12px;display:flex;gap:6px;align-items:center;background:#fff;border:1px solid #d9dfdc;border-radius:11px;padding:5px 6px;box-shadow:0 8px 20px rgba(0,0,0,0.12);z-index:10;}
   .exp-tools span{font-size:0.7rem;color:#6f7a74;font-weight:700;padding:0 4px;}
   .exp-tools button{border:1px solid #d9dfdc;background:#f4f6f5;color:#171e19;border-radius:8px;padding:8px 12px;font-size:0.8rem;font-weight:700;cursor:pointer;}
   .exp-tools button.on{background:#ca0013;border-color:#ca0013;color:#fff;}
@@ -5786,7 +5826,7 @@ function exportGiriPDF(){
   @media print{
     .exp-tools{display:none;}
     body.lay-grid{padding:8px 14px;}
-    body.lay-vert{padding:0;}
+    body.lay-vert{padding:0;background:#fff;}
   }
 </style></head>
 <body class="lay-${initial}">
@@ -5804,13 +5844,30 @@ function exportGiriPDF(){
   <div id="lay-vert" class="${met.flow?'v-flow ':''}${met.names?'':'v-nonames '}${met.compact?'v-compact':''}" style="${met.style}">${vertHtml}</div>
   <script>
     function fitRows(){
+      var root = document.getElementById('lay-vert');
+      var compact = root && root.classList.contains('v-compact');
       var rows = document.querySelectorAll('#lay-vert .v-main');
       for(var i = 0; i < rows.length; i++){
         var m = rows[i], nm = m.querySelector('.v-name'), dt = m.querySelector('.v-det'), s = 1;
+        var over = function(){
+          var mr = m.getBoundingClientRect(), ch = m.children;
+          for(var k = 0; k < ch.length; k++){
+            var r = ch[k].getBoundingClientRect();
+            if(r.top < mr.top - 0.5 || r.bottom > mr.bottom + 0.5) return true;
+          }
+          return (nm && nm.scrollWidth > nm.clientWidth + 0.5) || (dt && dt.scrollWidth > dt.clientWidth + 0.5);
+        };
+        m.classList.remove('stack');
+        if(dt) [].forEach.call(dt.children, function(x){ x.style.display = ''; });
         m.style.setProperty('--fs', 1);
-        while(s > 0.5 && (m.scrollHeight > m.clientHeight + 0.5 || (nm && nm.scrollWidth > nm.clientWidth + 0.5) || (dt && dt.scrollWidth > dt.clientWidth + 0.5))){
-          s -= 0.05;
-          m.style.setProperty('--fs', s);
+        while(s > (compact ? 0.82 : 0.5) && over()){ s -= 0.04; m.style.setProperty('--fs', s); }
+        if(compact && over()){
+          m.classList.add('stack'); s = 1; m.style.setProperty('--fs', 1);
+          while(s > 0.5 && over()){ s -= 0.04; m.style.setProperty('--fs', s); }
+          if(over() && dt){
+            var parts = [].slice.call(dt.children).reverse();
+            for(var q = 0; q < parts.length && over(); q++) parts[q].style.display = 'none';
+          }
         }
       }
     }
@@ -5819,9 +5876,10 @@ function exportGiriPDF(){
       document.getElementById('pgstyle').textContent = m === 'vert' ? '@page{size:A4 portrait;margin:9mm}' : '';
       document.getElementById('b-vert').className = m === 'vert' ? 'on' : '';
       document.getElementById('b-grid').className = m === 'grid' ? 'on' : '';
-      if(m === 'vert') fitRows();
+      if(m === 'vert'){ fitRows(); if(document.fonts && document.fonts.ready) document.fonts.ready.then(fitRows); }
       try { window.opener.localStorage.setItem('agentmapGiriPdfLayout', m); } catch(e){}
     }
+    window.addEventListener('beforeprint', fitRows);
     setLay('${initial}');
   <\/script>
 </body></html>`;
