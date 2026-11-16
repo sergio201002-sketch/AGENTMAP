@@ -1392,6 +1392,12 @@ header {
         </div>
       </div>
       <div style="margin-bottom:14px">
+        <div class="client-edit-label" style="margin-bottom:6px">Non è un cliente? Impresa o architetto</div>
+        <div id="giri-extra-tipi" style="display:flex;gap:6px;margin-bottom:8px"></div>
+        <input class="add-client-input" type="text" id="giri-add-extra-name" placeholder="Scrivi il nome (si salva per le prossime volte)..." oninput="_giroExtraInput()" autocomplete="off">
+        <div class="giri-client-list visible" id="giri-extra-list" style="max-height:110px;margin-top:6px"></div>
+      </div>
+      <div style="margin-bottom:14px">
         <div class="client-edit-label" style="margin-bottom:6px">Aziende della visita (opzionale, selezione multipla)</div>
         <div class="giri-client-list visible" id="giri-add-azienda" style="max-height:140px"></div>
       </div>
@@ -1973,6 +1979,7 @@ let giriVisitLayout = (function(){
   try { return localStorage.getItem('agentmapGiriLayout') || 'card'; } catch(_){ return 'card'; }
 })(); // 'card' | 'list'
 let savedGiri = []; // [{id, name, data:{...snapshot di giroContinuo...}, savedAt}]
+let giroContatti = []; // imprese/architetti usati nei giri (non clienti): [{id, nome, tipo:'impresa'|'architetto'}]
 let obiettiviPreset = OBIETTIVI_PRESET_DEFAULT.slice(); // obiettivi predefiniti per le visite, personalizzabili da Impostazioni
 let catalogPreset = CATALOGHI_PRESET_DEFAULT.slice(); // cataloghi predefiniti, personalizzabili da Impostazioni
 let listinoPreset = []; // listini predefiniti, personalizzabili da Impostazioni
@@ -2089,6 +2096,7 @@ function loadAll(){
     zoneGroups=Array.isArray(s.zoneGroups)?s.zoneGroups:[];
     remFolders=Array.isArray(s.remFolders)?s.remFolders:[];
     savedGiri=Array.isArray(s.savedGiri)?s.savedGiri:[];
+    giroContatti=Array.isArray(s.giroContatti)?s.giroContatti:[];
     obiettiviPreset=Array.isArray(s.obiettiviPreset)?s.obiettiviPreset:OBIETTIVI_PRESET_DEFAULT.slice();
     catalogPreset=Array.isArray(s.catalogPreset)?s.catalogPreset:CATALOGHI_PRESET_DEFAULT.slice();
     listinoPreset=Array.isArray(s.listinoPreset)?s.listinoPreset:[];
@@ -2130,6 +2138,7 @@ function reset(){
   giroContinuo = _giroContinuoDefaults();
   remFolders=[];
   savedGiri=[];
+  giroContatti=[];
   obiettiviPreset=OBIETTIVI_PRESET_DEFAULT.slice();
   catalogPreset=CATALOGHI_PRESET_DEFAULT.slice();
   listinoPreset=[];
@@ -2138,7 +2147,7 @@ function reset(){
   giroDraft=[];
 }
 function buildState(){
-  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders,savedGiri,obiettiviPreset,catalogPreset,listinoPreset,catalogStatsHiddenAziende,routeSuggest,giroDraft};
+  return {zoneOrder,clienti,visits,calNotes,zonaColors:ZONA_COLORS,aziende,kmlOverrides,kmlHidden,kmlSync,kmlSyncDate,giri,giriHistory,giriCurrentWeekKey,zoneGroups,giroContinuo,remFolders,savedGiri,giroContatti,obiettiviPreset,catalogPreset,listinoPreset,catalogStatsHiddenAziende,routeSuggest,giroDraft};
 }
 function saveAll(){
   try {
@@ -2293,6 +2302,7 @@ function _stateSize(s){
        + (Array.isArray(s.kmlSync)?s.kmlSync.length:0)
        + (Array.isArray(s.remFolders)?s.remFolders.length:0) * 5
        + (Array.isArray(s.savedGiri)?s.savedGiri.length:0) * 5
+       + (Array.isArray(s.giroContatti)?s.giroContatti.length:0) * 2
        + (s.giroContinuo?Object.values(s.giroContinuo).reduce((n,a)=>n+(Array.isArray(a)?a.length:0),0):0) * 3
        + (Array.isArray(s.giriHistory)?s.giriHistory.length:0) * 2
        + (Array.isArray(s.zoneGroups)?s.zoneGroups.length:0)
@@ -2420,6 +2430,7 @@ function applyCloudState(s, remoteUpdatedAt){
     if(Array.isArray(s.zoneGroups)) zoneGroups = s.zoneGroups;
     if(Array.isArray(s.remFolders)) remFolders = s.remFolders;
     if(Array.isArray(s.savedGiri)) savedGiri = s.savedGiri;
+    if(Array.isArray(s.giroContatti)) giroContatti = s.giroContatti;
     if(Array.isArray(s.obiettiviPreset)) obiettiviPreset = s.obiettiviPreset;
     if(Array.isArray(s.catalogPreset)) catalogPreset = s.catalogPreset;
     if(Array.isArray(s.listinoPreset)) listinoPreset = s.listinoPreset;
@@ -4827,13 +4838,18 @@ function _renderGiriAssignUI(){
     }
   }
 }
+// Impresa/architetto inseriti a mano nel giro (non sono clienti): al posto della zona si mostra il tipo
+function _visitZona(v, cli){
+  if(cli) return cli.zona;
+  return v.tipo === 'architetto' ? 'Architetto' : (v.tipo === 'impresa' ? 'Impresa' : '');
+}
 function _renderGiroVisitHtml(v, idx, list, mode, dayKey){
   return giriVisitLayout === 'list' ? _renderGiroVisitRowHtml(v, idx, list, mode, dayKey) : _renderGiroVisitCardHtml(v, idx, list, mode, dayKey);
 }
 function _renderGiroVisitCardHtml(v, idx, list, mode, dayKey){
   const cli = clienti.find(c=>c.id===v.clientId);
   const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
-  const zona = cli ? cli.zona : '';
+  const zona = _visitZona(v, cli);
   const time = v.time || '';
   const canUp = idx > 0;
   const canDown = idx < list.length - 1;
@@ -4870,7 +4886,7 @@ function _renderGiroVisitCardHtml(v, idx, list, mode, dayKey){
 function _renderGiroVisitRowHtml(v, idx, list, mode, dayKey){
   const cli = clienti.find(c=>c.id===v.clientId);
   const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
-  const zona = cli ? cli.zona : '';
+  const zona = _visitZona(v, cli);
   const time = v.time || '';
   const canUp = idx > 0;
   const canDown = idx < list.length - 1;
@@ -5632,7 +5648,7 @@ function _gexpDayCardHtml(giornoName, listRaw){
   const rows = list.map(v=>{
     const cli = clienti.find(c=>c.id===v.clientId);
     const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
-    const zona = cli ? cli.zona : '';
+    const zona = _visitZona(v, cli);
     return `<div class="gexp-row">
       <div class="gexp-time">${escH(v.time||'--:--')}</div>
       <div class="gexp-body"><div class="gexp-name">${escH(nome)}</div>${zona?`<div class="gexp-zone">${escH(zona)}</div>`:''}${v.note?`<div class="gexp-note">${escH(v.note)}</div>`:''}</div>
@@ -5648,7 +5664,7 @@ function _gexpVAz(v){ return _visitAziendaIds(v).map(id=>aziende.find(a=>a.id===
 function _gexpVRowHtml(v){
   const cli = clienti.find(c=>c.id===v.clientId);
   const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
-  const zona = cli ? cli.zona : '';
+  const zona = _visitZona(v, cli);
   const obs = _visitObiettivi(v);
   const azHtml = _gexpVAz(v).map(a=>`<div class="v-az"><div class="v-az-box">${a.logo ? `<img src="${escA(a.logo)}" alt="">` : `<span class="v-az-t">${escH(a.nome.substring(0,2).toUpperCase())}</span>`}</div><span class="v-az-n">${escH(a.nome)}</span></div>`).join('');
   const det = obs.map(o=>`<span class="v-ob">${escH(o)}</span>`).join('') + (v.note ? `<span class="v-note">${escH(v.note)}</span>` : '');
@@ -6069,6 +6085,9 @@ function openGiroAdd(dayKey, preClientId, mode){
   _selectedGiroClientIds = new Set(preClientId ? [preClientId] : []);
   _selectedGiroAziendaIds = new Set();
   _selectedGiroObiettivi = new Set();
+  _selectedGiroContattiIds = new Set();
+  const extraName = document.getElementById('giri-add-extra-name'); if(extraName) extraName.value = '';
+  _renderGiroExtra();
   let label = '';
   if(_activeGiroMode === 'continuo'){
     const m = /^s(\d)_(.+)$/.exec(dayKey);
@@ -6299,6 +6318,9 @@ function selectGiroClient(id){
 }
 function clearGiroClientSelection(){
   _selectedGiroClientIds = new Set();
+  _selectedGiroContattiIds = new Set();
+  const xi = document.getElementById('giri-add-extra-name'); if(xi) xi.value = '';
+  _renderGiroExtra();
   _selectedGiroAziendaIds = new Set();
   _selectedGiroObiettivi = new Set();
   filterGiroClientList();
@@ -6306,14 +6328,67 @@ function clearGiroClientSelection(){
   _renderGiroAddObiettivoOptions();
 }
 window.clearGiroClientSelection = clearGiroClientSelection;
+let _selectedGiroContattiIds = new Set();
+let _giroExtraTipo = 'impresa';
+function _giroExtraTyped(){ const i = document.getElementById('giri-add-extra-name'); return i ? i.value.trim() : ''; }
+function _giroExtraFind(nome, tipo){ const n = nome.toLowerCase(); return giroContatti.find(c=>c.tipo===tipo && c.nome.toLowerCase()===n); }
+// Quante visite si stanno per creare (clienti + imprese/architetti scelti o scritti)
+function _giroSelCount(){
+  const ids = new Set(_selectedGiroContattiIds);
+  const t = _giroExtraTyped();
+  if(t){ const ex = _giroExtraFind(t, _giroExtraTipo); ids.add(ex ? ex.id : 'new:'+t.toLowerCase()); }
+  return _selectedGiroClientIds.size + ids.size;
+}
+function _giroExtraInput(){ _renderGiroExtra(); _renderGiroAddAziendaOptions(); _renderGiroAddObiettivoOptions(); }
+function setGiroExtraTipo(t){ _giroExtraTipo = t; _renderGiroExtra(); }
+function _renderGiroExtra(){
+  const tipi = document.getElementById('giri-extra-tipi');
+  const list = document.getElementById('giri-extra-list');
+  if(!tipi || !list) return;
+  const btn = (t, label)=>{
+    const on = _giroExtraTipo === t;
+    return `<button type="button" onclick="setGiroExtraTipo('${t}')" style="flex:1;padding:8px 10px;border-radius:9px;font-family:'Nunito',sans-serif;font-size:0.8rem;font-weight:700;cursor:pointer;border:1px solid ${on?'var(--accent)':'var(--border)'};background:${on?'var(--accent)':'var(--surface2)'};color:${on?'#fff':'var(--text)'}">${label}</button>`;
+  };
+  tipi.innerHTML = btn('impresa','Impresa') + btn('architetto','Architetto');
+  const q = _giroExtraTyped().toLowerCase();
+  const items = giroContatti.filter(c=>c.tipo===_giroExtraTipo && (!q || c.nome.toLowerCase().includes(q))).sort((a,b)=>a.nome.localeCompare(b.nome));
+  if(!items.length){
+    list.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">' +
+      (giroContatti.some(c=>c.tipo===_giroExtraTipo) ? 'Nessun nome corrispondente' : 'Nessuna ' + (_giroExtraTipo==='impresa'?'impresa':'architetto') + ' salvata: scrivi il nome qui sopra') + '</div>';
+    return;
+  }
+  list.innerHTML = items.map(c=>{
+    const checked = _selectedGiroContattiIds.has(c.id);
+    return `<div class="giri-client-option${checked?' selected':''}" onclick="toggleGiroContatto('${c.id}')">
+      <span class="giri-client-option-check">${checked?'&#10003;':''}</span>
+      <span>${escH(c.nome)}</span>
+      <span class="giri-client-option-zone" style="cursor:pointer" title="Togli dalla lista salvata" onclick="event.stopPropagation();removeGiroContatto('${c.id}')">&times;</span>
+    </div>`;
+  }).join('');
+}
+function toggleGiroContatto(id){
+  if(_selectedGiroContattiIds.has(id)) _selectedGiroContattiIds.delete(id); else _selectedGiroContattiIds.add(id);
+  _renderGiroExtra(); _renderGiroAddAziendaOptions(); _renderGiroAddObiettivoOptions();
+}
+function removeGiroContatto(id){
+  const c = giroContatti.find(x=>x.id===id);
+  if(!c) return;
+  if(!confirm('Togliere "'+c.nome+'" dalla lista salvata? Le visite già nei giri restano.')) return;
+  giroContatti = giroContatti.filter(x=>x.id!==id);
+  _selectedGiroContattiIds.delete(id);
+  saveAll();
+  _renderGiroExtra(); _renderGiroAddAziendaOptions(); _renderGiroAddObiettivoOptions();
+}
+window._giroExtraInput = _giroExtraInput; window.setGiroExtraTipo = setGiroExtraTipo;
+window.toggleGiroContatto = toggleGiroContatto; window.removeGiroContatto = removeGiroContatto;
 function _renderGiroAddAziendaOptions(){
   const wrap = document.getElementById('giri-add-azienda');
   if(!wrap) return;
-  if(_selectedGiroClientIds.size === 0){
+  if(_giroSelCount() === 0){
     wrap.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Seleziona prima un cliente</div>';
     return;
   }
-  if(_selectedGiroClientIds.size > 1){
+  if(_giroSelCount() > 1){
     wrap.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Disponibile solo con un cliente alla volta</div>';
     return;
   }
@@ -6338,11 +6413,11 @@ window.toggleGiroAddAzienda = toggleGiroAddAzienda;
 function _renderGiroAddObiettivoOptions(){
   const wrap = document.getElementById('giri-add-obiettivo');
   if(!wrap) return;
-  if(_selectedGiroClientIds.size === 0){
+  if(_giroSelCount() === 0){
     wrap.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Seleziona prima un cliente</div>';
     return;
   }
-  if(_selectedGiroClientIds.size > 1){
+  if(_giroSelCount() > 1){
     wrap.innerHTML = '<div style="padding:8px 10px;font-size:0.78rem;color:var(--text-muted);text-align:center">Disponibile solo con un cliente alla volta</div>';
     return;
   }
@@ -6374,15 +6449,16 @@ function addGiroAddObiettivoCustom(){
 window.addGiroAddObiettivoCustom = addGiroAddObiettivoCustom;
 function confirmAddGiro(){
   if(!_activeGiroDay) return;
-  if(!_selectedGiroClientIds.size){
-    showToast('Seleziona almeno un cliente dalla lista');
+  if(!_giroSelCount()){
+    showToast("Seleziona almeno un cliente dalla lista o scrivi il nome di un'impresa/architetto");
     return;
   }
   const time = (document.getElementById('giri-add-time').value||'').trim();
   const note = (document.getElementById('giri-add-note').value||'').trim();
   // L'azienda e gli obiettivi per-visita hanno senso solo quando è selezionato un singolo cliente
-  const aziendaIds = _selectedGiroClientIds.size===1 ? Array.from(_selectedGiroAziendaIds) : [];
-  const obiettivi = _selectedGiroClientIds.size===1 ? Array.from(_selectedGiroObiettivi) : [];
+  const single = _giroSelCount() === 1;
+  const aziendaIds = single ? Array.from(_selectedGiroAziendaIds) : [];
+  const obiettivi = single ? Array.from(_selectedGiroObiettivi) : [];
   const store = _giroStore(_activeGiroMode);
   const dayLabel = document.getElementById('giri-add-day-label').textContent || '';
   if(!store[_activeGiroDay]) store[_activeGiroDay] = [];
@@ -6404,6 +6480,30 @@ function confirmAddGiro(){
     });
     addedNames.push(cli.nome);
   }
+  // Imprese/architetti: quelli scritti a mano si salvano nella lista (non tra i clienti) e restano disponibili qui
+  const extra = giroContatti.filter(c=>_selectedGiroContattiIds.has(c.id));
+  const typed = _giroExtraTyped();
+  if(typed){
+    let ex = _giroExtraFind(typed, _giroExtraTipo);
+    if(!ex){
+      ex = {id:'ct'+Date.now()+Math.random().toString(36).slice(2,6), nome:typed, tipo:_giroExtraTipo};
+      giroContatti.push(ex);
+    }
+    if(!extra.includes(ex)) extra.push(ex);
+  }
+  for(const ct of extra){
+    store[_activeGiroDay].push({
+      id: 'g'+Date.now()+Math.random().toString(36).slice(2,6),
+      clientId: '',
+      contactId: ct.id,
+      tipo: ct.tipo,
+      clientName: ct.nome,
+      time, note,
+      aziendaIds: aziendaIds.length ? aziendaIds : undefined,
+      obiettivi: obiettivi.length ? obiettivi : undefined,
+    });
+    addedNames.push(ct.nome);
+  }
   if(!addedNames.length) return;
   saveAll();
   // NON chiudere il modal: l'utente vuole continuare ad aggiungere clienti
@@ -6411,6 +6511,9 @@ function confirmAddGiro(){
   _selectedGiroClientIds = new Set();
   _selectedGiroAziendaIds = new Set();
   _selectedGiroObiettivi = new Set();
+  _selectedGiroContattiIds = new Set();
+  const xn = document.getElementById('giri-add-extra-name'); if(xn) xn.value = '';
+  _renderGiroExtra();
   const srch = document.getElementById('giri-add-search'); if(srch) srch.value = '';
   const tm = document.getElementById('giri-add-time'); if(tm) tm.value = '';
   const nt = document.getElementById('giri-add-note'); if(nt) nt.value = '';
@@ -6419,7 +6522,7 @@ function confirmAddGiro(){
   _renderGiroAddAziendaOptions();
   _renderGiroAddObiettivoOptions();
   renderGiri();
-  showToast(addedNames.length===1 ? (addedNames[0]+' aggiunto a '+dayLabel) : (addedNames.length+' clienti aggiunti a '+dayLabel));
+  showToast(addedNames.length===1 ? (addedNames[0]+' aggiunto a '+dayLabel) : (addedNames.length+' visite aggiunte a '+dayLabel));
   // Riporta il focus al campo ricerca per la prossima aggiunta
   setTimeout(()=>document.getElementById('giri-add-search')?.focus(), 50);
 }
@@ -6648,7 +6751,7 @@ function renderGiriHistory(){
         list.map(v=>{
           const cli = clienti.find(c=>c.id===v.clientId);
           const nome = cli ? cli.nome : (v.clientName || 'Cliente sconosciuto');
-          const zona = cli ? cli.zona : '';
+          const zona = _visitZona(v, cli);
           return '<div class="giri-hist-day-visit">' +
             '<span class="ghv-time">' + (v.time || '--:--') + '</span>' +
             '<span class="ghv-name">' + escH(nome) + '</span>' +
