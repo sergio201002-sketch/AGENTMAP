@@ -913,6 +913,10 @@ header {
 .giri-visit-note { font-size: 0.7rem; color: var(--accent); font-weight: 700; margin-top: 4px; line-height: 1.35; }
 .giri-visit-del { background: none; border: none; color: var(--text-light); font-size: 1rem; cursor: pointer; padding: 2px 4px; line-height: 1; flex-shrink: 0; transition: color 0.15s; }
 .giri-visit-del:hover { color: var(--red); }
+.giri-visit-call { background: none; border: 1px solid var(--border); color: var(--text-light); border-radius: 8px; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; flex-shrink: 0; transition: all 0.15s; }
+.giri-visit-call svg { width: 15px; height: 15px; }
+.giri-visit-call:hover { color: var(--accent); border-color: var(--accent); }
+.giri-visit-call.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .giri-visit-actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; align-items: center; }
 .giri-visit-move { background: var(--surface3); border: 1px solid var(--border); color: var(--text-muted); width: 22px; height: 18px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.62rem; line-height: 1; padding: 0; transition: all 0.12s; font-weight: 700; }
 .giri-visit-move:hover:not(:disabled) { background: var(--accent-dim); border-color: var(--accent); color: var(--accent-hover); }
@@ -1413,6 +1417,9 @@ header {
         <div style="flex:1">
           <div class="client-edit-label" style="margin-bottom:6px">Orario</div>
           <input class="add-client-input" type="time" id="giri-add-time" placeholder="--:--">
+        </div>
+        <div style="flex:1;display:flex;align-items:flex-end">
+          <button type="button" id="giri-add-call" onclick="toggleGiroAddCall()" title="Segna come: chiamare" style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px;border-radius:9px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer"></button>
         </div>
       </div>
       <div>
@@ -4838,6 +4845,20 @@ function _renderGiriAssignUI(){
     }
   }
 }
+// Cornetta del telefono: la visita e' una chiamata da fare (v.chiama = true)
+const PHONE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>';
+function _giroCallBtnHtml(v, mode, dayKey){
+  return `<button class="giri-visit-call${v.chiama?' on':''}" onclick="toggleGiroCall('${mode}','${dayKey}','${v.id}')" title="${v.chiama?'Da chiamare (tocca per toglierla)':'Segna come: chiamare'}">${PHONE_SVG}</button>`;
+}
+function toggleGiroCall(mode, dayKey, id){
+  const arr = _giroStore(mode)[dayKey];
+  const v = arr && arr.find(x=>x.id===id);
+  if(!v) return;
+  if(v.chiama) delete v.chiama; else v.chiama = true;
+  saveAll();
+  renderGiri();
+}
+window.toggleGiroCall = toggleGiroCall;
 // Impresa/architetto inseriti a mano nel giro (non sono clienti): al posto della zona si mostra il tipo
 function _visitZona(v, cli){
   if(cli) return cli.zona;
@@ -4876,6 +4897,7 @@ function _renderGiroVisitCardHtml(v, idx, list, mode, dayKey){
       ${v.note ? `<div class="giri-visit-note">${escH(v.note)}</div>` : ''}
       ${obiettivoHtml}
     </div>
+    ${_giroCallBtnHtml(v, mode, dayKey)}
     <div class="giri-visit-actions">
       <button class="giri-visit-move" onclick="moveGiroUp('${mode}','${dayKey}',${idx})" title="Sposta su"${canUp?'':' disabled'}>&#9650;</button>
       <button class="giri-visit-move" onclick="moveGiroDown('${mode}','${dayKey}',${idx})" title="Sposta gi&ugrave;"${canDown?'':' disabled'}>&#9660;</button>
@@ -4916,6 +4938,7 @@ function _renderGiroVisitRowHtml(v, idx, list, mode, dayKey){
       ${v.note ? `<div class="giri-visit-row-note">${escH(v.note)}</div>` : ''}
     </div>
     ${azRowHtml}
+    ${_giroCallBtnHtml(v, mode, dayKey)}
     <div class="giri-visit-actions">
       <button class="giri-visit-move" onclick="moveGiroUp('${mode}','${dayKey}',${idx})" title="Sposta su"${canUp?'':' disabled'}>&#9650;</button>
       <button class="giri-visit-move" onclick="moveGiroDown('${mode}','${dayKey}',${idx})" title="Sposta gi&ugrave;"${canDown?'':' disabled'}>&#9660;</button>
@@ -5583,7 +5606,7 @@ async function exportGiriExcel(){
             rowsHtml += `<tr class="exl-row${alt}">
               <td>Settimana ${s}</td><td>${_exlEsc(g.name)}</td>
               <td>${_exlEsc(v.time||'')}</td>
-              <td class="exl-name">${_exlEsc(cli?cli.nome:(v.clientName||'Cliente sconosciuto'))}</td>
+              <td class="exl-name">${v.chiama?'&#9742; ':''}${_exlEsc(cli?cli.nome:(v.clientName||'Cliente sconosciuto'))}</td>
               <td>${_exlEsc(cli?cli.zona:'')}</td>
               <td>${azNomi?_exlEsc(azNomi):'<span class="exl-muted">&mdash;</span>'}</td>
               <td>${obNomi?_exlEsc(obNomi):'<span class="exl-muted">&mdash;</span>'}</td>
@@ -5607,7 +5630,7 @@ async function exportGiriExcel(){
           rowsHtml += `<tr class="exl-row${alt}">
             <td>${_exlEsc(g.name)}</td>
             <td>${_exlEsc(v.time||'')}</td>
-            <td class="exl-name">${_exlEsc(cli?cli.nome:(v.clientName||'Cliente sconosciuto'))}</td>
+            <td class="exl-name">${v.chiama?'&#9742; ':''}${_exlEsc(cli?cli.nome:(v.clientName||'Cliente sconosciuto'))}</td>
             <td>${_exlEsc(cli?cli.zona:'')}</td>
             <td>${azNomi?_exlEsc(azNomi):'<span class="exl-muted">&mdash;</span>'}</td>
             <td>${obNomi?_exlEsc(obNomi):'<span class="exl-muted">&mdash;</span>'}</td>
@@ -5651,7 +5674,7 @@ function _gexpDayCardHtml(giornoName, listRaw){
     const zona = _visitZona(v, cli);
     return `<div class="gexp-row">
       <div class="gexp-time">${escH(v.time||'--:--')}</div>
-      <div class="gexp-body"><div class="gexp-name">${escH(nome)}</div>${zona?`<div class="gexp-zone">${escH(zona)}</div>`:''}${v.note?`<div class="gexp-note">${escH(v.note)}</div>`:''}</div>
+      <div class="gexp-body"><div class="gexp-name">${v.chiama?`<span class="gexp-call">${PHONE_SVG}</span>`:''}${escH(nome)}</div>${zona?`<div class="gexp-zone">${escH(zona)}</div>`:''}${v.note?`<div class="gexp-note">${escH(v.note)}</div>`:''}</div>
     </div>`;
   }).join('');
   return `<div class="gexp-day"><div class="gexp-day-title">${escH(giornoName)}<span class="gexp-day-count">${list.length}</span></div>${rows}</div>`;
@@ -5670,7 +5693,7 @@ function _gexpVRowHtml(v){
   const det = obs.map(o=>`<span class="v-ob">${escH(o)}</span>`).join('') + (v.note ? `<span class="v-note">${escH(v.note)}</span>` : '');
   return `<div class="v-row">
     <div class="v-time">${escH(v.time||'--:--')}</div>
-    <div class="v-main"><div class="v-name">${escH(nome)}${zona?`<span class="v-zone">${escH(zona)}</span>`:''}</div><div class="v-det">${det || '<span class="v-ob" style="visibility:hidden">&nbsp;</span>'}</div></div>
+    <div class="v-main"><div class="v-name">${v.chiama?`<span class="v-call">${PHONE_SVG}</span>`:''}${escH(nome)}${zona?`<span class="v-zone">${escH(zona)}</span>`:''}</div><div class="v-det">${det || '<span class="v-ob" style="visibility:hidden">&nbsp;</span>'}</div></div>
     <div class="v-azs">${azHtml}</div>
   </div>`;
 }
@@ -5777,6 +5800,8 @@ function exportGiriPDF(){
   .gexp-time{font-family:'JetBrains Mono',monospace;font-weight:700;color:#ca0013;flex-shrink:0;min-width:32px;}
   .gexp-body{flex:1;min-width:0;}
   .gexp-name{font-weight:700;}
+  .gexp-call{display:inline-flex;width:11px;height:11px;align-items:center;justify-content:center;background:#ca0013;color:#fff;border-radius:50%;margin-right:4px;vertical-align:-1px;}
+  .gexp-call svg{width:7px;height:7px;}
   .gexp-zone{color:#6f7a74;font-size:0.62rem;}
   .gexp-note{color:#ca0013;font-weight:700;font-size:0.62rem;margin-top:1px;}
 
@@ -5812,6 +5837,8 @@ function exportGiriPDF(){
   .v-time{flex:none;width:12mm;font-weight:600;color:var(--acc);font-size:min(3.6mm,calc(var(--r) * 0.34));}
   .v-main{flex:1;min-width:0;align-self:stretch;display:flex;flex-direction:column;justify-content:center;overflow:hidden;--fs:1;}
   .v-name{font-weight:600;line-height:1.15;letter-spacing:-0.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:calc(min(3.9mm,calc(var(--r) * 0.33)) * var(--fs));}
+  .v-call{display:inline-flex;width:1.3em;height:1.3em;align-items:center;justify-content:center;background:var(--acc);color:#fff;border-radius:50%;margin-right:1.8mm;vertical-align:-0.22em;}
+  .v-call svg{width:68%;height:68%;}
   .v-zone{margin-left:2mm;font-size:0.62em;letter-spacing:0.1em;text-transform:uppercase;color:var(--faint);font-weight:600;}
   .v-det{display:flex;flex-wrap:wrap;gap:0.6mm 1.3mm;align-items:center;margin-top:0.6mm;line-height:1.2;font-size:calc(min(2.9mm,calc(var(--r) * 0.24)) * var(--fs));}
   .v-ob{background:#fbf4f3;color:var(--accd);border:0.2mm solid #ecd0d2;border-radius:3mm;padding:0 1.8mm;font-weight:500;white-space:nowrap;}
@@ -6088,6 +6115,7 @@ function openGiroAdd(dayKey, preClientId, mode){
   _selectedGiroContattiIds = new Set();
   const extraName = document.getElementById('giri-add-extra-name'); if(extraName) extraName.value = '';
   _renderGiroExtra();
+  _giroAddCall = false; _renderGiroAddCall();
   let label = '';
   if(_activeGiroMode === 'continuo'){
     const m = /^s(\d)_(.+)$/.exec(dayKey);
@@ -6329,6 +6357,17 @@ function clearGiroClientSelection(){
 }
 window.clearGiroClientSelection = clearGiroClientSelection;
 let _selectedGiroContattiIds = new Set();
+let _giroAddCall = false;
+function _renderGiroAddCall(){
+  const b = document.getElementById('giri-add-call');
+  if(!b) return;
+  b.innerHTML = '<span style="display:inline-flex;width:15px;height:15px">' + PHONE_SVG + '</span>Chiamare';
+  b.style.background = _giroAddCall ? 'var(--accent)' : 'var(--surface2)';
+  b.style.color = _giroAddCall ? '#fff' : 'var(--text)';
+  b.style.border = '1px solid ' + (_giroAddCall ? 'var(--accent)' : 'var(--border)');
+}
+function toggleGiroAddCall(){ _giroAddCall = !_giroAddCall; _renderGiroAddCall(); }
+window.toggleGiroAddCall = toggleGiroAddCall;
 let _giroExtraTipo = 'impresa';
 function _giroExtraTyped(){ const i = document.getElementById('giri-add-extra-name'); return i ? i.value.trim() : ''; }
 function _giroExtraFind(nome, tipo){ const n = nome.toLowerCase(); return giroContatti.find(c=>c.tipo===tipo && c.nome.toLowerCase()===n); }
@@ -6477,6 +6516,7 @@ function confirmAddGiro(){
       time, note,
       aziendaIds: aziendaIds.length ? aziendaIds : undefined,
       obiettivi: obiettivi.length ? obiettivi : undefined,
+      chiama: _giroAddCall ? true : undefined,
     });
     addedNames.push(cli.nome);
   }
@@ -6501,6 +6541,7 @@ function confirmAddGiro(){
       time, note,
       aziendaIds: aziendaIds.length ? aziendaIds : undefined,
       obiettivi: obiettivi.length ? obiettivi : undefined,
+      chiama: _giroAddCall ? true : undefined,
     });
     addedNames.push(ct.nome);
   }
@@ -6514,6 +6555,7 @@ function confirmAddGiro(){
   _selectedGiroContattiIds = new Set();
   const xn = document.getElementById('giri-add-extra-name'); if(xn) xn.value = '';
   _renderGiroExtra();
+  _giroAddCall = false; _renderGiroAddCall();
   const srch = document.getElementById('giri-add-search'); if(srch) srch.value = '';
   const tm = document.getElementById('giri-add-time'); if(tm) tm.value = '';
   const nt = document.getElementById('giri-add-note'); if(nt) nt.value = '';
