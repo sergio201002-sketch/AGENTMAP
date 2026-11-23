@@ -817,7 +817,9 @@ header {
 #view-giri.gb-mode .giri-mode-tabs { margin-bottom: 4px; padding: 2px; border-radius: 9px; }
 #view-giri.gb-mode .giri-mode-tab { padding: 4px 12px; font-size: 0.72rem; }
 .gbb-board { flex: 1; min-height: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; overflow: auto; }
-.gbb-cols { column-fill: auto; column-gap: 16px; column-count: 3; font-size: 12px; }
+.gbb-cols { display: flex; gap: 16px; font-size: 12px; }
+.gbb-col { flex: 1 1 0; min-width: 150px; display: flex; flex-direction: column; }
+.gbb-zone i { font-style: normal; font-weight: 600; letter-spacing: 0; text-transform: none; opacity: 0.7; margin-left: 4px; }
 .gbb-zone { height: var(--rh); display: flex; align-items: flex-end; gap: 6px; padding: 0 2px 2px; break-after: avoid; break-inside: avoid; font-weight: 800; font-size: 0.82em; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); border-bottom: 2px solid var(--accent); box-sizing: border-box; }
 .gbb-zone small { margin-left: auto; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-weight: 700; letter-spacing: 0; }
 .gbb-row { height: var(--rh); display: flex; align-items: center; gap: 6px; padding: 0 4px; border-bottom: 1px solid var(--border); cursor: pointer; break-inside: avoid; box-sizing: border-box; user-select: none; }
@@ -5630,25 +5632,43 @@ function _gbbGroups(){
   const dd = c=>{ const v = visits[c.id]; return (v && v.visitDate) ? daysSince(v.visitDate) : null; };
   return {am, groups: order.map(z=>({zona:z, list:by[z].slice().sort((a,b)=>{ const x = dd(a), y = dd(b); return (y===null?1e9:y) - (x===null?1e9:x) || a.nome.localeCompare(b.nome); })}))};
 }
-function _gbbColsHtml(){
+let _gbbZ = [];
+function _gbbBuildZones(){
   const {am, groups} = _gbbGroups();
   const cur = _gbbCurLabel();
-  const curKey = _gbSaveTargetKey();
-  const curIds = new Set((_giroStore(_gbUI.saveMode)[curKey]||[]).map(v=>v.clientId));
-  let n = 0;
-  const html = groups.map(g=>{
-    n += 1 + g.list.length;
-    const col = (typeof ZONA_COLORS === 'object' && ZONA_COLORS && ZONA_COLORS[g.zona]) || '';
-    return `<div class="gbb-zone"${col?` style="color:${escA(col)};border-bottom-color:${escA(col)}"`:''}>${escH(g.zona)}<small>${g.list.length}</small></div>` + g.list.map(c=>{
+  const curIds = new Set((_giroStore(_gbUI.saveMode)[_gbSaveTargetKey()]||[]).map(v=>v.clientId));
+  _gbbZ = groups.map((g, i)=>({
+    idx: i, zona: g.zona,
+    col: (typeof ZONA_COLORS === 'object' && ZONA_COLORS && ZONA_COLORS[g.zona]) || '',
+    rows: g.list.map(c=>{
       const v = visits[c.id], days = (v && v.visitDate) ? daysSince(v.visitDate) : null;
       const labels = am[c.id] || [];
       const shown = labels.slice(0, 3), more = labels.length - shown.length;
-      const on = curIds.has(c.id);
       const tags = labels.length ? `<span class="gbb-tags">${shown.map(l=>`<span class="gbb-tag${l===cur?' here':''}">${escH(l)}</span>`).join('')}${more>0?`<span class="gbb-tag">+${more}</span>`:''}</span>` : '';
-      return `<div class="gbb-row${on?' on':''}${c.sospeso?' dim':''}" onclick="gbBoardToggle('${c.id}')" title="${escA(c.nome)}${c.zona?' - '+escA(c.zona):''}"><span class="gbb-name">${escH(c.nome)}</span>${tags}${_gbDaysChip(days)}</div>`;
-    }).join('');
-  }).join('');
-  return {n, html: html || '<div class="gbb-empty">Nessun cliente trovato.</div>'};
+      return `<div class="gbb-row${curIds.has(c.id)?' on':''}${c.sospeso?' dim':''}" onclick="gbBoardToggle('${c.id}')" title="${escA(c.nome)}${c.zona?' - '+escA(c.zona):''}"><span class="gbb-name">${escH(c.nome)}</span>${tags}${_gbDaysChip(days)}</div>`;
+    })
+  }));
+  return groups;
+}
+// mette le zone nelle colonne senza spezzarle (solo una zona piu' alta di una colonna viene divisa): best-fit decrescente
+function _gbbPack(cap, nCols){
+  const maxRows = Math.max(1, cap - 1);
+  const items = [];
+  _gbbZ.forEach(z=>{
+    let a = 0, k = 0;
+    do { const b = Math.min(z.rows.length, a + maxRows); items.push({z, from:a, to:b, cont:k>0, size:1+b-a}); a = b; k++; } while(a < z.rows.length);
+  });
+  items.sort((x, y)=>y.size - x.size || x.z.idx - y.z.idx || x.from - y.from);
+  const bins = [];
+  for(const it of items){
+    let best = null;
+    bins.forEach(bn=>{ const rest = cap - bn.used; if(rest >= it.size && (!best || rest < cap - best.used)) best = bn; });
+    if(!best){ if(bins.length >= nCols) return null; best = {used:0, items:[]}; bins.push(best); }
+    best.items.push(it); best.used += it.size;
+  }
+  bins.forEach(bn=>bn.items.sort((x, y)=>x.z.idx - y.z.idx || x.from - y.from));
+  bins.sort((x, y)=>x.items[0].z.idx - y.items[0].z.idx || x.items[0].from - y.items[0].from);
+  return bins;
 }
 function _gbbTopHtml(nClienti, nZone){
   const mode = _gbUI.saveMode, cont = mode === 'continuo', store = _giroStore(mode), week = _gbUI.saveWeek, today = todayDayKey();
@@ -5694,37 +5714,35 @@ window.gbBoardToggle = gbBoardToggle; window.gbBoardToggleFree = gbBoardToggleFr
 function _gbBoardRefresh(){
   const cols = document.getElementById('gbb-cols');
   if(!cols){ renderGiroBuilder(); return; }
-  const r = _gbbColsHtml();
-  cols.innerHTML = r.html; cols.dataset.n = r.n;
+  const groups = _gbbBuildZones();
   const cnt = document.getElementById('gbb-count');
-  if(cnt){ const g = _gbbGroups(); const nc = g.groups.reduce((k,x)=>k+x.list.length,0); cnt.innerHTML = nc+' client'+(nc===1?'e':'i')+' &middot; '+g.groups.length+' zon'+(g.groups.length===1?'a':'e'); }
+  if(cnt){ const nc = groups.reduce((k,x)=>k+x.list.length,0); cnt.innerHTML = nc+' client'+(nc===1?'e':'i')+' &middot; '+groups.length+' zon'+(groups.length===1?'a':'e'); }
   _gbBoardFit();
 }
-// sceglie 3-4 colonne (di piu' solo se servono) e l'altezza delle righe cosi' che tutti i clienti stiano a schermo, senza scorrere
+// sceglie 3-4 colonne (di piu' solo se servono) e l'altezza delle righe: ogni zona sta intera in una colonna e tutti i clienti stanno a schermo
 function _gbBoardFit(){
   const board = document.getElementById('gbb-board'), cols = document.getElementById('gbb-cols');
   if(!board || !cols || board.offsetParent === null) return;
-  const n = parseInt(cols.dataset.n, 10) || 0;
+  if(!_gbbZ.length){ cols.style.height = ''; cols.innerHTML = '<div class="gbb-empty" style="flex:1">Nessun cliente trovato.</div>'; return; }
   const cs = getComputedStyle(board);
   const H = board.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
   const W = board.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
   const GAP = 16, MINW = 160;
   const maxCols = Math.max(1, Math.floor((W + GAP) / (MINW + GAP)));
-  const rhFor = c => Math.floor(H / (Math.ceil(n / c) + 1));
-  let c = Math.min(3, maxCols), rh = rhFor(c);
-  if(rh < 26){ c = Math.min(4, maxCols); rh = rhFor(c); }
-  while(rh < 22 && c < maxCols){ c++; rh = rhFor(c); }
-  rh = Math.max(16, Math.min(rh, 36));
-  const apply = ()=>{
-    cols.style.height = H + 'px';
-    cols.style.columnCount = c;
-    cols.style.setProperty('--rh', rh + 'px');
-    cols.style.fontSize = Math.max(10, Math.min(15, Math.round(rh * 0.46))) + 'px';
-  };
-  apply();
-  let guard = 0;
-  while(cols.scrollWidth > cols.clientWidth + 2 && rh > 15 && guard++ < 30){ rh -= 1; apply(); }
-  while(cols.scrollWidth > cols.clientWidth + 2 && c < maxCols && guard++ < 60){ c++; apply(); }
+  const bestFor = c=>{ for(let rh = 36; rh >= 16; rh--){ const bins = _gbbPack(Math.floor(H / rh), c); if(bins) return {c, rh, bins}; } return null; };
+  const cands = [];
+  for(let c = Math.min(3, maxCols); c <= maxCols; c++){ const r = bestFor(c); if(r) cands.push(r); }
+  let pick = cands.find(x=>x.rh >= 24) || cands.reduce((m, x)=>(!m || x.rh > m.rh) ? x : m, null);
+  if(!pick){ const bins = _gbbPack(Math.floor(H / 16), 999); pick = {c: bins.length, rh: 16, bins}; }
+  const bins = pick.bins.slice();
+  while(bins.length < pick.c) bins.push({items:[]});
+  cols.style.height = H + 'px';
+  cols.style.setProperty('--rh', pick.rh + 'px');
+  cols.style.fontSize = Math.max(10, Math.min(15, Math.round(pick.rh * 0.46))) + 'px';
+  cols.innerHTML = bins.map(bn=>`<div class="gbb-col">${bn.items.map(it=>{
+    const z = it.z, st = z.col ? ` style="color:${escA(z.col)};border-bottom-color:${escA(z.col)}"` : '';
+    return `<div class="gbb-zone"${st}>${escH(z.zona)}${it.cont?'<i>segue</i>':''}<small>${it.cont ? (it.to - it.from) : z.rows.length}</small></div>` + z.rows.slice(it.from, it.to).join('');
+  }).join('')}</div>`).join('');
 }
 window.addEventListener('resize', ()=>{ if(currentView==='giri' && giriViewMode==='creazione' && _gbUI.view==='tutti'){ _gbFitHeight(); _gbBoardFit(); } });
 function renderGiroBuilder(){
@@ -5733,10 +5751,10 @@ function renderGiroBuilder(){
   _gbPinIdx = null;
   giroDraft = giroDraft.filter(id=>clienti.some(c=>c.id===id));
   if((_gbUI.view || 'tutti') === 'tutti'){
-    const r = _gbbColsHtml(), g = _gbbGroups();
-    const nc = g.groups.reduce((k,x)=>k+x.list.length,0);
+    const groups = _gbbBuildZones();
+    const nc = groups.reduce((k,x)=>k+x.list.length,0);
     const hadSearch = document.activeElement && document.activeElement.id === 'gbb-search';
-    box.innerHTML = `<div class="gb-app" data-view="tutti">${_gbbTopHtml(nc, g.groups.length)}<div class="gbb-board" id="gbb-board"><div class="gbb-cols" id="gbb-cols" data-n="${r.n}">${r.html}</div></div></div>`;
+    box.innerHTML = `<div class="gb-app" data-view="tutti">${_gbbTopHtml(nc, groups.length)}<div class="gbb-board" id="gbb-board"><div class="gbb-cols" id="gbb-cols"></div></div></div>`;
     _gbFitHeight();
     _gbBoardFit();
     if(hadSearch){ const si = document.getElementById('gbb-search'); if(si){ si.focus(); si.setSelectionRange(si.value.length, si.value.length); } }
