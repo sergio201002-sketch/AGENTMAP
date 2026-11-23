@@ -384,7 +384,10 @@ header {
 .star { font-size: 0.82rem; cursor: pointer; color: var(--border2); transition: color 0.1s, transform 0.1s; line-height: 1; }
 .star.on { color: var(--yellow); }
 .star:hover { transform: scale(1.2); }
-.visit-row { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
+.visit-row { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; flex-wrap: wrap; }
+.visit-btn .phone-ic svg { width: 14px; height: 14px; }
+.call-meta { font-size: 0.66rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center; gap: 3px; }
+.call-meta svg { width: 10px; height: 10px; }
 .visit-btn {
   background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
   padding: 5px 11px; font-family: 'Nunito', sans-serif; font-size: 0.73rem; font-weight: 600;
@@ -785,6 +788,24 @@ header {
 .gb-stoptxt { fill: #fff; font-size: 11px; font-weight: 800; font-family: 'Nunito', sans-serif; pointer-events: none; }
 .gb-picked { display: flex; align-items: center; gap: 10px; background: var(--accent-dim); border-radius: 10px; padding: 8px 10px; font-size: 0.82rem; flex-shrink: 0; }
 
+.gbb-top { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; gap: 7px; flex-shrink: 0; }
+.gbb-line { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; min-width: 0; }
+.gbb-board { flex: 1; min-height: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; overflow: auto; }
+.gbb-cols { column-fill: auto; column-gap: 16px; column-count: 3; font-size: 12px; }
+.gbb-zone { height: var(--rh); display: flex; align-items: flex-end; gap: 6px; padding: 0 2px 2px; break-after: avoid; break-inside: avoid; font-weight: 800; font-size: 0.82em; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); border-bottom: 2px solid var(--accent); box-sizing: border-box; }
+.gbb-zone small { margin-left: auto; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-weight: 700; letter-spacing: 0; }
+.gbb-row { height: var(--rh); display: flex; align-items: center; gap: 6px; padding: 0 4px; border-bottom: 1px solid var(--border); cursor: pointer; break-inside: avoid; box-sizing: border-box; user-select: none; }
+.gbb-row:hover { background: var(--surface2); }
+.gbb-row.on { background: var(--accent); color: #fff; border-radius: 6px; border-bottom-color: transparent; }
+.gbb-row.dim .gbb-name { opacity: 0.5; text-decoration: line-through; }
+.gbb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 1em; }
+.gbb-tags { flex-shrink: 0; display: inline-flex; gap: 3px; }
+.gbb-tag { font-size: 0.72em; font-weight: 800; border: 1px solid var(--border2); border-radius: 6px; padding: 0 4px; line-height: 1.5; color: var(--text-muted); background: var(--surface2); white-space: nowrap; }
+.gbb-row.on .gbb-tag { background: rgba(255,255,255,0.22); border-color: transparent; color: #fff; }
+.gbb-tag.here { background: var(--accent); border-color: var(--accent); color: #fff; }
+.gbb-row .days-chip { flex-shrink: 0; font-size: 0.78em; }
+.gbb-row.on .days-chip { box-shadow: 0 0 0 1.5px #fff; }
+.gbb-empty { padding: 30px 10px; text-align: center; color: var(--text-muted); font-size: 0.85rem; }
 .gb-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; padding: 8px 12px; flex-shrink: 0; }
 .gb-bar-info { font-size: 0.84rem; color: var(--text); }
 .gb-bar-btns { display: flex; gap: 7px; flex-wrap: wrap; }
@@ -1195,6 +1216,10 @@ header {
       <div class="legend-item"><div class="legend-pip" style="background:var(--orange)"></div>10-15g</div>
       <div class="legend-item"><div class="legend-pip" style="background:var(--red)"></div>15-20g</div>
       <div class="legend-item"><div class="legend-pip" style="background:var(--black-col)"></div>20+g</div>
+      <button class="filter-adv-btn" id="calls-report-btn" onclick="openCallsReport()" title="Resoconto delle chiamate ai clienti">
+        <span style="display:inline-flex;width:14px;height:14px" id="calls-report-ic"></span>
+        Chiamate
+      </button>
       <button class="filter-adv-btn" id="filter-adv-btn" onclick="toggleAdvFilters()" title="Filtri avanzati">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
         Filtri
@@ -1475,6 +1500,24 @@ header {
       <button onclick="closeGiroObiettivoPicker()" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:600;color:var(--text-muted);cursor:pointer">Chiudi</button>
       <button onclick="saveGiroObiettivoPicker()" style="flex:2;background:var(--accent);border:none;border-radius:9px;padding:10px;font-family:'Nunito',sans-serif;font-size:0.82rem;font-weight:700;color:white;cursor:pointer">Salva</button>
     </div>
+  </div>
+</div>
+
+<!-- RESOCONTO CHIAMATE -->
+<div class="overlay" id="calls-overlay" onclick="closeOverlayBg(event,'calls-overlay',closeCallsReport)">
+  <div class="modal" style="max-width:540px;max-height:88vh">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Resoconto chiamate</div>
+        <div class="modal-subtitle" id="calls-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeCallsReport()">&times;</button>
+    </div>
+    <div style="padding:12px 16px 0">
+      <div id="calls-periods" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+      <div id="calls-groups" style="display:flex;gap:6px"></div>
+    </div>
+    <div class="modal-body" id="calls-body" style="padding:12px 16px 16px;max-height:62vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -3500,7 +3543,14 @@ function renderClientInfoSheet(){
   if(!c) return;
   if(!c.badges) c.badges = {};
   const v = getV(c.id);
-  body.innerHTML = _infoNotesSectionHtml(v) + _infoRemindersSectionHtml(v) + _infoCatalogSectionHtml(c) + _infoCersaieSectionHtml(c);
+  body.innerHTML = _infoCallsSectionHtml(v) + _infoNotesSectionHtml(v) + _infoRemindersSectionHtml(v) + _infoCatalogSectionHtml(c) + _infoCersaieSectionHtml(c);
+}
+function _infoCallsSectionHtml(v){
+  const calls = (Array.isArray(v.callHistory) ? v.callHistory : []).slice().sort().reverse();
+  return `<div class="client-info-section">
+    <div class="client-info-section-title">Chiamate (${calls.length})</div>
+    ${calls.length ? calls.slice(0,15).map(iso=>`<div class="client-info-note"><div class="client-info-note-date">${escH(fmtDateTime(iso))}</div></div>`).join('') + (calls.length>15?`<div class="client-info-empty">…e altre ${calls.length-15}</div>`:'') : '<div class="client-info-empty">Nessuna chiamata registrata.</div>'}
+  </div>`;
 }
 function _infoNotesSectionHtml(v){
   const notes = (v.notes||[]).slice().reverse();
@@ -3610,7 +3660,11 @@ function renderCard(c){
           <svg width="13" height="16" viewBox="0 0 13 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M6.5 1C3.46 1 1 3.46 1 6.5c0 4.25 5.5 8.5 5.5 8.5S12 10.75 12 6.5C12 3.46 9.54 1 6.5 1z"/><circle cx="6.5" cy="6.5" r="2" fill="currentColor" stroke="none"/></svg>
           Visita oggi
         </button>
-        <span class="visit-meta">${fmtDate(v.visitDate)}</span>${chip}
+        <button class="visit-btn" onclick="markCall('${c.id}')" title="Registra una chiamata fatta oggi">
+          <span class="phone-ic" style="display:inline-flex">${PHONE_SVG}</span>
+          Chiamato oggi
+        </button>
+        <span class="visit-meta">${fmtDate(v.visitDate)}</span>${chip}${_callMetaHtml(v)}
       </div>
       <div class="position-row">
         <input class="position-input" type="text" placeholder="Indirizzo..." value="${escA(v.position||'')}" onchange="savePosition('${c.id}',this.value)" id="pos-${c.id}">
@@ -3662,6 +3716,7 @@ function renderCardCompact(c){
         <button class="client-row-btn" onclick="markVisit('${c.id}')" title="Visita oggi">
           <svg width="12" height="15" viewBox="0 0 13 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 1C3.46 1 1 3.46 1 6.5c0 4.25 5.5 8.5 5.5 8.5S12 10.75 12 6.5C12 3.46 9.54 1 6.5 1z"/><circle cx="6.5" cy="6.5" r="2" fill="currentColor" stroke="none"/></svg>
         </button>
+        <button class="client-row-btn" onclick="markCall('${c.id}')" title="Chiamato oggi" style="padding:0"><span style="display:inline-flex;width:14px;height:14px">${PHONE_SVG}</span></button>
         <button class="client-row-btn" onclick="openNotes('${c.id}')" title="${cnt===0?'Nessuna nota':cnt+(cnt===1?' nota':' note')}">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
           ${cnt>0?`<span class="client-row-notes-badge">${cnt}</span>`:''}
@@ -3695,6 +3750,96 @@ document.addEventListener('click', ()=>{
   document.querySelectorAll('.client-row-logo.tap-open').forEach(x=>x.classList.remove('tap-open'));
 });
 
+// ── CHIAMATE: v.callHistory = [iso, ...] per cliente ──
+let _callsPeriod = 'oggi';
+let _callsGroup = 'giorno';
+function markCall(id){
+  const v = getV(id);
+  if(!Array.isArray(v.callHistory)) v.callHistory = [];
+  const now = new Date().toISOString();
+  const last = v.callHistory[v.callHistory.length-1];
+  if(last && (Date.now() - new Date(last).getTime()) < 60000){ showToast('Chiamata già registrata'); return; }
+  v.callHistory.push(now);
+  saveAll(); renderClients(); showToast('Chiamata registrata');
+}
+window.markCall = markCall;
+document.addEventListener('DOMContentLoaded', ()=>{ const ic = document.getElementById('calls-report-ic'); if(ic) ic.innerHTML = PHONE_SVG; });
+function _callLastIso(v){ const h = v && Array.isArray(v.callHistory) ? v.callHistory : []; return h.length ? h.slice().sort().pop() : null; }
+function _callMetaHtml(v){
+  const last = _callLastIso(v);
+  return last ? `<span class="call-meta" title="Ultima chiamata: ${escA(fmtDateTime(last))}">${PHONE_SVG}${escH(new Date(last).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'}))}</span>` : '';
+}
+function _callDayKey(iso){ const d = new Date(iso); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _allCalls(){
+  const out = [];
+  clienti.forEach(c=>{ const v = visits[c.id]; if(v && Array.isArray(v.callHistory)) v.callHistory.forEach(iso=>out.push({id:c.id, iso, cli:c})); });
+  return out;
+}
+function openCallsReport(){ _renderCallsReport(); openOverlay('calls-overlay'); }
+function closeCallsReport(){ closeOverlay('calls-overlay'); }
+function setCallsPeriod(p){ _callsPeriod = p; _renderCallsReport(); }
+function setCallsGroup(g){ _callsGroup = g; _renderCallsReport(); }
+function removeCall(id, iso){
+  const v = visits[id];
+  if(!v || !Array.isArray(v.callHistory)) return;
+  if(!confirm('Eliminare questa chiamata dal resoconto?')) return;
+  v.callHistory = v.callHistory.filter(x=>x!==iso);
+  saveAll(); _renderCallsReport(); renderClients();
+  if(_clientInfoId) renderClientInfoSheet();
+}
+window.openCallsReport = openCallsReport; window.closeCallsReport = closeCallsReport;
+window.setCallsPeriod = setCallsPeriod; window.setCallsGroup = setCallsGroup; window.removeCall = removeCall;
+function _renderCallsReport(){
+  const chip = (on, onclick, label)=>`<button type="button" onclick="${onclick}" style="padding:7px 12px;border-radius:9px;font-family:'Nunito',sans-serif;font-size:0.78rem;font-weight:700;cursor:pointer;border:1px solid ${on?'var(--accent)':'var(--border)'};background:${on?'var(--accent)':'var(--surface2)'};color:${on?'#fff':'var(--text)'}">${label}</button>`;
+  const periods = [['oggi','Oggi'],['7','7 giorni'],['30','30 giorni'],['tutte','Tutte']];
+  document.getElementById('calls-periods').innerHTML = periods.map(x=>chip(_callsPeriod===x[0], `setCallsPeriod('${x[0]}')`, x[1])).join('');
+  document.getElementById('calls-groups').innerHTML = chip(_callsGroup==='giorno', "setCallsGroup('giorno')", 'Per giorno') + chip(_callsGroup==='cliente', "setCallsGroup('cliente')", 'Per cliente');
+  const start = new Date(); start.setHours(0,0,0,0);
+  let cutoff = 0;
+  if(_callsPeriod === 'oggi') cutoff = start.getTime();
+  else if(_callsPeriod === '7') cutoff = start.getTime() - 6*86400000;
+  else if(_callsPeriod === '30') cutoff = start.getTime() - 29*86400000;
+  const list = _allCalls().filter(x=>new Date(x.iso).getTime() >= cutoff).sort((a,b)=>b.iso.localeCompare(a.iso));
+  const nCli = new Set(list.map(x=>x.id)).size;
+  document.getElementById('calls-subtitle').textContent = list.length + (list.length===1?' chiamata':' chiamate') + ' · ' + nCli + (nCli===1?' cliente':' clienti');
+  const body = document.getElementById('calls-body');
+  if(!list.length){
+    body.innerHTML = '<div style="padding:24px 8px;text-align:center;color:var(--text-muted);font-size:0.85rem">Nessuna chiamata in questo periodo.<br>Usa il pulsante "Chiamato oggi" sul cliente per registrarla.</div>';
+    return;
+  }
+  const time = iso => new Date(iso).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  const todayKey = _callDayKey(new Date().toISOString());
+  if(_callsGroup === 'cliente'){
+    const by = {};
+    list.forEach(x=>{ (by[x.id] = by[x.id] || {cli:x.cli, items:[]}).items.push(x); });
+    body.innerHTML = Object.values(by).sort((a,b)=>b.items.length-a.items.length || b.items[0].iso.localeCompare(a.items[0].iso)).map(g=>
+      `<div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border)">
+        <div style="min-width:0;flex:1">
+          <div style="font-weight:700;font-size:0.88rem">${escH(g.cli.nome)}</div>
+          <div style="font-size:0.7rem;color:var(--text-muted)">${escH(g.cli.zona||'')}${g.cli.zona?' · ':''}ultima: ${escH(fmtDateTime(g.items[0].iso))}</div>
+        </div>
+        <div style="flex-shrink:0;background:var(--accent);color:#fff;border-radius:11px;padding:2px 10px;font-weight:800;font-size:0.8rem">${g.items.length}</div>
+      </div>`).join('');
+    return;
+  }
+  const days = {};
+  list.forEach(x=>{ (days[_callDayKey(x.iso)] = days[_callDayKey(x.iso)] || []).push(x); });
+  body.innerHTML = Object.keys(days).sort().reverse().map(k=>{
+    const items = days[k];
+    const label = new Date(items[0].iso).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+    return `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:0.8rem;text-transform:capitalize;color:var(--accent);margin-bottom:4px">
+        <span>${escH(label)}${k===todayKey?' &middot; oggi':''}</span><span style="font-weight:700;color:var(--text-muted);text-transform:none">${items.length} chiamat${items.length===1?'a':'e'}</span>
+      </div>
+      ${items.map(x=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">
+        <span style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:0.78rem;color:var(--text-muted);flex-shrink:0">${time(x.iso)}</span>
+        <span style="flex:1;min-width:0;font-weight:700;font-size:0.86rem">${escH(x.cli.nome)}</span>
+        <span style="font-size:0.68rem;color:var(--text-muted);flex-shrink:0">${escH(x.cli.zona||'')}</span>
+        <button type="button" onclick="removeCall('${x.id}','${x.iso}')" title="Elimina" style="background:none;border:none;color:var(--text-light);font-size:1.05rem;cursor:pointer;line-height:1;padding:2px 4px">&times;</button>
+      </div>`).join('')}
+    </div>`;
+  }).join('');
+}
 function markVisit(id){
   const v=getV(id);
   const now = new Date().toISOString();
@@ -4952,7 +5097,11 @@ const GB_ROAD_FACTOR = 1.25;
 const GB_AVG_KMH = 50;
 let _gbUI = (function(){
   const d = {aziende:[], zona:'', tab:'consigliati', sort:'auto', saveMode:'settimana', saveDay:'lun', saveWeek:1, saveReplace:false, view:'clienti', topOpen:(window.innerWidth||800) >= 760};
-  try { return Object.assign(d, JSON.parse(localStorage.getItem('agentmapGiroBuilderUI')||'{}')); } catch(_){ return d; }
+  try {
+    const u = Object.assign(d, JSON.parse(localStorage.getItem('agentmapGiroBuilderUI')||'{}'));
+    if(!u.boardSeen){ u.view = 'tutti'; u.boardSeen = true; }
+    return u;
+  } catch(_){ d.view = 'tutti'; return d; }
 })();
 let _gbPick = null, _gbRulesOpen = false, _gbEditClientThr = null, _gbPinIdx = null;
 function _gbSaveUI(){ try { localStorage.setItem('agentmapGiroBuilderUI', JSON.stringify(_gbUI)); } catch(_){} }
@@ -5243,8 +5392,8 @@ function _gbFitHeight(){
 }
 window.addEventListener('resize', ()=>{ if(currentView==='giri' && giriViewMode==='creazione') _gbFitHeight(); });
 function gbClearAziende(){ _gbUI.aziende = []; _gbPick = null; _gbSaveUI(); renderGiroBuilder(); }
-function gbSetView(v){ _gbUI.view = (v==='giro' || v==='mappa') ? v : 'clienti'; _gbSaveUI(); renderGiroBuilder(); }
-function gbSearch(v){ _gbQuery = v || ''; _gbRefreshList(); }
+function gbSetView(v){ _gbUI.view = (v==='giro' || v==='mappa' || v==='tutti') ? v : 'clienti'; _gbSaveUI(); renderGiroBuilder(); }
+function gbSearch(v){ _gbQuery = v || ''; if(_gbUI.view === 'tutti') _gbBoardRefresh(); else _gbRefreshList(); }
 function _gbRefreshList(){
   const el = document.getElementById('gb-list');
   if(!el) return;
@@ -5424,17 +5573,151 @@ function _gbBarHtml(stops){
   return `<div class="gb-bar">
     <div class="gb-bar-info">${has ? `<b>${stops.length}</b> visit${stops.length===1?'a':'e'}${stops.length>1?` &middot; &asymp; ${_gbFmtKm(t.km)} km`:''}` : 'Nessuna visita'}</div>
     <div class="gb-bar-btns">
+      <button class="gb-btn gb-btn-ghost" onclick="gbSetView('tutti')" title="Tutti i clienti per zona: assegna a giorno o settimana">Tutti i clienti</button>
       <button class="gb-btn gb-btn-ghost" onclick="giroBuilderClear()"${has?'':' disabled'}>Svuota</button>
       <button class="gb-btn gb-btn-ghost" onclick="giroBuilderOpenMaps()"${has?'':' disabled'}>Maps</button>
       <button class="gb-btn" onclick="giroBuilderOpenSave()"${has?'':' disabled'}>Salva in ${escH(_gbTargetShort())}</button>
     </div>
   </div>`;
 }
+// ---- bacheca "Tutti i clienti": righe divise per zona su 3-4 colonne, si assegnano a un giorno/settimana con un tocco ----
+const GBB_DAYS = ['lun','mar','mer','gio','ven'];
+function _gbbAssignMap(){
+  const map = {};
+  const add = (cid, label)=>{ if(cid) (map[cid] = map[cid] || []).push(label); };
+  GIORNI.forEach(g=>{ (giri[g.key]||[]).forEach(v=>add(v.clientId, g.short)); });
+  GIRO_CONTINUO_SETTIMANE.forEach(sw=>GIRO_CONTINUO_GIORNI.forEach(g=>{ (giroContinuo[_giroContinuoKey(sw, g.key)]||[]).forEach(v=>add(v.clientId, 'S'+sw+' '+g.name.slice(0,3))); }));
+  return map;
+}
+function _gbbCurLabel(){ return _gbUI.saveMode === 'continuo' ? 'S'+_gbUI.saveWeek+' '+((GIRO_CONTINUO_GIORNI.find(g=>g.key===_gbUI.saveDay)||{name:_gbUI.saveDay}).name.slice(0,3)) : ((GIORNI.find(g=>g.key===_gbUI.saveDay)||{short:_gbUI.saveDay}).short); }
+function _gbbGroups(){
+  const q = _gbQuery.trim().toLowerCase();
+  const am = _gbbAssignMap();
+  const by = {};
+  clienti.forEach(c=>{
+    if(q && !(c.nome.toLowerCase().includes(q) || (c.contatti||'').toLowerCase().includes(q))) return;
+    if(_gbUI.onlyFree && (am[c.id]||[]).length) return;
+    const z = c.zona || 'Senza zona';
+    (by[z] = by[z] || []).push(c);
+  });
+  const order = zoneOrder.filter(z=>by[z]).concat(Object.keys(by).filter(z=>!zoneOrder.includes(z)));
+  const dd = c=>{ const v = visits[c.id]; return (v && v.visitDate) ? daysSince(v.visitDate) : null; };
+  return {am, groups: order.map(z=>({zona:z, list:by[z].slice().sort((a,b)=>{ const x = dd(a), y = dd(b); return (y===null?1e9:y) - (x===null?1e9:x) || a.nome.localeCompare(b.nome); })}))};
+}
+function _gbbColsHtml(){
+  const {am, groups} = _gbbGroups();
+  const cur = _gbbCurLabel();
+  const curKey = _gbSaveTargetKey();
+  const curIds = new Set((_giroStore(_gbUI.saveMode)[curKey]||[]).map(v=>v.clientId));
+  let n = 0;
+  const html = groups.map(g=>{
+    n += 1 + g.list.length;
+    const col = (typeof ZONA_COLORS === 'object' && ZONA_COLORS && ZONA_COLORS[g.zona]) || '';
+    return `<div class="gbb-zone"${col?` style="color:${escA(col)};border-bottom-color:${escA(col)}"`:''}>${escH(g.zona)}<small>${g.list.length}</small></div>` + g.list.map(c=>{
+      const v = visits[c.id], days = (v && v.visitDate) ? daysSince(v.visitDate) : null;
+      const labels = am[c.id] || [];
+      const shown = labels.slice(0, 3), more = labels.length - shown.length;
+      const on = curIds.has(c.id);
+      const tags = labels.length ? `<span class="gbb-tags">${shown.map(l=>`<span class="gbb-tag${l===cur?' here':''}">${escH(l)}</span>`).join('')}${more>0?`<span class="gbb-tag">+${more}</span>`:''}</span>` : '';
+      return `<div class="gbb-row${on?' on':''}${c.sospeso?' dim':''}" onclick="gbBoardToggle('${c.id}')" title="${escA(c.nome)}${c.zona?' - '+escA(c.zona):''}"><span class="gbb-name">${escH(c.nome)}</span>${tags}${_gbDaysChip(days)}</div>`;
+    }).join('');
+  }).join('');
+  return {n, html: html || '<div class="gbb-empty">Nessun cliente trovato.</div>'};
+}
+function _gbbTopHtml(nClienti, nZone){
+  const mode = _gbUI.saveMode, cont = mode === 'continuo', store = _giroStore(mode), week = _gbUI.saveWeek, today = todayDayKey();
+  if(!GBB_DAYS.includes(_gbUI.saveDay)) _gbUI.saveDay = 'lun';
+  const modeSeg = `<div class="gb-seg2"><button class="${!cont?'on':''}" onclick="gbSetPlanMode('settimana')">Settimana</button><button class="${cont?'on':''}" onclick="gbSetPlanMode('continuo')">4 settimane</button></div>`;
+  const weekSeg = cont ? `<div class="gb-seg2">${GIRO_CONTINUO_SETTIMANE.map(sw=>{
+      const tot = GIRO_CONTINUO_GIORNI.reduce((k,g)=>k+(store[_giroContinuoKey(sw,g.key)]||[]).length, 0);
+      return `<button class="${week===sw?'on':''}" onclick="gbPickTarget('continuo',${sw},'${_gbUI.saveDay}')" title="Settimana ${sw}: ${tot} visite">S${sw}<small>${tot}</small></button>`;
+    }).join('')}</div>` : '';
+  const defs = cont ? GIRO_CONTINUO_GIORNI.map(g=>({day:g.key, short:g.name.slice(0,3), name:g.name, key:_giroContinuoKey(week, g.key)}))
+                    : GIORNI.filter(g=>GBB_DAYS.includes(g.key)).map(g=>({day:g.key, short:g.short, name:g.name, key:g.key}));
+  const days = defs.map(d=>{
+    const k = (store[d.key]||[]).length, on = _gbUI.saveDay === d.day;
+    return `<button class="gb-dp${on?' sel':''}${k?'':' free'}" onclick="gbPickTarget('${mode}',${week},'${d.day}')" title="${escA(d.name)}: ${k} ${k===1?'visita':'visite'}"><b>${d.short}${(!cont && today===d.day)?'<i class="gb-today"></i>':''}</b><span>${k||'&middot;'}</span></button>`;
+  }).join('');
+  return `<div class="gbb-top">
+    <div class="gbb-line">${modeSeg}${weekSeg}<div class="gb-days" style="flex:1 1 260px;max-width:420px">${days}</div>
+      <span class="gb-muted" style="font-size:0.75rem">Tocca un cliente per metterlo in <b>${escH(_gbTargetLabel())}</b> (tocca di nuovo per toglierlo)</span></div>
+    <div class="gbb-line">
+      <input class="gb-search" style="flex:1 1 160px;max-width:260px" id="gbb-search" type="search" placeholder="Cerca cliente..." value="${escA(_gbQuery)}" oninput="gbSearch(this.value)">
+      <button class="gb-chip sm${_gbUI.onlyFree?' active':''}" onclick="gbBoardToggleFree()" title="Nascondi i clienti già messi in un giro">Solo da assegnare</button>
+      <span class="gb-muted" id="gbb-count">${nClienti} client${nClienti===1?'e':'i'} &middot; ${nZone} zon${nZone===1?'a':'e'}</span>
+      <span class="gb-spacer"></span>
+      <button class="gb-btn gb-btn-ghost" onclick="gbSetView('clienti')" title="Consigliati, distanze e mappa">Con distanze</button>
+      <button class="gb-btn" onclick="setGiriViewMode('${mode}')">Vedi giro</button>
+    </div>
+  </div>`;
+}
+function gbBoardToggleFree(){ _gbUI.onlyFree = !_gbUI.onlyFree; _gbSaveUI(); renderGiroBuilder(); }
+function gbBoardToggle(id){
+  const c = clienti.find(x=>x.id===id); if(!c) return;
+  const mode = _gbUI.saveMode, key = _gbSaveTargetKey(), store = _giroStore(mode);
+  if(!Array.isArray(store[key])) store[key] = [];
+  const i = store[key].findIndex(v=>v.clientId===id);
+  const label = _gbTargetLabel();
+  if(i >= 0){ store[key].splice(i, 1); showToast(c.nome+' tolto da '+label); }
+  else {
+    store[key].push({id:'g'+Date.now()+Math.random().toString(36).slice(2,6), clientId:c.id, clientName:c.nome, time:'', note:''});
+    showToast(c.nome+' → '+label);
+  }
+  saveAll();
+  renderGiroBuilder();
+}
+window.gbBoardToggle = gbBoardToggle; window.gbBoardToggleFree = gbBoardToggleFree;
+function _gbBoardRefresh(){
+  const cols = document.getElementById('gbb-cols');
+  if(!cols){ renderGiroBuilder(); return; }
+  const r = _gbbColsHtml();
+  cols.innerHTML = r.html; cols.dataset.n = r.n;
+  const cnt = document.getElementById('gbb-count');
+  if(cnt){ const g = _gbbGroups(); const nc = g.groups.reduce((k,x)=>k+x.list.length,0); cnt.innerHTML = nc+' client'+(nc===1?'e':'i')+' &middot; '+g.groups.length+' zon'+(g.groups.length===1?'a':'e'); }
+  _gbBoardFit();
+}
+// sceglie 3-4 colonne (di piu' solo se servono) e l'altezza delle righe cosi' che tutti i clienti stiano a schermo, senza scorrere
+function _gbBoardFit(){
+  const board = document.getElementById('gbb-board'), cols = document.getElementById('gbb-cols');
+  if(!board || !cols || board.offsetParent === null) return;
+  const n = parseInt(cols.dataset.n, 10) || 0;
+  const cs = getComputedStyle(board);
+  const H = board.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const W = board.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const GAP = 16, MINW = 160;
+  const maxCols = Math.max(1, Math.floor((W + GAP) / (MINW + GAP)));
+  const rhFor = c => Math.floor(H / (Math.ceil(n / c) + 1));
+  let c = Math.min(3, maxCols), rh = rhFor(c);
+  if(rh < 26){ c = Math.min(4, maxCols); rh = rhFor(c); }
+  while(rh < 22 && c < maxCols){ c++; rh = rhFor(c); }
+  rh = Math.max(16, Math.min(rh, 36));
+  const apply = ()=>{
+    cols.style.height = H + 'px';
+    cols.style.columnCount = c;
+    cols.style.setProperty('--rh', rh + 'px');
+    cols.style.fontSize = Math.max(10, Math.min(15, Math.round(rh * 0.46))) + 'px';
+  };
+  apply();
+  let guard = 0;
+  while(cols.scrollWidth > cols.clientWidth + 2 && rh > 15 && guard++ < 30){ rh -= 1; apply(); }
+  while(cols.scrollWidth > cols.clientWidth + 2 && c < maxCols && guard++ < 60){ c++; apply(); }
+}
+window.addEventListener('resize', ()=>{ if(currentView==='giri' && giriViewMode==='creazione' && _gbUI.view==='tutti'){ _gbFitHeight(); _gbBoardFit(); } });
 function renderGiroBuilder(){
   const box = document.getElementById('giro-builder-container');
   if(!box) return;
   _gbPinIdx = null;
   giroDraft = giroDraft.filter(id=>clienti.some(c=>c.id===id));
+  if((_gbUI.view || 'tutti') === 'tutti'){
+    const r = _gbbColsHtml(), g = _gbbGroups();
+    const nc = g.groups.reduce((k,x)=>k+x.list.length,0);
+    const hadSearch = document.activeElement && document.activeElement.id === 'gbb-search';
+    box.innerHTML = `<div class="gb-app" data-view="tutti">${_gbbTopHtml(nc, g.groups.length)}<div class="gbb-board" id="gbb-board"><div class="gbb-cols" id="gbb-cols" data-n="${r.n}">${r.html}</div></div></div>`;
+    _gbFitHeight();
+    _gbBoardFit();
+    if(hadSearch){ const si = document.getElementById('gbb-search'); if(si){ si.focus(); si.setSelectionRange(si.value.length, si.value.length); } }
+    return;
+  }
   const stops = _gbDraftClients();
   const shown = _gbShown(_gbCandidates(stops), stops);
   if(_gbPick && !shown.list.some(x=>x.c.id===_gbPick)) _gbPick = null;
