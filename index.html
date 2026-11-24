@@ -397,6 +397,12 @@ header {
 .visit-btn .phone-ic svg { width: 14px; height: 14px; }
 .call-meta { font-size: 0.66rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; display: inline-flex; align-items: center; gap: 3px; }
 .call-meta svg { width: 10px; height: 10px; }
+@keyframes remBlink { 0%, 100% { background-color: #e5001c; color: #fff; } 50% { background-color: rgba(229,0,28,0.12); color: #b00014; } }
+.rem-u-over { background-color: #7a0010 !important; color: #fff !important; }
+.rem-u-today { background-color: #ffb8b8 !important; color: #8a0010 !important; }
+.rem-u-tomorrow { background-color: #e5001c !important; color: #fff !important; animation: remBlink 1s ease-in-out infinite; }
+.reminder-row.rem-u-over .reminder-row-text, .reminder-row.rem-u-tomorrow .reminder-row-text { color: inherit !important; }
+.reminder-row.rem-u-today .reminder-row-text { color: #8a0010 !important; }
 .visit-btn {
   background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
   padding: 5px 11px; font-family: 'Nunito', sans-serif; font-size: 0.73rem; font-weight: 600;
@@ -1718,6 +1724,13 @@ header {
     </div>
     <div class="modal-body" id="rem-modal-body"></div>
     <div class="modal-footer">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;font-size:0.74rem;color:var(--text-muted)">
+        <span>Scadenza:</span>
+        <input type="date" id="rem-due-input" style="padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:'Nunito',sans-serif;font-size:0.8rem">
+        <button type="button" onclick="remSetDue(1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;color:var(--text)">Domani</button>
+        <button type="button" onclick="remSetDue(7)" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 9px;font-family:'Nunito',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;color:var(--text)">Tra 1 sett.</button>
+        <button type="button" onclick="remSetDue(0)" title="Nessuna scadenza" style="background:none;border:none;font-size:1rem;line-height:1;cursor:pointer;color:var(--text-muted)">&times;</button>
+      </div>
       <div class="note-composer">
         <textarea class="note-input" id="rem-note-input" placeholder="Scrivi un promemoria... (Enter = salva)" rows="1"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();remAddNote()}"></textarea>
@@ -3595,7 +3608,7 @@ function _infoRemindersSectionHtml(v){
   return `<div class="client-info-section">
     <div class="client-info-section-title">Promemoria (${rems.length})</div>
     ${rems.length ? rems.map(r=>`<div class="client-info-note" style="${r.done?'opacity:0.6':''}">
-        <div class="client-info-note-date">${escH(fmtDateTime(r.date))}${r.done?' &middot; <span style="color:var(--green)">&#10003; Fatto</span>':''}</div>
+        <div class="client-info-note-date">${escH(fmtDateTime(r.date))}${_remDueChipHtml(r)}${r.done?' &middot; <span style="color:var(--green)">&#10003; Fatto</span>':''}</div>
         <div class="client-info-note-text" style="${r.done?'text-decoration:line-through':''}">${escH(r.text)}</div>
       </div>`).join('') : '<div class="client-info-empty">Nessun promemoria.</div>'}
   </div>`;
@@ -3650,11 +3663,11 @@ function renderCard(c){
   const cnt=(v.notes||[]).length;
   const last=cnt>0?v.notes[cnt-1]:null;
   const chip=days!==null?`<span class="days-chip ${chipKey(days)}">${days}g</span>`:'';
-  const pendingRem = (v.reminders||[]).filter(r=>!r.done);
+  const pendingRem = _remSortPending((v.reminders||[]).filter(r=>!r.done));
   const hasPending = pendingRem.length > 0;
-  const remRow = `<div class="reminder-row" onclick="openReminders('${c.id}')">
+  const remRow = `<div class="reminder-row${_remRowClass(pendingRem)}" onclick="openReminders('${c.id}')">
     <span class="reminder-row-dot${hasPending?'':' none'}"></span>
-    <span class="reminder-row-text${hasPending?'':' none'}">${hasPending?escH(pendingRem[0].text.substring(0,36))+(pendingRem[0].text.length>36?'...':''):'Nessun promemoria'}</span>
+    <span class="reminder-row-text${hasPending?'':' none'}">${hasPending?escH(_remRowText(pendingRem[0])):'Nessun promemoria'}</span>
     ${hasPending&&pendingRem.length>1?`<span class="rem-badge" style="font-size:0.65rem;color:var(--red);margin-left:auto;font-family:'JetBrains Mono',monospace;flex-shrink:0">+${pendingRem.length-1}</span>`:'<span class="rem-badge"></span>'}
   </div>`;
   const clientAziende = sortAziendeByFilter((c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean));
@@ -3718,7 +3731,7 @@ function renderCardCompact(c){
   const inRoute=routeSet.has(c.id);
   const cnt=(v.notes||[]).length;
   const chip=days!==null?`<span class="days-chip ${chipKey(days)}">${days}g</span>`:'';
-  const pendingRem = (v.reminders||[]).filter(r=>!r.done);
+  const pendingRem = _remSortPending((v.reminders||[]).filter(r=>!r.done));
   const hasPending = pendingRem.length > 0;
   const clientAziende = sortAziendeByFilter((c.aziende||[]).map(aid=>aziende.find(a=>a.id===aid)).filter(Boolean));
   const logosHtml = clientAziende.length ? `<div class="client-row-logos">${clientAziende.map(a=>`<div class="client-row-logo${_azFrameClass(c,a.id)}" data-nome="${escA(a.nome)}" onclick="event.stopPropagation();toggleAziendaTooltip(this)">${_azPendingBadgeHtml(c,a.id)}${a.logo?`<img src="${a.logo}" alt="${escA(a.nome)}">`:`<span>${escH(a.nome.substring(0,2))}</span>`}</div>`).join('')}</div>` : '';
@@ -4030,19 +4043,29 @@ function renderRemBody(){
   body.innerHTML = rems.map((r,i)=>{
     const ri = v.reminders.length-1-i;
     return `<div class="reminder-entry${r.done?' done':''}">
-      <div class="rem-date">${fmtDateTime(r.date)}${r.done?' \u00b7 <span style="color:var(--green)">&#10003; Fatto</span>':''}</div>
+      <div class="rem-date">${fmtDateTime(r.date)}${_remDueChipHtml(r)}${r.done?' \u00b7 <span style="color:var(--green)">&#10003; Fatto</span>':''}</div>
       <div class="rem-text">${escH(r.text)}</div>
       <button class="rem-check-btn" onclick="toggleRem('${id}',${ri})">${r.done?'\u21a9':'\u2713'}</button>
       <button class="note-del" onclick="deleteRem('${id}',${ri})">&times;</button>
     </div>`;
   }).join('');
 }
+function remSetDue(n){
+  const el = document.getElementById('rem-due-input'); if(!el) return;
+  if(!n){ el.value = ''; return; }
+  const d = new Date(); d.setDate(d.getDate() + n); el.value = _remISO(d);
+}
 function remAddNote(){
   const inp = document.getElementById('rem-note-input');
   const text = inp.value.trim(); if(!text || !activeRemId) return;
   const v = getV(activeRemId);
-  v.reminders.push({date: new Date().toISOString(), text, done: false});
+  const dueEl = document.getElementById('rem-due-input');
+  const rem = {date: new Date().toISOString(), text, done: false};
+  if(dueEl && dueEl.value) rem.due = dueEl.value;
+  v.reminders.push(rem);
+  if(dueEl) dueEl.value = '';
   saveAll(); inp.value=''; renderRemBody();
+  updateBell();
   refreshCardReminder(activeRemId);
   inp.focus();
 }
@@ -4061,17 +4084,18 @@ function refreshCardReminder(id){
   const card = document.getElementById('card-'+id);
   if(!card) return;
   const v = getV(id);
-  const pendingRem = (v.reminders||[]).filter(r=>!r.done);
+  const pendingRem = _remSortPending((v.reminders||[]).filter(r=>!r.done));
   const hasPending = pendingRem.length > 0;
   const row = card.querySelector('.reminder-row');
   if(!row) return;
+  row.className = 'reminder-row' + _remRowClass(pendingRem);
   const dot = row.querySelector('.reminder-row-dot');
   const txt = row.querySelector('.reminder-row-text');
   const badge = row.querySelector('.rem-badge');
   if(dot){ dot.className = 'reminder-row-dot'+(hasPending?'':' none'); }
   if(txt){
     txt.className = 'reminder-row-text'+(hasPending?'':' none');
-    txt.textContent = hasPending? pendingRem[0].text.substring(0,36)+(pendingRem[0].text.length>36?'...':''): 'Nessun promemoria';
+    txt.textContent = hasPending ? _remRowText(pendingRem[0]) : 'Nessun promemoria';
   }
   if(badge) badge.textContent = hasPending && pendingRem.length>1 ? '+'+(pendingRem.length-1) : '';
 }
@@ -8277,9 +8301,83 @@ function showConfirm(message, onYes, onNo, yesLabel){
 }
 
 // ── BELL: contatore promemoria pendenti ───────────────────────────────────────
+// ── SCADENZE dei promemoria: rem.due = 'AAAA-MM-GG' (facoltativa) ──
+function _remISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _remDueDiff(due){
+  if(!due) return null;
+  const p = String(due).split('-').map(Number);
+  if(p.length !== 3 || p.some(isNaN)) return null;
+  const t = new Date(); t.setHours(0,0,0,0);
+  return Math.round((new Date(p[0], p[1]-1, p[2]) - t) / 86400000);
+}
+function _remDueText(due){
+  const d = _remDueDiff(due);
+  if(d === null) return '';
+  if(d === 0) return 'Oggi';
+  if(d === 1) return 'Domani';
+  if(d === -1) return 'Ieri';
+  const p = String(due).split('-').map(Number);
+  return new Date(p[0], p[1]-1, p[2]).toLocaleDateString('it-IT', {weekday:'short', day:'2-digit', month:'2-digit'});
+}
+function _remUrgency(rem){
+  if(!rem || !rem.due || rem.done) return '';
+  const d = _remDueDiff(rem.due);
+  if(d === null) return '';
+  return d < 0 ? 'over' : d === 0 ? 'today' : d === 1 ? 'tomorrow' : 'future';
+}
+function _remUColor(rem){
+  const u = _remUrgency(rem);
+  return u === 'over' ? '#7a0010' : u === 'today' ? '#ff9a9a' : u === 'tomorrow' ? '#e5001c' : 'var(--border2)';
+}
+function _remRowClass(pending){
+  const u = pending && pending.length ? _remUrgency(pending[0]) : '';
+  return (u === 'over' || u === 'today' || u === 'tomorrow') ? ' rem-u-' + u : '';
+}
+function _remDueChipHtml(rem){
+  if(!rem || !rem.due) return '';
+  const d = _remDueDiff(rem.due);
+  if(d === null) return '';
+  const u = _remUrgency(rem);
+  const hot = (u === 'over' || u === 'today' || u === 'tomorrow');
+  const pre = u === 'over' ? 'Scaduto &middot; ' : '';
+  return ' <span' + (hot ? ' class="rem-u-' + u + '"' : '') + ' style="display:inline-block;' + (hot ? '' : 'background:var(--surface);color:var(--text-muted);') + 'border-radius:8px;padding:0 7px;font-family:\'Nunito\',sans-serif;font-size:0.68rem;font-weight:800;white-space:nowrap">&#128197; ' + pre + escH(_remDueText(rem.due)) + '</span>';
+}
+function _remSortPending(arr){
+  return arr.map((r,i)=>({r,i})).sort((a,b)=>{
+    const x = a.r.due || '9999-99-99', y = b.r.due || '9999-99-99';
+    return x < y ? -1 : (x > y ? 1 : a.i - b.i);
+  }).map(o=>o.r);
+}
+function _remRowText(r){
+  const t = String(r.text || '');
+  return (r.due ? _remDueText(r.due) + ' \u00b7 ' : '') + (t.length > 36 ? t.substring(0,36) + '...' : t);
+}
+function _remAgendaHtml(){
+  const items = [];
+  for(const c of (clienti||[])){
+    const v = visits[c.id];
+    if(!v || !Array.isArray(v.reminders)) continue;
+    v.reminders.forEach((r, idx)=>{ if(r && !r.done && r.due) items.push({c, rem:r, idx, diff:_remDueDiff(r.due)}); });
+  }
+  if(!items.length) return '';
+  items.sort((a,b)=>a.diff - b.diff || (a.c.nome||'').localeCompare(b.c.nome||''));
+  const groups = [['Scaduti', x=>x.diff < 0], ['Oggi', x=>x.diff === 0], ['Prossimi 7 giorni', x=>x.diff >= 1 && x.diff <= 7], ['Più avanti', x=>x.diff > 7]];
+  const body = groups.map(g=>{
+    const it = items.filter(g[1]);
+    if(!it.length) return '';
+    return '<div style="font-weight:800;font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin:8px 0 5px">' + g[0] + ' <span style="font-family:\'JetBrains Mono\',monospace">' + it.length + '</span></div>' +
+      it.map(x=>'<div style="background:rgba(202,0,19,0.06);border:1px solid rgba(202,0,19,0.18);border-left:5px solid ' + _remUColor(x.rem) + ';border-radius:8px;padding:7px 10px;display:flex;align-items:flex-start;gap:8px;margin-bottom:5px">' +
+        '<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-weight:800;font-size:0.8rem">' + escH(x.c.nome||'') + '</span>' + _remDueChipHtml(x.rem) + '</div>' +
+        '<div style="font-size:0.76rem;line-height:1.4;white-space:pre-wrap;word-break:break-word;margin-top:2px">' + escH(x.rem.text||'') + '</div></div>' +
+        _remDoneBtnHtml(x.c.id, x.idx, false) + '</div>').join('');
+  }).join('');
+  return '<div style="background:var(--surface);border:1.5px solid var(--accent);border-radius:11px;padding:9px 12px;margin-bottom:12px"><div style="font-weight:800;font-size:0.86rem;color:var(--accent)">&#128197; Scadenze</div><div style="font-size:0.66rem;color:var(--text-muted);margin-top:2px"><span style="color:#7a0010;font-weight:800">&#9632; scaduto</span> &nbsp; <span style="color:#ff6a6a;font-weight:800">&#9632; oggi</span> &nbsp; <span style="color:#e5001c;font-weight:800">&#9632; domani (lampeggia)</span></div>' + body + '</div>';
+}
 function _countPendingReminders(){
   let totalRem = 0;
   let clientCount = 0;
+  let dueNow = 0;
+  let worst = 0;
   for(const c of (clienti||[])){
     const v = visits[c.id];
     if(!v || !Array.isArray(v.reminders)) continue;
@@ -8287,21 +8385,25 @@ function _countPendingReminders(){
     if(pending.length){
       totalRem += pending.length;
       clientCount++;
+      dueNow += pending.filter(r => r.due && _remDueDiff(r.due) <= 0).length;
+      pending.forEach(r => { const u = _remUrgency(r); const k = u === 'over' ? 3 : u === 'today' ? 2 : u === 'tomorrow' ? 1 : 0; if(k > worst) worst = k; });
     }
   }
-  return { totalRem, clientCount };
+  return { totalRem, clientCount, dueNow, worst: ['', 'tomorrow', 'today', 'over'][worst] };
 }
 
 function updateBell(){
   const btn = document.getElementById('bell-hbtn');
   const badge = document.getElementById('bell-badge');
   if(!btn || !badge) return;
-  const { totalRem, clientCount } = _countPendingReminders();
+  const { totalRem, clientCount, dueNow, worst } = _countPendingReminders();
+  badge.classList.remove('rem-u-over', 'rem-u-today', 'rem-u-tomorrow');
+  if(worst) badge.classList.add('rem-u-' + worst);
   if(totalRem > 0){
     btn.classList.add('has-pending');
     badge.style.display = 'flex';
     badge.textContent = totalRem > 99 ? '99+' : String(totalRem);
-    btn.title = totalRem + ' promemoria attiv' + (totalRem===1?'o':'i') + ' su ' + clientCount + ' client' + (clientCount===1?'e':'i');
+    btn.title = totalRem + ' promemoria attiv' + (totalRem===1?'o':'i') + ' su ' + clientCount + ' client' + (clientCount===1?'e':'i') + (dueNow ? ' (' + dueNow + ' in scadenza oggi o scaduti)' : '');
   } else {
     btn.classList.remove('has-pending');
     badge.style.display = 'none';
@@ -8470,7 +8572,10 @@ function submitRemQuickAdd(fid){
   if(!cid){ showToast('Seleziona un cliente'); return; }
   if(!text){ showToast('Scrivi il testo del promemoria'); return; }
   const v = getV(cid);
-  v.reminders.push({ date: new Date().toISOString(), text, done: false, folderId: fid });
+  const remF = { date: new Date().toISOString(), text, done: false, folderId: fid };
+  const dueF = document.getElementById('rem-quickadd-due-'+fid);
+  if(dueF && dueF.value) remF.due = dueF.value;
+  v.reminders.push(remF);
   saveAll();
   window._remQuickAddFolderId = null;
   if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
@@ -8537,7 +8642,7 @@ function renderRemClientFoldersHtml(q){
           const bd = isDone ? 'var(--border2)' : 'rgba(202,0,19,0.2)';
           return '<div style="background:'+bg+';border:1px solid '+bd+';border-radius:8px;padding:8px 11px;display:flex;align-items:flex-start;gap:8px" onclick="event.stopPropagation()">' +
             '<div style="flex:1;min-width:0">' +
-              '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.62rem;color:var(--text-muted);margin-bottom:3px">' + escH(dt) + (isDone ? ' &middot; <span style="color:var(--green)">&#10003; Fatto</span>' : '') + '</div>' +
+              '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.62rem;color:var(--text-muted);margin-bottom:3px">' + escH(dt) + _remDueChipHtml(rem) + (isDone ? ' &middot; <span style="color:var(--green)">&#10003; Fatto</span>' : '') + '</div>' +
               '<div style="font-size:0.78rem;color:'+(isDone?'var(--text-muted)':'var(--text)')+';line-height:1.45;white-space:pre-wrap;word-break:break-word;'+(isDone?'text-decoration:line-through':'')+'">' + escH(rem.text||'') + '</div>' +
             '</div>' +
             _remDoneBtnHtml(c.id, it.idx, isDone) +
@@ -8547,6 +8652,7 @@ function renderRemClientFoldersHtml(q){
     const quickAddHtml = (isOpen && window._remClientQuickAddId === c.id)
       ? '<div style="margin-top:8px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px" onclick="event.stopPropagation()">' +
           '<textarea id="rem-client-quickadd-text-'+c.id+'" placeholder="Testo del promemoria..." rows="2" style="width:100%;box-sizing:border-box;padding:7px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.76rem;resize:vertical;margin-bottom:6px" autofocus></textarea>' +
+          '<input type="date" id="rem-client-quickadd-due-'+c.id+'" style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.76rem;margin-bottom:6px" title="Scadenza (facoltativa)">' +
           '<div style="display:flex;gap:6px">' +
             '<button onclick="toggleRemClientQuickAdd(\''+c.id+'\')" style="flex:1;background:none;border:1px solid var(--border2);color:var(--text-muted);border-radius:6px;padding:6px;font-size:0.72rem;cursor:pointer">Annulla</button>' +
             '<button onclick="submitRemClientQuickAdd(\''+c.id+'\')" style="flex:1;background:var(--accent);border:none;color:#fff;border-radius:6px;padding:6px;font-size:0.72rem;font-weight:700;cursor:pointer">Salva</button>' +
@@ -8590,7 +8696,10 @@ function submitRemClientQuickAdd(cid){
   const text = ((txt && txt.value) || '').trim();
   if(!text){ showToast('Scrivi il testo del promemoria'); return; }
   const v = getV(cid);
-  v.reminders.push({ date: new Date().toISOString(), text, done: false });
+  const remC = { date: new Date().toISOString(), text, done: false };
+  const dueC = document.getElementById('rem-client-quickadd-due-'+cid);
+  if(dueC && dueC.value) remC.due = dueC.value;
+  v.reminders.push(remC);
   saveAll();
   window._remClientQuickAddId = null;
   if(!window._remFolderOpenIds) window._remFolderOpenIds = new Set();
@@ -8651,7 +8760,7 @@ function renderRemCustomFoldersHtml(q){
           return '<div style="background:'+bg+';border:1px solid '+bd+';border-radius:8px;padding:8px 11px" onclick="event.stopPropagation()">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">' +
               '<div style="font-weight:700;color:var(--text);font-size:0.76rem">' + escH(c.nome||'') + '</div>' +
-              '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.6rem;color:var(--text-muted);white-space:nowrap">' + escH(dt) + (isDone ? ' &middot; <span style="color:var(--green)">&#10003;</span>' : '') + '</div>' +
+              '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.6rem;color:var(--text-muted);white-space:nowrap">' + escH(dt) + _remDueChipHtml(rem) + (isDone ? ' &middot; <span style="color:var(--green)">&#10003;</span>' : '') + '</div>' +
             '</div>' +
             '<div style="font-size:0.78rem;color:'+(isDone?'var(--text-muted)':'var(--text)')+';line-height:1.45;white-space:pre-wrap;word-break:break-word;'+(isDone?'text-decoration:line-through':'')+';margin-bottom:7px">' + escH(rem.text||'') + '</div>' +
             '<div style="display:flex;align-items:center;gap:6px">' +
@@ -8669,6 +8778,7 @@ function renderRemCustomFoldersHtml(q){
             (clienti||[]).slice().sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(c=>'<option value="'+escA(c.id)+'">'+escH(c.nome||'')+'</option>').join('') +
           '</select>' +
           '<textarea id="rem-quickadd-text-'+f.id+'" placeholder="Testo del promemoria..." rows="2" style="width:100%;box-sizing:border-box;padding:7px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.76rem;resize:vertical;margin-bottom:6px"></textarea>' +
+          '<input type="date" id="rem-quickadd-due-'+f.id+'" style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-family:\'Nunito\',sans-serif;font-size:0.76rem;margin-bottom:6px" title="Scadenza (facoltativa)">' +
           '<div style="display:flex;gap:6px">' +
             '<button onclick="toggleRemQuickAdd(\''+f.id+'\')" style="flex:1;background:none;border:1px solid var(--border2);color:var(--text-muted);border-radius:6px;padding:6px;font-size:0.72rem;cursor:pointer">Annulla</button>' +
             '<button onclick="submitRemQuickAdd(\''+f.id+'\')" style="flex:1;background:var(--accent);border:none;color:#fff;border-radius:6px;padding:6px;font-size:0.72rem;font-weight:700;cursor:pointer">Salva</button>' +
@@ -8899,14 +9009,14 @@ function renderRemindersOverview(){
   }
   // Stato di espansione (default: collapsed)
   if(!window._remOpenIds) window._remOpenIds = new Set();
-  body.innerHTML = renderRemOverviewTabsHtml() + rows.map(r => {
+  body.innerHTML = renderRemOverviewTabsHtml() + _remAgendaHtml() + rows.map(r => {
     const c = r.cliente;
     const isOpen = window._remOpenIds.has(c.id);
     const itemsHtml = isOpen
       ? '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">' + r.pending.map((rem, idx)=>{
           const dt = rem.date ? fmtDateTime(rem.date) : '';
           return '<div style="background:rgba(202,0,19,0.08);border:1px solid rgba(202,0,19,0.2);border-radius:8px;padding:8px 30px 8px 11px;position:relative">' +
-            '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.62rem;color:var(--text-muted);margin-bottom:3px">' + escH(dt) + '</div>' +
+            '<div style="font-family:\'JetBrains Mono\',monospace;font-size:0.62rem;color:var(--text-muted);margin-bottom:3px">' + escH(dt) + _remDueChipHtml(rem) + '</div>' +
             '<div style="font-size:0.78rem;color:var(--text);line-height:1.45;white-space:pre-wrap;word-break:break-word">' + escH(rem.text||'') + '</div>' +
             '<button onclick="markReminderDoneFromOverview(\''+c.id+'\','+_indexOfReminder(c.id, rem)+');event.stopPropagation()" title="Segna come fatto" style="position:absolute;top:6px;right:6px;background:none;border:1px solid var(--green);color:var(--green);width:24px;height:24px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.74rem;-webkit-tap-highlight-color:rgba(39,174,96,0.3);touch-action:manipulation">&#10003;</button>' +
           '</div>';
@@ -9413,5 +9523,487 @@ updateBell();
 // Se Firebase si carica dopo, l'auth listener chiamera' onFirebaseAuthChange
 // che richiama updateAccountButton + cloudInit. Niente da fare qui.
 </script>
+<!-- ASSISTENTE VOCALE -->
+<style id="va-style">
+#va-fab { position: fixed; right: 16px; bottom: 16px; width: 52px; height: 52px; border-radius: 50%; border: none; background: var(--accent); color: #fff; box-shadow: 0 6px 18px rgba(0,0,0,0.28); cursor: pointer; z-index: 380; display: flex; align-items: center; justify-content: center; padding: 0; touch-action: manipulation; }
+#va-fab svg { width: 24px; height: 24px; }
+#va-fab.listening { animation: va-pulse 1.1s ease-in-out infinite; }
+@keyframes va-pulse { 0% { box-shadow: 0 0 0 0 rgba(202,0,19,0.55); } 70% { box-shadow: 0 0 0 16px rgba(202,0,19,0); } 100% { box-shadow: 0 0 0 0 rgba(202,0,19,0); } }
+#va-panel { position: fixed; right: 16px; bottom: 80px; width: min(360px, calc(100vw - 24px)); max-height: 72vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 12px 34px rgba(0,0,0,0.25); z-index: 380; display: none; font-family: 'Nunito', sans-serif; color: var(--text); }
+#va-panel.open { display: block; }
+.va-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.va-head b { font-size: 0.86rem; flex: 1; }
+.va-x { background: none; border: none; font-size: 1.2rem; line-height: 1; cursor: pointer; color: var(--text-muted); padding: 0 4px; }
+.va-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.va-status { font-size: 0.8rem; color: var(--text-muted); min-height: 1.2em; }
+.va-status.err { color: var(--red); }
+.va-heard { font-size: 0.86rem; font-weight: 700; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; padding: 7px 10px; display: none; word-break: break-word; }
+.va-card { border: 1.5px solid var(--accent); border-radius: 10px; padding: 9px 10px; font-size: 0.85rem; display: none; flex-direction: column; gap: 8px; }
+.va-card .va-txt { word-break: break-word; }
+.va-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.va-btn { border: 1px solid var(--border); background: var(--surface2); color: var(--text); border-radius: 8px; padding: 7px 12px; font-family: 'Nunito', sans-serif; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
+.va-btn.pri { background: var(--accent); border-color: var(--accent); color: #fff; }
+.va-row { display: flex; gap: 6px; }
+.va-row input[type=text] { flex: 1; min-width: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-family: 'Nunito', sans-serif; font-size: 0.82rem; color: var(--text); outline: none; }
+.va-mic { width: 36px; height: 34px; flex-shrink: 0; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+.va-mic svg { width: 17px; height: 17px; }
+.va-mic.listening { background: var(--accent); border-color: var(--accent); color: #fff; }
+.va-log { font-size: 0.74rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 3px; }
+.va-log div::before { content: '\2713 '; color: var(--green); font-weight: 800; }
+.va-help { font-size: 0.74rem; color: var(--text-muted); }
+.va-help summary { cursor: pointer; font-weight: 700; }
+.va-help ul { margin: 5px 0 0; padding-left: 16px; display: flex; flex-direction: column; gap: 3px; }
+.va-auto { font-size: 0.72rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px; }
+@media print { #va-fab, #va-panel { display: none !important; } }
+</style>
+<button id="va-fab" type="button" title="Assistente vocale" aria-label="Assistente vocale"></button>
+<div id="va-panel" role="dialog" aria-label="Assistente vocale">
+  <div class="va-head"><b>Assistente vocale</b><button class="va-x" type="button" id="va-close" aria-label="Chiudi">&times;</button></div>
+  <div class="va-body">
+    <div class="va-status" id="va-status">Premi il microfono e parla, oppure scrivi qui sotto.</div>
+    <div class="va-heard" id="va-heard"></div>
+    <div class="va-card" id="va-card"></div>
+    <div class="va-row">
+      <button class="va-mic" type="button" id="va-mic" title="Parla"></button>
+      <input type="text" id="va-text" placeholder="Es. nota per Rossi: richiamare giovedì" autocomplete="off">
+      <button class="va-btn pri" type="button" id="va-send">Invia</button>
+    </div>
+    <div class="va-log" id="va-log"></div>
+    <label class="va-auto"><input type="checkbox" id="va-auto"> Esegui subito, senza chiedere conferma</label>
+    <details class="va-help"><summary>Cosa posso dire</summary>
+      <ul>
+        <li><b>Nota</b>: &ldquo;nota per Ceramiche Rossi: ordine da confermare&rdquo;</li>
+        <li><b>Promemoria</b>: &ldquo;promemoria per Rossi: portare il listino&rdquo;</li>
+        <li><b>Con data</b>: &ldquo;promemoria per Rossi per giovedì: richiamare&rdquo; (anche &ldquo;domani&rdquo;, &ldquo;il 15 dicembre&rdquo;, &ldquo;tra 3 giorni&rdquo;)</li>
+        <li><b>Visita fatta</b>: &ldquo;visita Rossi&rdquo; / &ldquo;ho visitato Rossi&rdquo;</li>
+        <li><b>Chiamata fatta</b>: &ldquo;chiamato Rossi&rdquo; / &ldquo;ho chiamato Rossi&rdquo;</li>
+        <li><b>Nel giro</b>: &ldquo;metti Rossi nel giro di martedì&rdquo; (anche &ldquo;domani&rdquo;, &ldquo;alle 10&rdquo;)</li>
+        <li>Per confermare dì <b>sì</b>, per annullare <b>annulla</b>.</li>
+        <li>Se il nome è nell&rsquo;elenco più volte, ti faccio scegliere.</li>
+      </ul>
+    </details>
+  </div>
+</div>
+<script id="va-script">
+(function(){
+  'use strict';
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const $ = id => document.getElementById(id);
+  const MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg>';
+  $('va-fab').innerHTML = MIC; $('va-mic').innerHTML = MIC;
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+
+  const DAYS = {lunedi:'lun', martedi:'mar', mercoledi:'mer', giovedi:'gio', venerdi:'ven'};
+  const WEEKEND = ['sabato','domenica'];
+  const WAKE = new Set(['assistente','ehi','ciao','allora','senti','scusa','per','favore','ok','okay','agentmap']);
+  const FILL = new Set(['aggiungi','aggiungere','metti','mettere','mettimi','inserisci','inserire','crea','creare','scrivi','scrivere','fai','fammi','segna','segnare','registra','registrare','pianifica','programma','una','un','uno','la','il','lo','le','gli','i','l','di','del','dello','della','dei','delle','dal','dalla','da','a','al','allo','alla','ai','per','su','cliente','nuova','nuovo','ho','sono','hai','nota','note','appunto','promemoria','visita','visitato','visitata','chiamato','chiamata','telefonato','ricordami','ricorda','ricordare','passato','passata','annota','annotare','sul','nel','nella','in','con','giro','mio','miei','fatto','fatta','che']);
+  const STOP = new Set(['lunedi','martedi','mercoledi','giovedi','venerdi','sabato','domenica','oggi','domani','dopodomani','giro','alle','ore','settimana','prossimo','prossima','questa']);
+  const TEXT_LEAD = new Set(['che','dice','testo','scrivi','scrive']);
+
+  let state = 'idle';           // idle | pick | confirm
+  let pending = null;           // azione in attesa di conferma
+  let rec = null, listening = false, wantConfirmVoice = false;
+  const log = [];
+
+  const status = (msg, err) => { const el = $('va-status'); el.textContent = msg; el.className = 'va-status' + (err ? ' err' : ''); };
+  const heard = t => { const el = $('va-heard'); el.style.display = t ? 'block' : 'none'; el.textContent = t || ''; };
+  const card = html => { const el = $('va-card'); el.style.display = html ? 'flex' : 'none'; el.innerHTML = html || ''; };
+  function renderLog(){ $('va-log').innerHTML = log.slice(-4).reverse().map(l => '<div>' + esc(l) + '</div>').join(''); }
+  function reset(){ state = 'idle'; pending = null; card(''); }
+
+  // ---- interpretazione ----
+  function tokens(raw){
+    const out = [];
+    String(raw || '').trim().split(/\s+/).forEach(r => { const n = norm(r); if(n) out.push({r, n}); });
+    return out;
+  }
+  // ---- riconoscimento dei nomi: tollera errori del microfono (ook -> ok), "&" (T & T -> "t e t"), nomi detti lettera per lettera ----
+  const LETTER = {ti:'t', bi:'b', ci:'c', di:'d', pi:'p', vu:'v', zeta:'z', emme:'m', enne:'n', elle:'l', erre:'r', esse:'s', effe:'f', acca:'h', gi:'g', cappa:'k', ics:'x', ipsilon:'y', doppiavu:'w'};
+  function phon(x){
+    return String(x).replace(/ph/g, 'f').replace(/ck/g, 'c').replace(/qu/g, 'cu').replace(/ch/g, 'c').replace(/gh/g, 'g')
+      .replace(/k/g, 'c').replace(/y/g, 'i').replace(/w/g, 'v').replace(/x/g, 'cs').replace(/h/g, '').replace(/(.)\1+/g, '$1');
+  }
+  function lev(a, b){
+    if(a === b) return 0;
+    const m = a.length, n = b.length;
+    if(!m) return n; if(!n) return m;
+    let prev = Array.from({length: n + 1}, (_, j) => j);
+    for(let i = 1; i <= m; i++){
+      const cur = [i];
+      for(let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = cur;
+    }
+    return prev[n];
+  }
+  function keyEq(a, b){
+    if(a === b) return true;
+    const L = Math.min(a.length, b.length);
+    if(L < 5) return false;
+    return lev(a, b) <= (Math.max(a.length, b.length) >= 9 ? 2 : 1);
+  }
+  function tokMatch(a, b){
+    const pa = phon(a), pb = phon(b);
+    if(pa === pb) return true;
+    const L = Math.min(pa.length, pb.length);
+    if(L < 4) return false;
+    if(pa.startsWith(pb) || pb.startsWith(pa)) return true;
+    return L >= 5 && lev(pa, pb) <= 1;
+  }
+  const _nameCache = new Map();
+  function nameInfo(c){
+    const nome = String(c.nome || '');
+    let ni = _nameCache.get(nome);
+    if(!ni){
+      const toks = nome.toLowerCase().replace(/&/g, ' e ').split(/[^a-z0-9\u00e0-\u00ff]+/i).map(norm).filter(Boolean);
+      const noE = toks.filter(x => x !== 'e');
+      ni = {toks, keys: Array.from(new Set([phon(toks.join('')), phon(noE.join(''))].filter(Boolean)))};
+      _nameCache.set(nome, ni);
+    }
+    return ni;
+  }
+  function spokenKeys(ws){
+    const mapped = ws.map(x => LETTER[x] || x);
+    const mk = arr => [phon(arr.join('')), phon(arr.filter(x => x !== 'e' && x !== 'and').join(''))];
+    return Array.from(new Set(mk(ws).concat(mk(mapped)).filter(Boolean)));
+  }
+  function findClients(words){
+    const n = Math.min(8, words.length);
+    for(let k = n; k >= 1; k--){
+      const ws = words.slice(0, k);
+      const sk = spokenKeys(ws);
+      const full = [], part = [];
+      clienti.forEach(c => {
+        const ni = nameInfo(c);
+        if(sk.some(v => ni.keys.some(nk => keyEq(v, nk)))) full.push(c);
+        else if(ni.toks.length && ws.every(w => ni.toks.some(x => tokMatch(w, x)))) part.push(c);
+      });
+      if(full.length) return {k, matches: full};
+      if(part.length) return {k, matches: part};
+    }
+    return {k: 0, matches: []};
+  }
+  function dayFromWords(w){
+    for(const x of w){
+      if(DAYS[x]) return {key: DAYS[x]};
+      if(WEEKEND.includes(x)) return {weekend: true};
+      if(x === 'oggi' || x === 'domani' || x === 'dopodomani'){
+        const d = new Date(); d.setDate(d.getDate() + (x === 'domani' ? 1 : x === 'dopodomani' ? 2 : 0));
+        const idx = d.getDay();
+        if(idx === 0 || idx === 6) return {weekend: true};
+        return {key: ['lun','mar','mer','gio','ven'][idx - 1]};
+      }
+    }
+    return null;
+  }
+  function parseTime(w){
+    const i = w.indexOf('alle');
+    if(i < 0) return '';
+    const h = parseInt(w[i + 1], 10);
+    if(isNaN(h) || h < 0 || h > 23) return '';
+    let mn = 0;
+    const nx = w[i + 2];
+    if(nx && /^\d{1,2}$/.test(nx) && parseInt(nx, 10) < 60) mn = parseInt(nx, 10);
+    else if(nx === 'e' && /^\d{1,2}$/.test(w[i + 3] || '')) mn = parseInt(w[i + 3], 10);
+    return String(h).padStart(2, '0') + ':' + String(mn).padStart(2, '0');
+  }
+  const MONTHS = {gennaio:1, febbraio:2, marzo:3, aprile:4, maggio:5, giugno:6, luglio:7, agosto:8, settembre:9, ottobre:10, novembre:11, dicembre:12};
+  const NUMW = {uno:1, una:1, un:1, primo:1, due:2, tre:3, quattro:4, cinque:5, sei:6, sette:7, otto:8, nove:9, dieci:10, quindici:15, venti:20, trenta:30};
+  const WDAY = {domenica:0, lunedi:1, martedi:2, mercoledi:3, giovedi:4, venerdi:5, sabato:6};
+  const DLEAD = new Set(['per','entro','il','di','a','del','lo','la','l','da']);
+  const isoD = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  // riconosce una data a partire da ts[s]: oggi, domani, giovedi, 15 dicembre, 15/12, tra 3 giorni... -> {iso, len}
+  function matchDate(ts, s){
+    const w = i => ts[i] ? ts[i].n : '', r = i => ts[i] ? ts[i].r : '';
+    let k = s;
+    while(DLEAD.has(w(k)) && k < s + 2) k++;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const add = n => { const d = new Date(today); d.setDate(d.getDate() + n); return d; };
+    const x = w(k);
+    if(!x) return null;
+    if(x === 'oggi') return {iso: isoD(add(0)), len: k + 1 - s};
+    if(x === 'domani') return {iso: isoD(add(1)), len: k + 1 - s};
+    if(x === 'dopodomani') return {iso: isoD(add(2)), len: k + 1 - s};
+    if(x in WDAY){
+      let diff = (WDAY[x] - today.getDay() + 7) % 7; if(diff === 0) diff = 7;
+      let len = k + 1 - s; if(w(k + 1) === 'prossimo' || w(k + 1) === 'prossima') len++;
+      return {iso: isoD(add(diff)), len};
+    }
+    const num = /^\d{1,2}$/.test(x) ? parseInt(x, 10) : NUMW[x];
+    if(num && MONTHS[w(k + 1)]){
+      const mo = MONTHS[w(k + 1)]; let y = today.getFullYear(), len = k + 2 - s;
+      if(/^\d{4}$/.test(w(k + 2))){ y = parseInt(w(k + 2), 10); len++; }
+      let d = new Date(y, mo - 1, num);
+      if(len === k + 2 - s && d < today) d = new Date(y + 1, mo - 1, num);
+      if(d.getMonth() !== mo - 1) return null;
+      return {iso: isoD(d), len};
+    }
+    const m = /^(\d{1,2})[\/.\-](\d{1,2})(?:[\/.\-](\d{2,4}))?$/.exec(r(k));
+    if(m){
+      let y = m[3] ? parseInt(m[3], 10) : today.getFullYear(); if(y < 100) y += 2000;
+      let d = new Date(y, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+      if(!m[3] && d < today) d = new Date(y + 1, parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+      if(d.getMonth() !== parseInt(m[2], 10) - 1) return null;
+      return {iso: isoD(d), len: k + 1 - s};
+    }
+    if(x === 'tra' || x === 'fra'){
+      const n = /^\d+$/.test(w(k + 1)) ? parseInt(w(k + 1), 10) : NUMW[w(k + 1)];
+      const u = w(k + 2);
+      if(n && /^giorn/.test(u)) return {iso: isoD(add(n)), len: k + 3 - s};
+      if(n && /^settiman/.test(u)) return {iso: isoD(add(7 * n)), len: k + 3 - s};
+      if(n && /^mes/.test(u)){ const d = new Date(today); d.setMonth(d.getMonth() + n); return {iso: isoD(d), len: k + 3 - s}; }
+    }
+    return null;
+  }
+  function dueLabel(iso){
+    const p = iso.split('-').map(Number);
+    return new Date(p[0], p[1] - 1, p[2]).toLocaleDateString('it-IT', {weekday: 'long', day: 'numeric', month: 'long'});
+  }
+  function parse(raw){
+    let toks = tokens(raw);
+    while(toks.length && WAKE.has(toks[0].n) && toks.length > 2) toks.shift();
+    if(!toks.length) return {error: 'Non ho sentito nulla.'};
+    const w = toks.map(t => t.n);
+    const head = w.slice(0, 6);
+    const hasH = (...a) => a.some(x => head.includes(x));
+    const day = dayFromWords(w);
+    let intent = null;
+    if(hasH('nota','note','appunto','annota','annotare')) intent = 'nota';
+    else if(hasH('promemoria','ricordami','ricorda','ricordare')) intent = 'promemoria';
+    else if(hasH('chiamato','chiamata','telefonato')) intent = 'chiamata';
+    else if(hasH('visitato','visitata','passato','passata')) intent = 'visita';
+    else if((day || w.includes('giro')) && hasH('metti','mettere','mettimi','aggiungi','aggiungere','inserisci','inserire','pianifica','programma','segna','visita','giro')) intent = 'giro';
+    else if(hasH('visita')) intent = 'visita';
+    if(!intent) return {error: 'Non ho capito il comando. Prova: "nota per Rossi: ...", "promemoria per Rossi: ...", "visita Rossi", "chiamato Rossi" o "metti Rossi nel giro di martedì".'};
+    let i = 0;
+    while(i < toks.length && FILL.has(w[i])) i++;
+    let j = toks.length;
+    if(intent !== 'nota' && intent !== 'promemoria'){
+      for(let x = i; x < toks.length; x++){ if(STOP.has(w[x])){ j = x; break; } }
+    }
+    let found = {k: 0, matches: []};
+    for(let st = i; st >= Math.max(0, i - 2) && !found.matches.length; st--){
+      const f = findClients(w.slice(st, j));
+      if(f.matches.length){ found = f; i = st; }
+    }
+    if(!found.matches.length) return {error: 'Non trovo il cliente' + (i < toks.length ? ' "' + toks.slice(i, Math.min(toks.length, i + 3)).map(t => t.r).join(' ') + '"' : '') + '. Prova a dire il nome come sta in elenco.'};
+    const out = {intent, matches: found.matches};
+    if(intent === 'nota' || intent === 'promemoria'){
+      let rest = toks.slice(i + found.k);
+      while(rest.length && TEXT_LEAD.has(rest[0].n)) rest.shift();
+      if(intent === 'promemoria'){
+        // scadenza all'inizio ("per giovedi richiamare") oppure alla fine ("richiamare entro il 15 dicembre")
+        let md = matchDate(rest, 0);
+        if(md){ out.due = md.iso; rest = rest.slice(md.len); }
+        else {
+          for(let t = Math.max(0, rest.length - 6); t < rest.length; t++){
+            const m2 = matchDate(rest, t);
+            if(m2 && t + m2.len === rest.length){ out.due = m2.iso; rest = rest.slice(0, t); break; }
+          }
+        }
+        while(rest.length && TEXT_LEAD.has(rest[0].n)) rest.shift();
+      }
+      let text = rest.map(t => t.r).join(' ').replace(/^[:,;\-\s]+/, '').trim();
+      if(!text) return {needText: true, intent, matches: found.matches, due: out.due, error: 'Cosa devo scrivere?'};
+      out.text = text.charAt(0).toUpperCase() + text.slice(1);
+    }
+    if(intent === 'giro'){
+      if(!day) return {error: 'In che giorno lo metto? Di’ lunedì, martedì, ... oppure domani.'};
+      if(day.weekend) return {error: 'Sabato e domenica non ci sono nei giri: scegli un giorno da lunedì a venerdì.'};
+      out.day = day.key; out.time = parseTime(w);
+    }
+    return out;
+  }
+
+  // ---- esecuzione ----
+  const DAYNAME = {lun:'Lunedì', mar:'Martedì', mer:'Mercoledì', gio:'Giovedì', ven:'Venerdì'};
+  function describe(a){
+    const n = '<b>' + esc(a.client.nome) + '</b>';
+    switch(a.intent){
+      case 'nota': return 'Nota per ' + n + ': &laquo;' + esc(a.text) + '&raquo;';
+      case 'promemoria': return 'Promemoria per ' + n + (a.due ? ' con scadenza <b>' + esc(dueLabel(a.due)) + '</b>' : '') + ': &laquo;' + esc(a.text) + '&raquo;';
+      case 'visita': return 'Segno la visita di oggi a ' + n;
+      case 'chiamata': return 'Segno la chiamata di oggi a ' + n;
+      case 'giro': return 'Metto ' + n + ' nel giro di <b>' + DAYNAME[a.day] + '</b>' + (a.time ? ' alle ' + a.time : '');
+    }
+    return '';
+  }
+  function refresh(id){
+    try { if(typeof renderClients === 'function') renderClients(); } catch(_){}
+    try { if(typeof activeNotesId !== 'undefined' && activeNotesId === id) renderNotesBody(); } catch(_){}
+    try { if(typeof activeRemId !== 'undefined' && activeRemId === id) renderRemBody(); } catch(_){}
+    try { if(typeof updateBell === 'function') updateBell(); } catch(_){}
+  }
+  function execute(a){
+    const c = a.client, v = getV(c.id);
+    let msg = '';
+    if(a.intent === 'nota'){
+      v.notes.push({date: new Date().toISOString(), text: a.text});
+      saveAll(); refresh(c.id); msg = 'Nota aggiunta a ' + c.nome;
+    } else if(a.intent === 'promemoria'){
+      const rem = {date: new Date().toISOString(), text: a.text, done: false};
+      if(a.due) rem.due = a.due;
+      v.reminders.push(rem);
+      saveAll(); refresh(c.id); msg = 'Promemoria aggiunto a ' + c.nome + (a.due ? ' (scadenza ' + dueLabel(a.due) + ')' : '');
+    } else if(a.intent === 'visita'){
+      markVisit(c.id); msg = 'Visita registrata: ' + c.nome;
+    } else if(a.intent === 'chiamata'){
+      markCall(c.id); msg = 'Chiamata registrata: ' + c.nome;
+    } else if(a.intent === 'giro'){
+      if(!Array.isArray(giri[a.day])) giri[a.day] = [];
+      if(giri[a.day].some(x => x.clientId === c.id)){ status(c.nome + ' è già nel giro di ' + DAYNAME[a.day] + '.', true); reset(); return; }
+      giri[a.day].push({id: 'g' + Date.now() + Math.random().toString(36).slice(2, 6), clientId: c.id, clientName: c.nome, time: a.time || '', note: ''});
+      saveAll();
+      try { if(typeof renderGiri === 'function') renderGiri(); } catch(_){}
+      msg = c.nome + ' nel giro di ' + DAYNAME[a.day] + (a.time ? ' alle ' + a.time : '');
+    }
+    log.push(msg); renderLog();
+    status('Fatto: ' + msg + '.');
+    try { showToast(msg); } catch(_){}
+    heard(''); reset();
+  }
+  function askConfirm(a){
+    pending = a; state = 'confirm';
+    if($('va-auto').checked){ execute(a); return; }
+    status('Confermi?');
+    card('<div class="va-txt">' + describe(a) + '</div><div class="va-btns"><button class="va-btn pri" type="button" data-va="ok">Conferma</button><button class="va-btn" type="button" data-va="no">Annulla</button></div>');
+  }
+  function askText(r){
+    pending = r; state = 'text';
+    status('Cosa scrivo nel ' + (r.intent === 'nota' ? 'nota' : 'promemoria') + ' per ' + r.client.nome + (r.due ? ' (scadenza ' + dueLabel(r.due) + ')' : '') + '? Parla pure, ti ascolto.');
+    card('<div class="va-btns"><button class="va-btn" type="button" data-va="no">Annulla</button></div>');
+  }
+  function afterClient(r){ if(r.needText && !r.text) askText(r); else askConfirm(r); }
+  function askPick(res){
+    state = 'pick'; pending = res;
+    status('Quale cliente?');
+    card('<div class="va-txt">Ho trovato più clienti:</div><div class="va-btns">' + res.matches.slice(0, 8).map((c, i) => '<button class="va-btn" type="button" data-va="pick" data-i="' + i + '">' + esc(c.nome) + (c.zona ? ' <small>(' + esc(c.zona) + ')</small>' : '') + '</button>').join('') + '<button class="va-btn" type="button" data-va="no">Annulla</button></div>');
+  }
+
+  const YES = /^(si|sii|certo|confermo|conferma|ok|okay|esegui|vai|vabene|fallo)$/;
+  const NO = /^(no|annulla|annullo|stop|cancella|lasciastare|niente|basta)$/;
+  function handle(text, fromVoice){
+    text = String(text || '').trim();
+    if(!text) return;
+    heard(text);
+    const yn = norm(text);
+    if(state === 'confirm' && pending){
+      if(YES.test(yn)){ execute(pending); return; }
+      if(NO.test(yn)){ status('Annullato.'); reset(); return; }
+    }
+    if(state === 'text' && pending){
+      if(NO.test(yn)){ status('Annullato.'); reset(); return; }
+      const tk = tokens(text);
+      while(tk.length > 1 && TEXT_LEAD.has(tk[0].n)) tk.shift();
+      const t = tk.map(x => x.r).join(' ').trim();
+      if(t){ askConfirm(Object.assign({}, pending, {text: t.charAt(0).toUpperCase() + t.slice(1), needText: false})); return; }
+    }
+    if(state === 'pick' && pending){
+      if(NO.test(yn)){ status('Annullato.'); reset(); return; }
+      const sel = pending.matches.filter(c => norm(c.nome).includes(yn) || (c.zona && yn === norm(c.zona)));
+      if(sel.length === 1){ afterClient(Object.assign({}, pending, {client: sel[0]})); return; }
+    }
+    reset();
+    const r = parse(text);
+    if(r.error && !r.needText){ status(r.error, true); return; }
+    if(r.matches.length === 1){ r.client = r.matches[0]; afterClient(r); }
+    else askPick(r);
+  }
+
+  // ---- riconoscimento vocale: resta acceso finche' non lo spegni, e aspetta le pause prima di interpretare ----
+  let micOn = false, buf = '', lastInterim = '', timer = null, restarts = 0;
+  function setListening(on){
+    listening = on;
+    $('va-fab').classList.toggle('listening', on);
+    $('va-mic').classList.toggle('listening', on);
+  }
+  function delayFor(txt){
+    if(state === 'confirm' || state === 'pick') return 700;
+    if(state === 'text') return 2200;
+    const r = parse(txt);
+    if(r.needText) return 4500;           // ha detto "promemoria per Rossi" e sta pensando al testo
+    if(r.error) return 1800;
+    return (r.intent === 'nota' || r.intent === 'promemoria') ? 2200 : 1200;
+  }
+  function flush(){
+    timer = null;
+    const t = (buf + ' ' + lastInterim).trim();
+    buf = ''; lastInterim = '';
+    if(t) handle(t, true);
+  }
+  function onSpeech(fin, inter){
+    if(fin) buf = (buf + ' ' + fin).trim();
+    lastInterim = inter || '';
+    const shown = (buf + ' ' + lastInterim).trim();
+    heard(shown);
+    clearTimeout(timer);
+    if(shown) timer = setTimeout(flush, delayFor(shown));
+  }
+  function startListen(){
+    if(!SR){ status('Il riconoscimento vocale non è disponibile in questo browser: scrivi il comando qui sotto (meglio Chrome o Edge).', true); return; }
+    micOn = true; restarts = 0;
+    if(state === 'idle') status('Ti ascolto…');
+    beginRec();
+  }
+  function beginRec(){
+    if(!micOn || listening) return;
+    try {
+      rec = new SR();
+      rec.lang = 'it-IT'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 1;
+      rec.onstart = () => setListening(true);
+      rec.onresult = e => {
+        restarts = 0;
+        let fin = '', inter = '';
+        for(let i = e.resultIndex; i < e.results.length; i++){
+          const tr = e.results[i][0].transcript;
+          if(e.results[i].isFinal) fin += ' ' + tr; else inter += ' ' + tr;
+        }
+        onSpeech(fin.trim(), inter.trim());
+      };
+      rec.onerror = e => {
+        const fatal = {'not-allowed': 'Microfono bloccato: consenti l\u2019accesso al microfono nelle impostazioni del browser.', 'service-not-allowed': 'Microfono bloccato: consenti l\u2019accesso al microfono nelle impostazioni del browser.', 'audio-capture': 'Non trovo nessun microfono.', 'network': 'Serve la connessione a internet per il riconoscimento vocale.'};
+        if(fatal[e.error]){ micOn = false; status(fatal[e.error], true); }
+      };
+      rec.onend = () => {
+        listening = false;
+        if(micOn && $('va-panel').classList.contains('open') && restarts < 40){ restarts++; setTimeout(beginRec, 200); }
+        else { micOn = false; setListening(false); }
+      };
+      rec.start();
+    } catch(err){ micOn = false; setListening(false); status('Non riesco ad avviare il microfono: ' + err.message, true); }
+  }
+  function stopListen(){
+    micOn = false; clearTimeout(timer); timer = null; buf = ''; lastInterim = '';
+    try { if(rec) rec.abort(); } catch(_){}
+    setListening(false);
+  }
+  function micToggle(){ if(micOn){ stopListen(); status('Microfono spento.'); } else startListen(); }
+
+  // ---- interfaccia ----
+  function openPanel(){ $('va-panel').classList.add('open'); }
+  function closePanel(){ $('va-panel').classList.remove('open'); stopListen(); reset(); heard(''); }
+  $('va-fab').addEventListener('click', () => {
+    if($('va-panel').classList.contains('open')){ closePanel(); return; }
+    openPanel();
+    if(SR){ startListen(); } else status('Il riconoscimento vocale non è disponibile in questo browser: scrivi il comando qui sotto (meglio Chrome o Edge).', true);
+  });
+  $('va-close').addEventListener('click', closePanel);
+  $('va-mic').addEventListener('click', micToggle);
+  $('va-send').addEventListener('click', () => { const i = $('va-text'); const t = i.value; i.value = ''; handle(t, false); });
+  $('va-text').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); $('va-send').click(); } });
+  $('va-card').addEventListener('click', e => {
+    const b = e.target.closest('button[data-va]'); if(!b) return;
+    const k = b.dataset.va;
+    if(k === 'ok' && pending){ execute(pending); }
+    else if(k === 'no'){ status('Annullato.'); reset(); }
+    else if(k === 'pick' && pending){ const c = pending.matches[parseInt(b.dataset.i, 10)]; afterClient(Object.assign({}, pending, {client: c})); }
+  });
+  document.addEventListener('keydown', e => { if(e.key === 'Escape' && $('va-panel').classList.contains('open')) closePanel(); });
+  try { $('va-auto').checked = localStorage.getItem('agentmapVoiceAuto') === '1'; } catch(_){}
+  $('va-auto').addEventListener('change', () => { try { localStorage.setItem('agentmapVoiceAuto', $('va-auto').checked ? '1' : '0'); } catch(_){} });
+  window.agentmapVoice = {parse, handle};
+})();
+</script>
+
 </body>
 </html>
